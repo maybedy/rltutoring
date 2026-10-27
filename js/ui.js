@@ -128,7 +128,7 @@
     const colorOf = {};
     o.terms.forEach((t, i) => (colorOf[t.id] = t.color || (i % 6) + 1));
     o.terms.forEach((t) => box.querySelectorAll('.fx-t-' + t.id).forEach((n) => n.classList.add('fx-t-c' + colorOf[t.id])));
-    const detail = h('div', { class: 'fx-detail', html: o.hint || '항 위에 마우스를 올리거나 아래 카드를 눌러 각 항의 의미를 확인하세요.' });
+    const detail = h('div', { class: 'fx-detail', html: o.hint || '항 위에 마우스를 올리거나 아래 카드를 누르면 각 항의 의미가 나온다.' });
     const list = h('div', { class: 'fx-terms' });
     let pinned = null;
     const cards = {};
@@ -149,7 +149,7 @@
         sayEl.classList.toggle('dim', !!id);
         sayEl.querySelectorAll('.say-t').forEach((n) => n.classList.toggle('on', n.dataset.id === id));
       }
-      if (!id) { detail.innerHTML = o.hint || '항 위에 마우스를 올리거나 아래 카드를 눌러 각 항의 의미를 확인하세요.'; return; }
+      if (!id) { detail.innerHTML = o.hint || '항 위에 마우스를 올리거나 아래 카드를 누르면 각 항의 의미가 나온다.'; return; }
       box.querySelectorAll('.fx-t-' + id).forEach((n) => n.classList.add('on'));
       if (cards[id]) cards[id].classList.add('on');
       const t = o.terms.find((x) => x.id === id);
@@ -246,7 +246,7 @@
 
   /* 먼저 예측하기: items [{q, answer | choices+correct, tol, rtol, unit, hint, explain}] */
   function predict(el, o) {
-    const p = panel(el, { kind: 'TRY', title: o.title || '먼저 예측해 보기', caption: o.caption });
+    const p = panel(el, { kind: 'TRY', title: o.title || '먼저 예측하기', caption: o.caption });
     const items = o.items || [o];
     items.forEach((it, qi) => {
       const box = h('div', { class: 'pr-item' });
@@ -264,7 +264,7 @@
         it.choices.forEach((c, ci) => {
           const b = button(row, c, () => {
             row.querySelectorAll('button').forEach((x, xi) => { x.disabled = true; if (xi === it.correct) x.classList.add('right'); });
-            if (ci !== it.correct) { b.classList.add('wrong'); fb.innerHTML = '<strong class="col-bad">아쉽다.</strong> ' + (it.hint || ''); }
+            if (ci !== it.correct) { b.classList.add('wrong'); fb.innerHTML = '<strong class="col-bad">틀렸다.</strong> ' + (it.hint || ''); }
             reveal(ci === it.correct);
           });
         });
@@ -277,11 +277,11 @@
         let tries = 0;
         const check = () => {
           const v = parseNum(inp.value);
-          if (!Number.isFinite(v)) { fb.innerHTML = '숫자로 적어 주세요. 분수(1/3)나 퍼센트(25%)도 됩니다.'; return; }
+          if (!Number.isFinite(v)) { fb.innerHTML = '숫자로 적어야 한다. 분수(1/3)나 퍼센트(25%)도 된다.'; return; }
           tries++;
           if (close(v, it.answer, it)) { reveal(true); return; }
           const dir = v < it.answer ? '조금 더 크다' : '조금 더 작다';
-          fb.innerHTML = '<strong class="col-bad">아직.</strong> 정답은 이것보다 ' + dir + '. ' + (tries >= 2 && it.hint ? it.hint : '');
+          fb.innerHTML = '<strong class="col-bad">아직 아니다.</strong> 정답은 이것보다 ' + dir + '. ' + (tries >= 2 && it.hint ? it.hint : '');
           RL.renderMath(fb);
         };
         inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') check(); });
@@ -307,15 +307,15 @@
       if (st.ask) {
         calc.hidden = true;
         const id = nextId('wk');
-        const inp = h('input', { id, class: 'inp pr-inp', type: 'text', inputmode: 'decimal', autocomplete: 'off', placeholder: '계산해 보기' });
+        const inp = h('input', { id, class: 'inp pr-inp', type: 'text', inputmode: 'decimal', autocomplete: 'off', placeholder: '계산 결과' });
         const fb = h('span', { class: 'pr-fb', role: 'status' });
         const row = h('div', { class: 'pr-row' }, h('label', { for: id, class: 'sr-only', text: '계산 값' }), inp, st.ask.unit ? h('span', { class: 'col-muted', html: st.ask.unit }) : null);
         const done = (ok) => { calc.hidden = false; row.remove(); if (ok) li.classList.add('ok'); fb.innerHTML = ok ? '<strong class="col-good">맞았다.</strong>' : ''; };
         const check = () => {
           const v = parseNum(inp.value);
-          if (!Number.isFinite(v)) { fb.textContent = '숫자로 적어 주세요.'; return; }
+          if (!Number.isFinite(v)) { fb.textContent = '숫자로 적어야 한다.'; return; }
           if (close(v, st.ask.answer, st.ask)) done(true);
-          else fb.innerHTML = '<span class="col-bad">다시 한번.</span> 정답은 이것보다 ' + (v < st.ask.answer ? '크다.' : '작다.');
+          else fb.innerHTML = '<span class="col-bad">아직 아니다.</span> 정답은 이것보다 ' + (v < st.ask.answer ? '크다.' : '작다.');
         };
         inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') check(); });
         button(row, '확인', check, { primary: true });

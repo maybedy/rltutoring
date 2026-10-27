@@ -17,7 +17,7 @@
       { id: 'dp', no: '03', title: '동적계획법과 GPI' },
       { id: 'pomdp', no: '04', title: 'POMDP와 믿음 상태' },
     ] },
-    { part: 'II', title: '경험으로부터 학습', items: [
+    { part: 'II', title: '경험에서 배우기', items: [
       { id: 'bandit', no: '05', title: '밴딧과 탐험' },
       { id: 'td', no: '06', title: 'MC와 TD, n-step, TD(λ)' },
       { id: 'qlearning', no: '07', title: 'Q-learning과 SARSA' },
@@ -34,9 +34,9 @@
       { id: 'maxent', no: '14', title: '연속 제어와 최대 엔트로피' },
     ] },
     { part: 'V', title: '데이터 · 모델 · 시퀀스', items: [
-      { id: 'offline', no: '15', title: '온라인 vs 오프라인 RL' },
+      { id: 'offline', no: '15', title: '온라인 RL과 오프라인 RL' },
       { id: 'modelbased', no: '16', title: '모델 기반 RL과 계획' },
-      { id: 'sequence', no: '17', title: '시퀀스 모델로서의 RL' },
+      { id: 'sequence', no: '17', title: '시퀀스 모델로 보는 RL' },
     ] },
     { part: 'VI', title: 'LLM과 강화학습', items: [
       { id: 'llm-mdp', no: '18', title: 'LLM을 MDP로 보기' },
@@ -48,7 +48,7 @@
     ] },
     { part: 'VII', title: '종합', items: [
       { id: 'synthesis', no: '24', title: '종합: 연구 흐름과 열린 문제' },
-      { id: 'tacit', no: '25', title: '암묵지 노트: 고수들의 감' },
+      { id: 'tacit', no: '25', title: '암묵지 노트' },
       { id: 'glossary', no: 'A', title: '기호 · 용어 · 참고문헌' },
     ] },
   ];
@@ -62,33 +62,33 @@
 
   /* ---------- 대전제 (Thesis) ---------- */
   RL.theses = [
-    { id: 'T1', easy: '지금 가치를 \'한 걸음 앞의 가치\'로 계속 고쳐 쓰면, 어디서 시작하든 같은 정답에 점점 빨리 다가간다.', analogy: '소문이 퍼지듯 목표 지점의 점수가 한 칸씩 주변으로 번져 나가고, 몇 번만 반복하면 지도 전체가 안정된다.', short: '벨만 고정점', title: '벨만 연산자는 축약 사상이다',
+    { id: 'T1', easy: '가치를 \'한 걸음 앞의 가치\'로 거듭 고쳐 쓰면, 어떤 값에서 시작하든 같은 정답으로 모인다.', analogy: '소문이 퍼지듯 목표 지점의 점수가 한 칸씩 주변으로 번지고, 반복할수록 지도 전체가 안정된다.', short: '벨만 고정점', title: '벨만 연산자는 축약 사상이다',
       tex: String.raw`\|\mathcal{T}V-\mathcal{T}U\|_\infty \le \gamma\,\|V-U\|_\infty`,
-      gist: '가치 함수는 "한 단계 보상 + 할인된 다음 가치"의 고정점이며, 그 반복은 기하급수적으로 수렴한다.' },
-    { id: 'T2', easy: '\'지금 방식이 얼마나 좋은지 재 보기\'와 \'잰 결과대로 조금 더 나은 방식으로 바꾸기\'를 번갈아 하면 계속 좋아진다.', analogy: '시험을 보고(평가) 틀린 부분을 고쳐 공부하는(개선) 것을 반복하는 공부법과 같다.', short: 'GPI', title: '평가와 개선의 반복(GPI)',
+      gist: '가치 함수는 "한 단계 보상 + 할인된 다음 가치"의 고정점이다. 이 계산을 반복하면 오차가 기하급수적으로 줄어든다.' },
+    { id: 'T2', easy: '지금 방식이 얼마나 좋은지 재고, 잰 결과에 맞춰 조금 더 나은 방식으로 바꾼다. 이 두 일을 번갈아 하면 계속 좋아진다.', analogy: '시험을 보고(평가) 틀린 부분을 고쳐 공부하는(개선) 것을 반복하는 공부법과 같다.', short: 'GPI', title: '평가와 개선의 반복(GPI)',
       tex: String.raw`\pi_{k+1} = \operatorname{greedy}(Q^{\pi_k}) \;\Rightarrow\; Q^{\pi_{k+1}} \ge Q^{\pi_k}`,
-      gist: '현재 정책을 평가하고, 그 평가에 탐욕적으로 개선하는 두 과정의 상호작용이 거의 모든 RL 알고리즘의 골격이다.' },
-    { id: 'T3', easy: '결과가 좋았던 선택은 다음에 더 자주, 나빴던 선택은 덜 하도록 확률을 조금씩 옮기면 된다. 보상을 미분할 수 없어도 된다.', analogy: '칭찬받은 행동을 더 자주 하게 되는 강아지 훈련과 같다.', short: '점수함수 경사', title: '로그-미분 트릭(점수함수 추정량)',
+      gist: '현재 정책을 평가하고, 그 평가를 기준으로 탐욕적으로 개선한다. 이 두 과정을 번갈아 하는 구조가 거의 모든 RL 알고리즘의 골격이다.' },
+    { id: 'T3', easy: '결과가 좋았던 선택은 더 자주, 나빴던 선택은 덜 하도록 확률을 조금씩 옮긴다. 보상을 미분할 수 없어도 이 방법은 쓸 수 있다.', analogy: '칭찬받은 행동을 더 자주 하게 되는 강아지 훈련과 같다.', short: '점수함수 경사', title: '로그-미분 트릭(점수함수 추정량)',
       tex: String.raw`\nabla_\theta\,\mathbb{E}_{x\sim p_\theta}[f(x)] = \mathbb{E}_{x\sim p_\theta}\!\left[f(x)\,\nabla_\theta\log p_\theta(x)\right]`,
-      gist: '미분 불가능한 보상이라도 샘플의 로그확률 경사에 보상을 곱해 평균내면 목표의 경사가 된다. REINFORCE부터 GRPO까지의 공통 뿌리.' },
-    { id: 'T4', easy: '새 방식이 얼마나 나은지는 옛 방식으로 모은 경험으로 짐작할 수 있지만, 너무 많이 바꾸면 그 짐작이 틀린다. 그래서 조금씩만 바꾼다.', analogy: '익숙한 동네 지도로는 옆 동네까지만 길을 찾을 수 있다. 너무 멀리 가면 지도가 맞지 않는다.', short: '성능 차이 · 신뢰영역', title: '성능 차이 보조정리와 신뢰영역',
+      gist: '보상을 미분할 수 없어도, 샘플의 로그확률 경사에 보상을 곱해 평균 내면 목표의 경사가 된다. REINFORCE부터 GRPO까지 모두 이 식에서 출발한다.' },
+    { id: 'T4', easy: '새 방식이 얼마나 나은지는 옛 방식으로 모은 경험으로 짐작할 수 있다. 하지만 한 번에 너무 많이 바꾸면 그 짐작이 틀린다. 그래서 조금씩만 바꾼다.', analogy: '익숙한 동네 지도로는 옆 동네까지만 길을 찾을 수 있다. 너무 멀리 가면 지도가 맞지 않는다.', short: '성능 차이 · 신뢰영역', title: '성능 차이 보조정리와 신뢰영역',
       tex: String.raw`J(\pi')-J(\pi)=\tfrac{1}{1-\gamma}\,\mathbb{E}_{s\sim d^{\pi'},\,a\sim\pi'}\!\left[A^{\pi}(s,a)\right]`,
-      gist: '새 정책의 이득은 옛 정책의 advantage로 표현된다. 단, 상태 분포가 바뀌므로 정책을 조금씩만 바꿔야(신뢰영역/KL) 근사가 유효하다.' },
-    { id: 'T5', easy: '\'점수를 올려라, 하지만 원래 습관에서 너무 멀어지지 마라\'를 동시에 풀면, 원래 확률에 점수만큼 가중치를 곱한 답이 나온다.', analogy: '평소 즐겨 가던 식당 목록(원래 습관)에서, 오늘 평점이 좋은 곳에 가중치를 더 주어 고르는 것과 같다.', short: 'KL-정규화 해', title: 'KL(엔트로피) 정규화의 닫힌 해',
+      gist: '새 정책의 이득은 옛 정책의 advantage로 나타낼 수 있다. 다만 정책이 바뀌면 방문하는 상태의 분포도 바뀌므로, 정책을 조금씩만 바꿔야(신뢰영역, KL 제약) 이 근사가 맞는다.' },
+    { id: 'T5', easy: '"점수는 올리되 원래 습관에서 너무 멀어지지 말라"는 문제를 풀면, 원래 확률에 점수에 따른 가중치를 곱한 답이 나온다.', analogy: '평소 가던 식당 목록(원래 습관) 안에서 평점이 좋은 곳을 더 자주 고르는 것과 같다.', short: 'KL-정규화 해', title: 'KL(엔트로피) 정규화의 닫힌 해',
       tex: String.raw`\max_\pi \mathbb{E}_\pi[r]-\beta\,\mathrm{KL}(\pi\|\pi_0)\;\Rightarrow\;\pi^*(a)=\frac{\pi_0(a)\,e^{r(a)/\beta}}{Z}`,
-      gist: '보상을 최대화하되 기준 분포에서 멀어지지 말라는 목표의 해는 기준 분포를 exp(보상/β)로 재가중한 볼츠만 분포다. SAC, Soft-Q, RLHF, DPO, Best-of-N이 모두 이 식 위에 있다.' },
-    { id: 'T6', easy: '끝까지 기다려 실제 결과를 보면 정확하지만 들쭉날쭉하고, 중간 예상치를 믿으면 안정적이지만 예상이 틀린 만큼 치우친다. 그 사이를 고르는 손잡이가 있다.', analogy: '시험 점수를 기말 성적표로만 판단할지(정확하지만 늦고 운이 섞임), 매주 쪽지시험 예상치로 판단할지(빠르지만 예상이 틀릴 수 있음)의 차이.', short: '편향-분산', title: '부트스트랩의 편향-분산 트레이드오프',
+      gist: '보상을 최대화하되 기준 분포에서 멀어지지 말라는 목표의 해는 기준 분포를 exp(보상/β)로 재가중한 볼츠만 분포다. SAC, Soft-Q, RLHF, DPO, Best-of-N이 모두 이 식에서 나온다.' },
+    { id: 'T6', easy: '끝까지 기다려 실제 결과를 보면 정확하지만 값이 들쭉날쭉하다. 중간 예상치를 믿으면 안정적이지만 예상이 틀린 만큼 치우친다. 이 둘 사이를 고르는 손잡이가 있다.', analogy: '실력을 기말 성적표 하나로 판단할지(정확하지만 늦고 운이 섞인다), 매주 쪽지시험으로 짐작할지(빠르지만 짐작이 틀릴 수 있다)를 고르는 것과 같다.', short: '편향-분산', title: '부트스트랩의 편향-분산 트레이드오프',
       tex: String.raw`G_t^{(n)} = \sum_{k=0}^{n-1}\gamma^k r_{t+k+1} + \gamma^n V(s_{t+n})`,
-      gist: '실제 리턴(MC)은 불편이지만 분산이 크고, 추정치로 부트스트랩(TD)하면 분산은 작지만 편향이 생긴다. n-step, λ, GAE, baseline, 그룹 평균이 모두 이 손잡이를 조절한다.' },
-    { id: 'T7', easy: '더 시도해 볼 수 있으면 \'모르는 곳은 좋을지도 모른다\'고 낙관해 가 보고, 더 시도할 수 없으면 \'모르는 곳은 위험하다\'고 비관해 피한다.', analogy: '여행 중이면 낯선 식당도 가 보지만, 중요한 손님을 모시는 날엔 검증된 곳만 간다.', short: '낙관과 비관', title: '불확실성 앞의 낙관(온라인)과 비관(오프라인)',
+      gist: '실제 리턴(MC)은 편향이 없지만 분산이 크다. 추정치로 부트스트랩(TD)하면 분산은 작아지지만 편향이 생긴다. n-step, λ, GAE, baseline, 그룹 평균이 모두 이 손잡이를 조절한다.' },
+    { id: 'T7', easy: '더 시도해 볼 수 있으면 \'모르는 곳은 좋을지도 모른다\'고 낙관해 가 보고, 더 시도할 수 없으면 \'모르는 곳은 위험하다\'고 비관해 피한다.', analogy: '여행 중이면 낯선 식당도 가 보지만, 중요한 손님을 모시는 날에는 검증된 곳만 간다.', short: '낙관과 비관', title: '불확실성 앞의 낙관(온라인)과 비관(오프라인)',
       tex: String.raw`a_t = \arg\max_a \big[\hat Q(a) \pm c\,\sigma(a)\big]`,
       gist: '데이터를 더 모을 수 있으면 불확실한 곳을 낙관적으로 탐험하고(UCB), 더 모을 수 없으면 불확실한 곳을 비관적으로 피한다(CQL, LCB).' },
-    { id: 'T8', easy: '어림짐작으로 어림짐작을 고치고, 남이 모은 데이터로 배우고, 비슷한 상황끼리 묶어 일반화하는 세 가지를 함께 하면 오차가 스스로 커질 수 있다.', analogy: '여러 개의 흔들리는 저울 중 가장 높게 나온 숫자만 믿으면, 실제보다 무겁다고 착각하기 쉽다.', short: 'Deadly Triad', title: '함수근사 · 부트스트랩 · off-policy의 불안정성',
+    { id: 'T8', easy: '세 가지를 한꺼번에 하면 오차가 저절로 커질 수 있다. 어림값으로 어림값 고치기, 남이 모은 데이터로 배우기, 비슷한 상황을 묶어 일반화하기다.', analogy: '흔들리는 저울 여러 개 중 가장 높게 나온 숫자만 믿으면 실제보다 무겁다고 착각하기 쉽다.', short: 'Deadly Triad', title: '함수근사 · 부트스트랩 · off-policy의 불안정성',
       tex: String.raw`\mathbb{E}\big[\max_a \hat Q(s,a)\big] \ge \max_a \mathbb{E}\big[\hat Q(s,a)\big]`,
-      gist: '세 요소가 함께 있으면 학습이 발산할 수 있고, max 연산은 잡음을 과대추정으로 바꾼다. target network, double estimator, clipping은 이 불안정성의 처방이다.' },
-    { id: 'T9', easy: '오래 고민해서 찾은 좋은 답을 외워 두면, 다음에는 고민 없이 바로 꺼내 쓸 수 있다. 그 \'외운 실력\'으로 다시 더 깊이 고민한다.', analogy: '바둑 기사가 수읽기로 찾은 좋은 수를 기보로 공부해 감각으로 만드는 것과 같다.', short: '탐색의 상각', title: '탐색 후 증류: 개선 연산자의 상각(Amortization)',
+      gist: '세 요소가 함께 있으면 학습이 발산할 수 있다. max 연산은 추정치의 잡음을 과대추정으로 바꾼다. 타깃 네트워크, 이중 추정기, 클리핑이 이 불안정성을 줄이는 처방이다.' },
+    { id: 'T9', easy: '오래 고민해서 찾은 좋은 답을 외워 두면 다음에는 바로 꺼내 쓸 수 있다. 외운 실력을 바탕으로 다시 더 깊이 고민한다.', analogy: '바둑 기사가 수읽기로 찾은 좋은 수를 기보로 공부해 감각으로 만드는 것과 같다.', short: '탐색의 상각', title: '탐색 후 증류: 개선 연산자의 상각(Amortization)',
       tex: String.raw`\pi_{k+1} = \arg\min_{\pi}\, \mathrm{KL}\big(\mathcal{I}[\pi_k]\,\|\,\pi\big)`,
-      gist: '비싼 개선 연산(MCTS, Best-of-N, 검증, 반성)으로 더 나은 행동을 찾고 그것을 정책에 증류해 다음 번엔 싸게 꺼내 쓴다. AlphaZero, ExIt, STaR, ReST, R1 증류가 같은 구조다.' },
+      gist: '비싼 개선 연산(MCTS, Best-of-N, 검증, 반성)으로 더 나은 행동을 찾고, 그 결과를 정책에 증류해 다음에는 적은 비용으로 꺼내 쓴다. AlphaZero, ExIt, STaR, ReST, R1 증류가 모두 같은 구조다.' },
   ];
   RL.thesisById = {};
   RL.theses.forEach((t) => (RL.thesisById[t.id] = t));
@@ -99,7 +99,7 @@
     ['s', '에스', '상태: 지금 처한 상황'],
     ['a', '에이', '행동: 지금 고를 수 있는 선택'],
     ['r', '알', '보상: 선택 직후 받는 점수'],
-    ['\\gamma', '감마', '할인율: 미래 점수를 지금 얼마나 쳐줄지 (0~1). 0.9면 한 걸음 늦을 때마다 90%만 인정'],
+    ['\\gamma', '감마', '할인율: 미래 점수를 지금 얼마나 쳐줄지 정하는 값(0~1). 0.9면 한 걸음 늦을 때마다 90%만 인정한다'],
     ['G_t', '리턴', '지금부터 끝까지 받을 점수의 합 (먼 미래는 할인)'],
     ['\\pi', '파이', '정책: 상황마다 무엇을 할지 정한 규칙. 보통 행동별 확률'],
     ['V(s)', '가치', '이 상황에서 앞으로 기대되는 총점'],
@@ -108,10 +108,10 @@
     ['\\mathbb{E}[\\cdot]', '기댓값', '여러 번 해 봤을 때의 평균'],
     ['\\sum', '시그마', '전부 더하기'],
     ['\\max_a', '맥스', '가장 좋은 선택의 값'],
-    ['\\arg\\max_a', '아그맥스', '값이 가장 큰 그 선택 자체'],
+    ['\\arg\\max_a', '아그맥스', '값을 가장 크게 만드는 선택'],
     ['\\alpha', '알파', '학습률: 한 번에 얼마나 고쳐 쓸지'],
     ['\\delta', '델타', 'TD 오차: 예상과 실제의 차이 (놀람의 크기)'],
-    ['\\theta', '세타', '모델(신경망)의 조절 손잡이들'],
+    ['\\theta', '세타', '모델(신경망)의 매개변수. 학습하면서 조절하는 값들'],
     ['\\nabla', '나블라', '그래디언트: 점수가 가장 빨리 오르는 방향'],
     ['\\log', '로그', '곱을 합으로 바꿔 주는 함수. 아주 작은 확률도 다루기 쉽게 만든다'],
     ['\\beta', '베타', '기준에서 멀어지는 것에 매기는 벌점의 크기'],
@@ -374,19 +374,19 @@
   }
 
   /* 암묵지: [{t: 제목, d: 본문 html, tag?: 'math'|'algo'|'practice'|'research'}] */
-  RL.tacitTags = { math: '수학적 감', algo: '알고리즘 감', practice: '실전 감', research: '연구 감' };
+  RL.tacitTags = { math: '수학', algo: '알고리즘', practice: '실전', research: '연구' };
   function renderTacit(container, items) {
     if (!items || !items.length) return;
     const wrap = document.createElement('section');
     wrap.className = 'tacit';
-    wrap.innerHTML = '<h2>암묵지: 고수들은 이렇게 본다</h2><p class="w-caption">교과서에는 잘 안 적히지만, 수학과 알고리즘에 능숙한 사람들이 이 주제를 볼 때 자연스럽게 떠올리는 관점과 경험칙이다.</p>';
+    wrap.innerHTML = '<h2>암묵지: 숙련자가 먼저 확인하는 것</h2><p class="w-caption">교과서에는 잘 적혀 있지 않지만, 수학과 알고리즘에 익숙한 사람들이 이 주제를 볼 때 먼저 떠올리는 관점과 경험칙이다.</p>';
     const list = document.createElement('div');
     list.className = 'tacit-list';
     items.forEach((it, i) => {
       const d = document.createElement('details');
       d.className = 'tacit-item';
       if (i < 2 && !RL.isEasy()) d.open = true;
-      d.innerHTML = '<summary><span class="tc-tag">' + (RL.tacitTags[it.tag] || '감') + '</span><span class="tc-t">' + it.t + '</span></summary><div class="tc-d">' + it.d + '</div>';
+      d.innerHTML = '<summary><span class="tc-tag">' + (RL.tacitTags[it.tag] || '기타') + '</span><span class="tc-t">' + it.t + '</span></summary><div class="tc-d">' + it.d + '</div>';
       list.appendChild(d);
     });
     wrap.appendChild(list);
@@ -398,7 +398,7 @@
     if (!quiz || !quiz.length) return;
     const wrap = document.createElement('section');
     wrap.className = 'quiz';
-    wrap.innerHTML = '<h2>확인 문제</h2><p class="w-caption">답을 고르면 바로 해설이 열립니다.</p>';
+    wrap.innerHTML = '<h2>확인 문제</h2><p class="w-caption">답을 고르면 바로 해설이 열린다.</p>';
     quiz.forEach((item, qi) => {
       const q = document.createElement('div');
       q.className = 'q';
@@ -432,7 +432,7 @@
       const name = el.getAttribute('data-w');
       const fn = (def.mount && def.mount[name]) || (RL.widgets && RL.widgets[name]);
       if (!fn) {
-        el.innerHTML = '<div class="aside">위젯 <code>' + escapeHtml(name) + '</code>를 찾지 못했습니다.</div>';
+        el.innerHTML = '<div class="aside">위젯을 찾지 못했다: <code>' + escapeHtml(name) + '</code></div>';
         return;
       }
       try {
@@ -458,7 +458,7 @@
     if (crumb && meta) crumb.textContent = (meta.part === '0' ? '' : 'Part ' + meta.part + ' · ') + meta.partTitle;
 
     if (!def) {
-      main.innerHTML = '<div class="ch-body placeholder"><h2>' + (meta ? meta.title : id) + '</h2><p>이 장은 아직 준비 중입니다.</p></div>';
+      main.innerHTML = '<div class="ch-body placeholder"><h2>' + (meta ? meta.title : id) + '</h2><p>이 장은 아직 준비 중이다.</p></div>';
       RL.renderSidebar();
       return;
     }
@@ -497,7 +497,7 @@
     const isDone = RL.progress.isDone(id);
     foot.innerHTML =
       '<div class="done-row"><button type="button" class="btn' + (isDone ? '' : ' primary') + '" id="done-btn" aria-pressed="' + isDone + '">' + (isDone ? '완료 표시됨 (취소)' : '이 장을 완료로 표시') + '</button>' +
-      '<span class="w-caption">진행도는 이 브라우저에만 저장됩니다.</span></div>' +
+      '<span class="w-caption">진행도는 이 브라우저에만 저장된다.</span></div>' +
       '<nav class="pn-nav">' +
       (prev ? '<a class="prev" href="#' + prev + '"><span class="d">← 이전 ' + RL.meta[prev].no + '</span><span>' + RL.meta[prev].title + '</span></a>' : '<span></span>') +
       (next ? '<a class="next" href="#' + next + '"><span class="d">다음 ' + RL.meta[next].no + ' →</span><span>' + RL.meta[next].title + '</span></a>' : '') +

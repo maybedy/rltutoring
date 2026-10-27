@@ -5,15 +5,15 @@
   RL.chapter({
     id: 'ac',
     title: 'Actor-Critic, A3C, GAE',
-    subtitle: 'REINFORCE의 분산은 몬테카를로 리턴에서 온다. 그 리턴을 학습된 가치(critic)로 부트스트랩하면 분산을 편향과 맞바꿀 수 있다. GAE는 그 교환 비율을 λ 하나로 조절하는 손잡이다.',
+    subtitle: 'REINFORCE의 분산은 몬테카를로 리턴에서 나온다. 리턴을 학습된 가치(critic)로 부트스트랩하면 분산이 줄고 그만큼 편향이 생긴다. GAE는 이 교환 비율을 λ 하나로 조절한다.',
     time: 40,
     level: '중급 · 핵심',
     prereq: ['pg', 'td'],
     theses: ['T6', 'T3', 'T2'],
     easy: {
       hook: '선수는 행동하고, 코치는 "예상보다 잘했나"만 알려 준다. 둘이 함께 배운다.',
-      intro: '<p>앞 장의 방법은 한 판이 끝날 때까지 기다렸다가 총점을 보고 배웠다. 총점에는 운이 많이 섞여 있어서 배움이 들쭉날쭉했다.</p><p>이 장에서는 <strong>코치(critic)</strong>를 둔다. 코치는 "이 상황이면 보통 몇 점쯤 나온다"를 예상한다. 선수(actor)가 한 걸음 움직이면, 코치는 <strong>방금 받은 점수 + 다음 상황의 예상 점수</strong>를 원래 예상과 비교한다. 그 차이가 <strong>놀람</strong>(TD 오차)이다. 놀람이 양수면 선수는 그 행동을 더 하고, 음수면 덜 한다.</p>',
-      analogy: '일기예보로 이번 주 소풍 날을 고른다고 하자. 내일 날씨만 직접 보고 나머지는 예보를 믿으면(λ = 0) 빠르지만, 예보가 틀리면 같이 틀린다. 일주일을 다 기다려 실제 날씨를 보면(λ = 1) 정확하지만, 그날그날의 변덕이 판단에 다 섞인다. GAE는 "가까운 날은 실제 날씨를 많이 믿고, 먼 날일수록 예보에 맡기는" 중간 방식이다. λ는 실제 결과를 얼마나 멀리까지 믿을지 정하는 손잡이다.',
+      intro: '<p>앞 장의 방법은 한 판이 끝날 때까지 기다렸다가 총점을 보고 배웠다. 총점에는 운이 많이 섞여 있어서 배움이 들쭉날쭉했다.</p><p>이 장에서는 코치(critic)를 둔다. 코치는 "이 상황이면 보통 몇 점쯤 나온다"를 예상한다. 선수(actor)가 한 걸음 움직이면, 코치는 "방금 받은 점수 + 다음 상황의 예상 점수"를 원래 예상과 비교한다. 그 차이가 <strong>놀람</strong>(TD 오차)이다. 놀람이 양수면 선수는 그 행동을 더 하고, 음수면 덜 한다.</p>',
+      analogy: '일기예보로 이번 주 소풍 날을 고른다고 하자. 내일 날씨만 직접 보고 나머지는 예보를 믿으면(λ = 0) 빠르지만, 예보가 틀리면 같이 틀린다. 일주일을 다 기다려 실제 날씨를 보면(λ = 1) 정확하지만, 그날그날의 변덕이 판단에 모두 섞인다. GAE는 "가까운 날은 실제 날씨를 많이 믿고, 먼 날일수록 예보에 맡기는" 중간 방식이다. λ는 실제 결과를 얼마나 멀리까지 믿을지 정하는 손잡이다.',
       path: ['코치가 되어 점수를 예상하고, 놀람(TD 오차)과 선수의 반응을 직접 본다', '세 걸음짜리 점수로 놀람과 advantage를 손으로 계산한다', 'λ를 바꾸며 흔들림과 치우침이 어떻게 바뀌는지 본다', '여러 선수를 동시에 뛰게 하는 A3C와 그 보정법(V-trace)을 본다'],
       recap: [
         '코치는 "보통 몇 점"을 예상하고, 한 걸음의 실제 결과와 비교한 차이(놀람)를 선수에게 알려 준다.',
@@ -27,11 +27,11 @@
       'A3C/A2C의 병렬 actor, 엔트로피 보너스, IMPALA의 V-trace가 각각 무슨 문제를 푸는지 설명할 수 있다.',
     ],
     html: String.raw`
-<p>정책 경사 $\nabla J = \mathbb{E}[\nabla\log\pi(a_t|s_t)\,\Psi_t]$에서 $\Psi_t$ 자리에 무엇을 넣느냐가 거의 모든 정책 경사 알고리즘을 가른다(Schulman et al. 2016의 정리 방식). $R(\tau)$, $G_t$, $G_t - b(s_t)$는 <a href="#pg">11장</a>에서 봤다. 이 장은 학습된 가치 함수로 만든 $\Psi_t$를 다룬다.</p>
+<p>정책 경사 알고리즘은 대부분 $\nabla J = \mathbb{E}[\nabla\log\pi(a_t|s_t)\,\Psi_t]$의 $\Psi_t$ 자리에 무엇을 넣느냐로 갈린다(Schulman et al. 2016의 정리 방식). $R(\tau)$, $G_t$, $G_t - b(s_t)$는 <a href="#pg">11장</a>에서 봤다. 이 장에서는 학습된 가치 함수로 만든 $\Psi_t$를 다룬다.</p>
 
 <h2>Critic을 들이는 이유: TD 오차는 advantage의 표본이다</h2>
-<p>REINFORCE의 $G_t$는 에피소드 끝까지의 모든 무작위성(행동, 전이, 보상 잡음)을 끌어안는다. 대신 한 스텝만 실제로 가 보고 나머지는 가치 추정치로 대신하면 분산이 크게 줄어든다. 이 가치 추정치를 학습하는 쪽을 <strong>critic</strong>, 정책을 <strong>actor</strong>라 부른다.</p>
-<p>먼저 직접 코치가 되어 보자. 예상을 정하고, 선수가 뛰면 놀람이 얼마인지, 선수가 어떻게 반응하는지 본다.</p>
+<p>REINFORCE의 $G_t$에는 에피소드 끝까지의 모든 무작위성(행동, 전이, 보상 잡음)이 담긴다. 한 스텝만 실제로 가 보고 나머지를 가치 추정치로 대신하면 분산이 크게 줄어든다. 가치 추정치를 학습하는 쪽을 critic, 정책을 actor라고 부른다.</p>
+<p>아래에서는 독자가 코치가 된다. 예상을 정한 뒤 선수가 뛰면, 놀람이 얼마인지와 선수가 어떻게 반응하는지가 바로 보인다.</p>
 <div data-w="try-coach"></div>
 <div data-w="dv-td-adv"></div>
 <div data-w="fx-ac"></div>
@@ -40,27 +40,27 @@
 <h2>n-step advantage에서 GAE로</h2>
 <p>한 스텝 TD는 분산이 작지만 critic이 틀리면 편향된다. $n$ 스텝을 실제로 가 보고 부트스트랩하면 그 사이를 조절할 수 있다.</p>
 $$\hat A_t^{(n)} = r_{t+1} + \gamma r_{t+2} + \cdots + \gamma^{n-1}r_{t+n} + \gamma^n V(s_{t+n}) - V(s_t)$$
-<p>$n$을 하나 고르는 대신 모든 $n$을 기하 가중 평균하면 놀라운 일이 생긴다. 계산이 TD 오차의 할인 합 하나로 접힌다. 유도를 보기 전에 세 걸음짜리 예로 직접 계산해 보자.</p>
+<p>$n$을 하나만 고르지 않고 모든 $n$을 기하 가중 평균하면, 계산이 TD 오차의 할인 합 하나로 줄어든다. 유도에 앞서 세 걸음짜리 예로 직접 계산한다.</p>
 <div data-w="step-gae"></div>
 <div data-w="dv-gae"></div>
 <div class="thesis-box"><span class="label">대전제 T6 · 편향-분산</span>
-<p>$\lambda$는 critic을 얼마나 믿을지의 손잡이다. $\lambda=0$이면 $\hat A_t = \delta_t$로 분산이 가장 작지만 critic 오차가 그대로 편향이 된다. $\lambda=1$이면 $\hat A_t = G_t - V(s_t)$로, $V$는 baseline 역할만 하므로 정책 경사에 대해 불편이지만 분산은 REINFORCE 수준이다. 중간값(흔히 0.9~0.97)이 실전의 기본값이다. GAE의 $\gamma$도 같은 역할을 한다. 문제의 할인율과 별개로 "먼 미래 보상의 신용을 깎아 분산을 줄이는" 손잡이로 쓰인다.</p>
+<p>$\lambda$는 critic을 얼마나 믿을지 정한다. $\lambda=0$이면 $\hat A_t = \delta_t$로 분산이 가장 작지만, critic 오차가 그대로 편향이 된다. $\lambda=1$이면 $\hat A_t = G_t - V(s_t)$이고 $V$는 baseline 역할만 하므로 정책 경사 기준으로 불편이지만, 분산은 REINFORCE만큼 크다. 실전에서는 흔히 0.9~0.97을 기본값으로 쓴다. GAE의 $\gamma$도 같은 역할을 한다. 문제의 할인율과 별개로, 먼 미래 보상의 신용을 깎아 분산을 줄이는 데 쓰인다.</p>
 </div>
 
 <h3>GAE 계산기</h3>
-<p>사슬 환경(상태 8개, 오른쪽 끝에 +1, 매 스텝 보상에 잡음)에서 궤적 하나를 뽑아 $\delta_t$와 $\hat A_t$를 직접 계산한다. critic은 참 가치에 상태별로 고정된 오차를 더한 것이다. 오른쪽 그래프는 $\hat A_t$에서 각 $\delta_{t+l}$이 받는 가중치 $(\gamma\lambda)^l$이다.</p>
+<p>사슬 환경(상태 8개, 오른쪽 끝에 +1, 매 스텝 보상에 잡음)에서 궤적 하나를 뽑아 $\delta_t$와 $\hat A_t$를 직접 계산한다. critic은 참 가치에 상태마다 고정된 오차를 더한 것이다. 오른쪽 그래프는 $\hat A_t$에서 각 $\delta_{t+l}$이 받는 가중치 $(\gamma\lambda)^l$이다.</p>
 <div data-w="gae-calc"></div>
 
 <h3>λ에 따른 편향과 분산</h3>
-<p>같은 사슬에서 시작 상태의 advantage 추정치 $\hat A_0(\lambda)$를 수천 번 뽑아 오차를 분해한다. 기준은 정책 경사에 실제로 필요한 양 $Q^\pi(s_0,a_0) - \hat V(s_0)$이다($\hat V(s_0)$는 baseline이라 경사의 기댓값을 바꾸지 않는다). critic 오차를 키우면 편향 곡선이, 보상 잡음을 키우면 분산 곡선이 올라가고, 총오차(MSE)를 최소화하는 $\lambda$가 움직인다.</p>
+<p>같은 사슬에서 시작 상태의 advantage 추정치 $\hat A_0(\lambda)$를 수천 번 뽑아 오차를 분해한다. 기준은 정책 경사에 실제로 필요한 양 $Q^\pi(s_0,a_0) - \hat V(s_0)$이다($\hat V(s_0)$는 baseline이라 경사의 기댓값을 바꾸지 않는다). critic 오차를 키우면 편향 곡선이, 보상 잡음을 키우면 분산 곡선이 올라간다. 그에 따라 총오차(MSE)를 최소로 만드는 $\lambda$도 움직인다.</p>
 <div data-w="gae-bv"></div>
 
 <h2>실험: REINFORCE vs Actor-Critic vs GAE(λ)</h2>
-<p>4×3 격자(미끄러짐 10%)에서 표 형태 소프트맥스 actor와 표 형태 critic으로 세 방법을 비교한다. 곡선은 매 10 에피소드마다 <strong>현재 정책의 참 가치</strong> $V^{\pi_\theta}(\text{시작})$을 선형 방정식으로 정확히 계산해 8회 실행 평균을 낸 것이다(샘플 리턴의 잡음이 섞이지 않는다). 보상 잡음 $\sigma$를 0에서 1로 올려 보라. 잡음이 없으면 셋이 비슷하지만, 잡음이 커질수록 부트스트랩하는 쪽이 유리해진다.</p>
+<p>4×3 격자(미끄러짐 10%)에서 표 형태 소프트맥스 actor와 표 형태 critic으로 세 방법을 비교한다. 곡선의 각 점은 10 에피소드마다 <strong>현재 정책의 참 가치</strong> $V^{\pi_\theta}(\text{시작})$을 선형 방정식으로 정확히 계산하고, 8회 실행을 평균 낸 값이다. 그래서 샘플 리턴의 잡음이 섞이지 않는다. 보상 잡음 $\sigma$가 0이면 세 방법이 비슷하고, 1에 가까워질수록 부트스트랩하는 쪽이 유리해진다.</p>
 <div data-w="ac-race"></div>
 
 <h2>A3C와 A2C: 병렬 actor</h2>
-<p>DQN은 리플레이 버퍼로 연속된 샘플 간 상관을 깬다(<a href="#dqn">10장</a>). 하지만 on-policy 정책 경사는 예전 정책의 데이터를 쓸 수 없다. Mnih et al.(2016)의 <strong>A3C</strong>는 여러 환경 사본에서 actor들을 동시에 돌려 서로 다른 경험을 섞음으로써 같은 효과를 얻었다.</p>
+<p>DQN은 리플레이 버퍼로 연속된 샘플 사이의 상관을 깬다(<a href="#dqn">10장</a>). 하지만 on-policy 정책 경사는 예전 정책의 데이터를 쓸 수 없다. Mnih et al.(2016)의 A3C는 여러 환경 사본에서 actor를 동시에 돌리고 서로 다른 경험을 섞어 같은 효과를 얻었다.</p>
 <div class="w wide" style="box-shadow:none"><div class="w-body">
 <svg viewBox="0 0 640 210" role="img" aria-label="A3C 구조" style="width:100%;max-width:680px">
   <defs><marker id="ac-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" style="fill:var(--muted)"/></marker></defs>
@@ -84,12 +84,12 @@ $$\hat A_t^{(n)} = r_{t+1} + \gamma r_{t+2} + \cdots + \gamma^{n-1}r_{t+n} + \ga
 </svg></div></div>
 <p>각 worker의 손실은 세 항의 합이다. $n$-step(보통 5~20) advantage를 쓰고, 정책이 너무 빨리 결정적으로 굳지 않도록 엔트로피 보너스를 더한다.</p>
 $$\mathcal{L}(\theta, w) = -\sum_t \log\pi_\theta(a_t|s_t)\,\sg\!\big[\hat A_t\big] \;+\; c_v\sum_t\big(\hat R_t - V_w(s_t)\big)^2 \;-\; c_H\sum_t \mathcal{H}\big(\pi_\theta(\cdot|s_t)\big)$$
-<p>$\sg[\cdot]$(stop-gradient)는 advantage를 상수로 취급한다는 뜻이다. 이후 OpenAI의 구현 비교에서 동기식 버전 <strong>A2C</strong>(모든 worker의 스텝을 모아 한 번에 갱신)가 A3C와 비슷하거나 낫다는 것이 확인되었고, GPU에서는 A2C가 표준이 되었다. 비동기성 자체보다 <em>병렬 환경에서 오는 배치 다양성</em>이 핵심이었다는 뜻이다.</p>
+<p>$\sg[\cdot]$(stop-gradient)는 advantage를 상수로 다룬다는 뜻이다. 이후 OpenAI의 구현 비교에서 동기식 버전인 A2C(모든 worker의 스텝을 모아 한 번에 갱신)가 A3C와 비슷하거나 더 낫다는 것이 확인되었고, GPU 환경에서는 A2C가 표준이 되었다. 성능을 끌어올린 요인은 비동기성보다 병렬 환경이 주는 배치 다양성이었다.</p>
 
 <h2>Off-policy 보정: IMPALA와 V-trace</h2>
-<p>actor 수천 개가 학습기와 따로 돌면(IMPALA, Espeholt et al. 2018) actor가 쓰는 정책 $\mu$는 학습기의 최신 정책 $\pi$보다 몇 스텝 뒤처진다(policy lag). 중요도 비율로 보정하되, 비율의 곱이 폭발하지 않도록 잘라 낸다.</p>
+<p>actor 수천 개가 학습기와 따로 돌면(IMPALA, Espeholt et al. 2018) actor가 쓰는 정책 $\mu$는 학습기의 최신 정책 $\pi$보다 몇 스텝 뒤처진다(policy lag). 이 차이를 중요도 비율로 보정하고, 비율의 곱이 폭발하지 않도록 비율을 잘라 낸다.</p>
 $$v_s = V(s_s) + \sum_{t\ge s}\gamma^{t-s}\Big(\prod_{i=s}^{t-1}c_i\Big)\rho_t\,\delta_t,\qquad \rho_t = \min\Big(\bar\rho, \frac{\pi(a_t|s_t)}{\mu(a_t|s_t)}\Big),\quad c_i = \min\Big(\bar c, \frac{\pi(a_i|s_i)}{\mu(a_i|s_i)}\Big)$$
-<p>$\pi=\mu$이면 비율이 1이 되어 $n$-step TD 타깃으로 돌아간다. $\bar\rho$는 어떤 정책의 가치로 수렴할지를, $\bar c$는 수렴 속도(분산)를 정한다. Retrace(Munos et al. 2016)도 같은 "잘린 비율의 곱" 구조다. 13장의 PPO clip, 21장의 GRPO clip도 결국 같은 고민, 즉 <strong>중요도 비율을 얼마나 믿을 것인가</strong>의 다른 답이다.</p>
+<p>$\pi=\mu$이면 비율이 1이 되어 $n$-step TD 타깃으로 돌아간다. $\bar\rho$는 어떤 정책의 가치로 수렴할지를, $\bar c$는 수렴 속도(분산)를 정한다. Retrace(Munos et al. 2016)도 잘린 비율을 곱하는 같은 구조다. 13장의 PPO clip과 21장의 GRPO clip은 중요도 비율을 얼마나 믿을지 정하는 서로 다른 방법이다.</p>
 
 <h2>파생 알고리즘: 무엇이 바뀌었나</h2>
 <div class="table-wrap"><table class="t">
@@ -110,9 +110,9 @@ $$v_s = V(s_s) + \sum_{t\ge s}\gamma^{t-s}\Big(\prod_{i=s}^{t-1}c_i\Big)\rho_t\,
         title: 'TD 오차의 조건부 기댓값은 advantage다',
         easy: '코치의 예상이 정확하다면, 놀람을 여러 번 평균 낸 값은 "이 행동이 평소보다 얼마나 나은가"(advantage)와 정확히 같다. 예상이 틀리면 그 틀린 만큼 치우친다.',
         steps: [
-          { tex: String.raw`\delta_t = r_{t+1} + \gamma V(s_{t+1}) - V(s_t)`, why: 'critic $V$로 만든 TD 오차(<a href="#td">06장</a>).' },
-          { tex: String.raw`\mathbb{E}\big[\delta_t \mid s_t, a_t\big] = \hl{\mathbb{E}\big[r_{t+1} + \gamma V(s_{t+1}) \mid s_t, a_t\big]} - V(s_t)`, why: '$V(s_t)$는 조건에 의해 상수.' },
-          { tex: String.raw`\text{if } V = V^\pi:\quad \mathbb{E}\big[r_{t+1} + \gamma V^\pi(s_{t+1}) \mid s_t,a_t\big] = \hl{Q^\pi(s_t,a_t)}`, why: '$Q^\\pi$의 한 스텝 전개(벨만 방정식, <a href="#bellman">02장</a>).' },
+          { tex: String.raw`\delta_t = r_{t+1} + \gamma V(s_{t+1}) - V(s_t)`, why: 'critic $V$로 만든 TD 오차다(<a href="#td">06장</a>).' },
+          { tex: String.raw`\mathbb{E}\big[\delta_t \mid s_t, a_t\big] = \hl{\mathbb{E}\big[r_{t+1} + \gamma V(s_{t+1}) \mid s_t, a_t\big]} - V(s_t)`, why: '조건이 주어졌으므로 $V(s_t)$는 상수다.' },
+          { tex: String.raw`\text{if } V = V^\pi:\quad \mathbb{E}\big[r_{t+1} + \gamma V^\pi(s_{t+1}) \mid s_t,a_t\big] = \hl{Q^\pi(s_t,a_t)}`, why: '$Q^\\pi$를 한 스텝 전개한 식이다(벨만 방정식, <a href="#bellman">02장</a>).' },
           { tex: String.raw`\boxed{\;\mathbb{E}\big[\delta_t \mid s_t,a_t\big] = Q^\pi(s_t,a_t) - V^\pi(s_t) = A^\pi(s_t,a_t)\;}`, why: 'critic이 정확하면 TD 오차는 advantage의 <strong>불편</strong> 표본이다. 정확하지 않으면 $\\gamma\\,\\mathbb{E}[V(s_{t+1}) - V^\\pi(s_{t+1})]$만큼 편향된다.' },
         ],
       }),
@@ -121,29 +121,29 @@ $$v_s = V(s_s) + \sum_{t\ge s}\gamma^{t-s}\Big(\prod_{i=s}^{t-1}c_i\Big)\rho_t\,
         say: '{d|놀람}은 받은 점수에 {Vn|다음 상황의 예상 점수}를 할인해 더하고 {V|지금 상황의 예상 점수}를 뺀 값이다. 코치는 {cr|놀람만큼 자기 예상을 고치고}, 선수는 {ac|놀람만큼 방금 한 행동의 확률을 올리거나 내린다}.',
         tex: String.raw`\tm{d}{\delta_t} = r_{t+1} + \gamma \tm{Vn}{V_w(s_{t+1})} - \tm{V}{V_w(s_t)},\qquad \tm{cr}{w \leftarrow w + \beta\,\delta_t\,\nabla_w V_w(s_t)},\qquad \tm{ac}{\theta \leftarrow \theta + \alpha\,\delta_t\,\nabla_\theta\log\pi_\theta(a_t|s_t)}`,
         terms: [
-          { id: 'd', sym: '\\delta_t', label: 'TD 오차', desc: '"예상보다 얼마나 좋았나". 두 업데이트가 공유하는 신호.', long: '하나의 스칼라가 critic에게는 회귀 오차로, actor에게는 advantage로 쓰인다. 신경과학에서 도파민 신호가 TD 오차와 닮았다는 관찰(Schultz, Dayan, Montague 1997)도 이 구조와 연결된다.' },
-          { id: 'Vn', sym: 'V_w(s_{t+1})', label: '부트스트랩 값', desc: '다음 상태의 추정 가치. 분산을 없애는 대신 편향의 원천.' },
+          { id: 'd', sym: '\\delta_t', label: 'TD 오차', desc: '"예상보다 얼마나 좋았나"를 나타낸다. 두 업데이트가 함께 쓰는 신호.', long: '스칼라 하나가 critic에게는 회귀 오차로, actor에게는 advantage로 쓰인다. 도파민 신호가 TD 오차와 닮았다는 신경과학의 관찰(Schultz, Dayan, Montague 1997)도 이 구조와 관련이 있다.' },
+          { id: 'Vn', sym: 'V_w(s_{t+1})', label: '부트스트랩 값', desc: '다음 상태의 추정 가치. 분산을 줄이지만 편향이 생기는 원인이다.' },
           { id: 'V', sym: 'V_w(s_t)', label: '현재 상태 가치', desc: '여기서는 baseline 역할을 겸한다.' },
-          { id: 'cr', sym: 'w \\leftarrow \\cdots', label: 'critic 갱신', desc: 'semi-gradient TD(0). 정책 평가.', long: '타깃 $r + \\gamma V_w(s\')$을 상수로 보고 $V_w(s)$만 미분한다(semi-gradient, 09장). 함수근사에서는 수렴이 보장되지 않지만 on-policy라 Deadly Triad의 세 번째 요소(off-policy)는 없다.' },
-          { id: 'ac', sym: '\\theta \\leftarrow \\cdots', label: 'actor 갱신', desc: 'REINFORCE의 G_t 자리에 δ_t. 정책 개선.', long: '매 스텝 온라인으로 갱신할 수 있다는 점도 REINFORCE와 다르다. 에피소드가 끝날 때까지 기다릴 필요가 없어 연속형 과제에도 쓸 수 있다.' },
+          { id: 'cr', sym: 'w \\leftarrow \\cdots', label: 'critic 갱신', desc: 'semi-gradient TD(0). 정책 평가.', long: '타깃 $r + \\gamma V_w(s\')$을 상수로 보고 $V_w(s)$만 미분한다(semi-gradient, 09장). 함수근사를 쓰면 수렴이 보장되지 않는다. 다만 on-policy라서 Deadly Triad의 세 번째 요소(off-policy)는 빠져 있다.' },
+          { id: 'ac', sym: '\\theta \\leftarrow \\cdots', label: 'actor 갱신', desc: 'REINFORCE의 G_t 자리에 δ_t를 넣는다. 정책 개선 단계.', long: '매 스텝 온라인으로 갱신할 수 있다는 점도 REINFORCE와 다르다. 에피소드가 끝날 때까지 기다릴 필요가 없어 연속형 과제에도 쓸 수 있다.' },
         ],
       }),
       'dv-gae': (el) => ui.derivation(el, {
         title: 'GAE: n-step advantage의 지수 가중 평균',
         easy: '1걸음, 2걸음, 3걸음… 실제로 보고 나머지는 예상에 맡긴 추정들을 λ의 거듭제곱 비율로 섞는다. 그러면 계산이 "놀람들을 한 걸음마다 γλ씩 깎아 더하기" 하나로 줄어든다.',
         steps: [
-          { tex: String.raw`\hat A_t^{(1)} = \delta_t,\quad \hat A_t^{(2)} = \delta_t + \gamma\delta_{t+1},\quad \hat A_t^{(k)} = \sum_{l=0}^{k-1}\gamma^l\delta_{t+l}`, why: '$n$-step advantage를 TD 오차로 쓰면 중간의 $V$ 항들이 <strong>망원급수</strong>로 상쇄된다. 예: $\\delta_t + \\gamma\\delta_{t+1} = r_{t+1} + \\gamma r_{t+2} + \\gamma^2V(s_{t+2}) - V(s_t)$.', easy: '두 걸음 추정 = 첫 놀람 + γ × 둘째 놀람. 가운데 상황의 예상 점수가 한 번은 더해지고 한 번은 빠져서 사라진다. 남는 것은 실제 점수 두 개와 맨 끝 예상, 맨 처음 예상뿐이다.' },
-          { tex: String.raw`\hat A_t^{\mathrm{GAE}(\gamma,\lambda)} = (1-\lambda)\big(\hat A^{(1)}_t + \lambda\hat A^{(2)}_t + \lambda^2\hat A^{(3)}_t + \cdots\big)`, why: '모든 $n$을 가중치 $(1-\\lambda)\\lambda^{n-1}$로 평균낸다(가중치 합 = 1). TD(λ)의 λ-리턴과 같은 구성이다.' },
+          { tex: String.raw`\hat A_t^{(1)} = \delta_t,\quad \hat A_t^{(2)} = \delta_t + \gamma\delta_{t+1},\quad \hat A_t^{(k)} = \sum_{l=0}^{k-1}\gamma^l\delta_{t+l}`, why: '$n$-step advantage를 TD 오차로 쓰면 중간의 $V$ 항이 망원급수처럼 서로 지워진다. 예를 들어 $\\delta_t + \\gamma\\delta_{t+1} = r_{t+1} + \\gamma r_{t+2} + \\gamma^2V(s_{t+2}) - V(s_t)$이다.', easy: '두 걸음 추정 = 첫 놀람 + γ × 둘째 놀람. 가운데 상황의 예상 점수가 한 번은 더해지고 한 번은 빠져서 사라진다. 남는 것은 실제 점수 두 개와 맨 끝 예상, 맨 처음 예상뿐이다.' },
+          { tex: String.raw`\hat A_t^{\mathrm{GAE}(\gamma,\lambda)} = (1-\lambda)\big(\hat A^{(1)}_t + \lambda\hat A^{(2)}_t + \lambda^2\hat A^{(3)}_t + \cdots\big)`, why: '모든 $n$을 가중치 $(1-\\lambda)\\lambda^{n-1}$로 평균 낸다(가중치 합 = 1). TD(λ)의 λ-리턴과 같은 구성이다.' },
           { tex: String.raw`= (1-\lambda)\big(\delta_t(1+\lambda+\lambda^2+\cdots) + \gamma\delta_{t+1}(\lambda+\lambda^2+\cdots) + \gamma^2\delta_{t+2}(\lambda^2+\cdots) + \cdots\big)`, why: '같은 $\\delta$끼리 모은다.' },
-          { tex: String.raw`= (1-\lambda)\Big(\delta_t\frac{1}{1-\lambda} + \gamma\delta_{t+1}\frac{\lambda}{1-\lambda} + \gamma^2\delta_{t+2}\frac{\lambda^2}{1-\lambda} + \cdots\Big)`, why: '등비급수 합.' },
+          { tex: String.raw`= (1-\lambda)\Big(\delta_t\frac{1}{1-\lambda} + \gamma\delta_{t+1}\frac{\lambda}{1-\lambda} + \gamma^2\delta_{t+2}\frac{\lambda^2}{1-\lambda} + \cdots\Big)`, why: '등비급수의 합을 쓴다.' },
           { tex: String.raw`\boxed{\;\hat A_t^{\mathrm{GAE}(\gamma,\lambda)} = \sum_{l=0}^{\infty}(\gamma\lambda)^l\,\delta_{t+l}\;}`, why: '$(1-\\lambda)$가 상쇄되어 TD 오차의 $(\\gamma\\lambda)$-할인 합이 된다. 뒤에서부터 $\\hat A_t = \\delta_t + \\gamma\\lambda\\hat A_{t+1}$로 한 번에 계산한다.' },
-          { tex: String.raw`\lambda = 0:\ \hat A_t = \delta_t \qquad\qquad \lambda = 1:\ \hat A_t = \sum_l\gamma^l r_{t+l+1} - V(s_t) = G_t - V(s_t)`, why: '양 끝. $\\lambda=1$에서는 망원급수가 끝까지 상쇄되어 $V$가 $V(s_t)$ 하나만 남는다(baseline).' },
+          { tex: String.raw`\lambda = 0:\ \hat A_t = \delta_t \qquad\qquad \lambda = 1:\ \hat A_t = \sum_l\gamma^l r_{t+l+1} - V(s_t) = G_t - V(s_t)`, why: '양 끝의 경우다. $\\lambda=1$이면 망원급수가 끝까지 지워져 $V$는 $V(s_t)$ 하나만 남는다(baseline).' },
         ],
       }),
       'try-coach': mountCoach,
       'step-gae': (el) => ui.walkthrough(el, {
         title: '세 걸음으로 계산하는 δ와 GAE',
-        caption: '빈칸에 계산한 값을 넣고 "확인"을 누르라. 할인율 $\\gamma = 0.9$, $\\lambda = 0.5$다.',
+        caption: '빈칸에 계산한 값을 넣고 "확인"을 누르면 맞았는지 알려 준다. 할인율은 $\\gamma = 0.9$, $\\lambda = 0.5$다.',
         steps: [
           { say: '세 걸음 동안 받은 점수는 1, 0, 2이고 그다음에 끝난다. 코치의 예상은 첫 상황 2, 둘째 1.5, 셋째 1이다(끝난 뒤는 0). 첫 걸음의 놀람 δ₀ = "받은 점수 + 0.9 × 다음 예상 − 지금 예상"은?', ask: { answer: 0.35, tol: 0.005 }, calc: String.raw`\delta_0 = 1 + 0.9\times1.5 - 2 = 0.35` },
           { say: '둘째 걸음의 놀람 δ₁은? 점수 0을 받았고, 다음 상황의 예상은 1이다.', ask: { answer: -0.6, tol: 0.005 }, calc: String.raw`\delta_1 = 0 + 0.9\times1 - 1.5 = -0.6` },
@@ -158,25 +158,25 @@ $$v_s = V(s_s) + \sum_{t\ge s}\gamma^{t-s}\Big(\prod_{i=s}^{t-1}c_i\Big)\rho_t\,
     },
     tacit: [
       { tag: 'math', t: 'critic은 "현재" 정책의 가치여야 advantage가 된다',
-        d: '<p>$\\mathbb{E}[\\delta|s,a] = A^\\pi$는 $V = V^\\pi$일 때만 성립한다. actor가 바뀌는 동안 critic이 뒤처지면 advantage가 체계적으로 틀린다. 그래서 (1) critic을 더 빠르게 학습하고(두 시간척도), (2) PPO처럼 critic을 여러 epoch 맞추거나, (3) 아예 critic 대신 같은 정책의 샘플 평균을 쓴다(RLOO, GRPO). "critic이 정확한가"보다 "critic이 <em>지금의</em> actor를 평가하고 있는가"가 더 자주 문제다.</p>' },
-      { tag: 'math', t: 'GAE, TD(λ), λ-리턴은 같은 물건이다',
-        d: '<p>$\\hat A^{\\mathrm{GAE}}_t + V(s_t) = G^\\lambda_t$(λ-리턴, 06장)이다. 즉 GAE는 TD(λ)를 advantage에 적용한 것이고, PPO 구현에서 value 타깃을 "returns = advantages + values"로 만드는 한 줄이 바로 이 항등식이다. 또 $\\gamma$와 $\\lambda$는 항상 곱 $\\gamma\\lambda$로 $\\delta$에 붙으므로 신용 할당 지평은 대략 $1/(1-\\gamma\\lambda)$이다. $\\gamma=0.99, \\lambda=0.95$면 약 17 스텝.</p>' },
+        d: '<p>$\\mathbb{E}[\\delta|s,a] = A^\\pi$는 $V = V^\\pi$일 때만 성립한다. actor가 바뀌는 동안 critic이 뒤처지면 advantage가 체계적으로 틀린다. 그래서 (1) critic을 더 빠르게 학습하고(두 시간척도), (2) PPO처럼 critic을 여러 epoch 맞추거나, (3) 아예 critic 대신 같은 정책의 샘플 평균을 쓴다(RLOO, GRPO). 실제로는 critic이 정확한지보다, critic이 <em>지금의</em> actor를 평가하고 있는지가 더 자주 문제가 된다.</p>' },
+      { tag: 'math', t: 'GAE, TD(λ), λ-리턴은 같은 계산이다',
+        d: '<p>$\\hat A^{\\mathrm{GAE}}_t + V(s_t) = G^\\lambda_t$(λ-리턴, 06장)이다. GAE는 TD(λ)를 advantage에 적용한 것이다. PPO 구현에서 value 타깃을 "returns = advantages + values"로 만드는 한 줄이 이 항등식이다. 또 $\\gamma$와 $\\lambda$는 늘 곱 $\\gamma\\lambda$의 꼴로 $\\delta$에 붙으므로, 신용 할당 지평은 대략 $1/(1-\\gamma\\lambda)$이다. $\\gamma=0.99$, $\\lambda=0.95$이면 약 17 스텝이다.</p>' },
       { tag: 'algo', t: '호환 함수 근사: critic이 곧 경사 방향',
-        d: '<p>critic을 $Q_w(s,a) = w^\\top\\nabla_\\theta\\log\\pi_\\theta(a|s)$ 꼴(점수함수를 특징으로 쓰는 선형 함수)로 두고 최소제곱으로 맞추면, 그 critic을 써도 정책 경사가 <em>정확히</em> 보존된다(Sutton et al. 2000). 더 나아가 이때의 $w$가 바로 자연 경사 $F^{-1}\\nabla J$다(Kakade 2001; Peters & Schaal의 Natural Actor-Critic). "critic을 학습한다 = 경사 방향을 회귀로 푼다"는 관점은 13장의 TRPO를 이해하는 지름길이다.</p>' },
+        d: '<p>critic을 $Q_w(s,a) = w^\\top\\nabla_\\theta\\log\\pi_\\theta(a|s)$ 꼴(점수함수를 특징으로 쓰는 선형 함수)로 두고 최소제곱으로 맞추면, 그 critic을 써도 정책 경사가 <em>정확히</em> 보존된다(Sutton et al. 2000). 이때의 $w$는 자연 경사 $F^{-1}\\nabla J$와 같다(Kakade 2001; Peters & Schaal의 Natural Actor-Critic). critic 학습을 "경사 방향을 회귀로 구하는 일"로 보면 13장의 TRPO가 쉽게 이해된다.</p>' },
       { tag: 'practice', t: 'actor와 critic이 몸통을 공유하면 서로 방해한다',
-        d: '<p>한 네트워크에 policy head와 value head를 붙이면 계산은 절약되지만, value 손실의 스케일이 크면 공유 특징이 가치 예측에 끌려가 정책이 망가진다. 그래서 $c_v$를 0.5 정도로 낮추거나, 보상을 정규화하거나(PopArt, van Hasselt et al. 2016), 아예 분리한다(Phasic Policy Gradient, Cobbe et al. 2021). LLM RLHF에서 value 모델을 별도 네트워크로 두는 것도 같은 이유다. 학습이 이상할 때 가장 먼저 볼 지표는 value의 explained variance $1 - \\Var(G - V)/\\Var(G)$다. 0 근처나 음수면 critic이 baseline 역할조차 못 하고 있다.</p>' },
+        d: '<p>한 네트워크에 policy head와 value head를 붙이면 계산은 절약되지만, value 손실의 스케일이 크면 공유 특징이 가치 예측에 끌려가 정책이 망가진다. 그래서 $c_v$를 0.5 정도로 낮추거나, 보상을 정규화하거나(PopArt, van Hasselt et al. 2016), 아예 분리한다(Phasic Policy Gradient, Cobbe et al. 2021). LLM RLHF에서 value 모델을 별도 네트워크로 두는 것도 같은 이유다. 학습이 이상할 때 가장 먼저 볼 지표는 value의 explained variance $1 - \\Var(G - V)/\\Var(G)$다. 0 근처이거나 음수이면 critic이 baseline 역할도 하지 못한다는 뜻이다.</p>' },
       { tag: 'algo', t: '엔트로피 보너스는 탐험이자 최적화 정규화다',
-        d: '<p>소프트맥스 정책 경사는 정책이 결정적으로 굳을수록 경사가 사라진다(11장의 "중력 우물"). 엔트로피 보너스 $c_H\\mathcal{H}(\\pi)$는 이 붕괴를 늦춘다. 수학적으로는 목적함수를 $\\mathbb{E}[r] + c_H\\mathcal{H}$로 바꾸는 것이고, 그 최적해는 볼츠만 분포다(T5, 14장). 즉 A3C의 작은 보너스 항은 SAC의 최대 엔트로피 RL로 가는 첫걸음이다. LLM RL에서 "엔트로피 붕괴"가 자주 보고되는 것도 같은 현상이다(21장).</p>' },
+        d: '<p>소프트맥스 정책 경사는 정책이 결정적으로 굳을수록 경사가 사라진다(11장의 "중력 우물"). 엔트로피 보너스 $c_H\\mathcal{H}(\\pi)$는 이 붕괴를 늦춘다. 수학적으로는 목적함수를 $\\mathbb{E}[r] + c_H\\mathcal{H}$로 바꾸는 것이고, 그 최적해는 볼츠만 분포다(T5, 14장). A3C의 작은 보너스 항을 목적의 일부로 정식화한 것이 SAC의 최대 엔트로피 RL이다. LLM RL에서 "엔트로피 붕괴"가 자주 보고되는 것도 같은 현상이다(21장).</p>' },
       { tag: 'research', t: 'LLM에서 critic이 사라진 이유',
-        d: '<p>LLM RLHF의 critic은 정책만큼 큰 모델이라 메모리가 두 배로 들고, 응답 끝의 보상 하나로 토큰별 가치를 학습하기가 어렵다. 그런데 LLM의 "MDP"는 전이가 결정적이고 보상이 끝에 한 번이라 사실상 밴딧이다. 이런 구조에서는 critic의 편향을 감수할 이유가 적고, 같은 프롬프트에서 여러 응답을 뽑아 평균을 baseline으로 쓰는 편(RLOO, GRPO)이 낫다는 것이 2024년 전후의 결론이다. 반대로 토큰 단위 신용 할당이 중요할 때는 critic 대신 중간 지점에서 MC 롤아웃으로 가치를 추정하는 VinePPO(Kazemnejad et al. 2024) 같은 방향도 있다.</p>' },
+        d: '<p>LLM RLHF의 critic은 정책만큼 큰 모델이라 메모리가 두 배로 들고, 응답 끝의 보상 하나로 토큰별 가치를 학습하기가 어렵다. 그런데 LLM의 "MDP"는 전이가 결정적이고 보상이 끝에 한 번이라 사실상 밴딧이다. 이런 구조에서는 critic의 편향을 감수할 이유가 적다. 2024년 전후에는 같은 프롬프트에서 여러 응답을 뽑아 그 평균을 baseline으로 쓰는 편(RLOO, GRPO)이 낫다는 쪽으로 의견이 모였다. 토큰 단위 신용 할당이 중요한 경우를 위해, critic 대신 중간 지점에서 MC 롤아웃으로 가치를 추정하는 VinePPO(Kazemnejad et al. 2024) 같은 연구도 있다.</p>' },
     ],
     quiz: [
       { q: 'critic이 정확할 때($V=V^\\pi$) $\\mathbb{E}[\\delta_t|s_t,a_t]$는?', options: ['$V^\\pi(s_t)$', '$Q^\\pi(s_t,a_t)$', '$A^\\pi(s_t,a_t)$', '0'], answer: 2,
-        explain: '$\\mathbb{E}[r + \\gamma V^\\pi(s\')|s,a] = Q^\\pi(s,a)$이므로 $V^\\pi(s)$를 빼면 advantage. 상태로만 조건화하면($a$에 대해서도 평균) 0이 된다.' },
+        explain: '$\\mathbb{E}[r + \\gamma V^\\pi(s\')|s,a] = Q^\\pi(s,a)$이므로 $V^\\pi(s)$를 빼면 advantage가 된다. 상태로만 조건화해 $a$까지 평균 내면 0이 된다.' },
       { q: 'GAE에서 $\\lambda = 1$일 때의 advantage 추정치는?', options: ['$\\delta_t$', '$G_t - V(s_t)$', '$G_t$', '$V(s_{t+1}) - V(s_t)$'], answer: 1,
-        explain: '망원급수가 끝까지 상쇄되어 몬테카를로 리턴에서 $V(s_t)$를 뺀 값. 정책 경사에 대해 불편이지만 분산이 크다.' },
+        explain: '망원급수가 끝까지 지워져 몬테카를로 리턴에서 $V(s_t)$를 뺀 값이 된다. 정책 경사 기준으로 불편이지만 분산이 크다.' },
       { q: 'A3C가 여러 worker를 병렬로 돌린 주된 이유는?', options: ['GPU 활용률', 'on-policy라 리플레이를 못 쓰는 상황에서 샘플 간 상관을 줄이려고', '탐험을 줄이려고', 'critic을 없애려고'], answer: 1,
-        explain: '서로 다른 환경 사본의 경험이 섞이면 연속 샘플의 상관이 줄어 학습이 안정된다. 리플레이 버퍼의 역할을 병렬성으로 대신한 것.' },
+        explain: '서로 다른 환경 사본의 경험이 섞이면 연속 샘플의 상관이 줄어 학습이 안정된다. 병렬성이 리플레이 버퍼의 역할을 대신한다.' },
       { q: 'V-trace에서 중요도 비율을 $\\bar c$로 자르는 이유는?', options: ['편향을 없애려고', '비율의 곱이 폭발해 분산이 커지는 것을 막으려고', 'on-policy로 만들려고', '보상을 정규화하려고'], answer: 1,
         explain: '여러 스텝의 비율을 곱하면 지수적으로 커지거나 작아진다. 자르면 약간의 편향을 감수하고 분산을 통제한다(T6).' },
     ],
@@ -220,7 +220,7 @@ $$v_s = V(s_s) + \sum_{t\ge s}\gamma^{t-s}\Big(\prod_{i=s}^{t-1}c_i\Big)\rho_t\,
   }
 
   function mountGaeCalc(el) {
-    const p = ui.panel(el, { kind: 'CALC', title: 'GAE 계산기: 궤적 하나의 $\\delta_t$와 $\\hat A_t$', caption: '"새 궤적 샘플"을 누르면 사슬 위를 한 번 걸은 기록이 나온다. λ 슬라이더를 0에서 1로 움직이며 파란 막대($\\hat A_t$)가 주황 막대($\\delta_t$)를 얼마나 멀리까지 모으는지 보라.' });
+    const p = ui.panel(el, { kind: 'CALC', title: 'GAE 계산기: 궤적 하나의 $\\delta_t$와 $\\hat A_t$', caption: '"새 궤적 샘플"을 누르면 사슬 위를 한 번 걸은 기록이 나온다. λ 슬라이더를 0에서 1로 옮기면, 파란 막대($\\hat A_t$)가 주황 막대($\\delta_t$)를 얼마나 먼 곳까지 모으는지가 달라진다.' });
     const ctr = ui.row(p.body);
     const gS = ui.slider(ctr, { label: '$\\gamma$', min: 0.8, max: 1, step: 0.01, value: 0.95, format: ui.fmt.f(2), onInput: draw });
     const lS = ui.slider(ctr, { label: '$\\lambda$', min: 0, max: 1, step: 0.05, value: 0.9, format: ui.fmt.f(2), onInput: draw });
@@ -294,7 +294,7 @@ $$v_s = V(s_s) + \sum_{t\ge s}\gamma^{t-s}\Big(\prod_{i=s}^{t-1}c_i\Big)\rho_t\,
   }
 
   function mountGaeBV(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: 'λ에 따른 편향² · 분산 · MSE (사슬 환경, 시작 상태)', caption: '슬라이더 세 개를 움직이면 곡선이 바로 다시 계산된다. 초록 곡선(MSE)의 가장 낮은 지점, 즉 가장 좋은 λ가 어디로 움직이는지 보라.' });
+    const p = ui.panel(el, { kind: 'SIM', title: 'λ에 따른 편향² · 분산 · MSE (사슬 환경, 시작 상태)', caption: '슬라이더 세 개를 움직이면 곡선을 바로 다시 계산한다. 초록 곡선(MSE)의 가장 낮은 지점이 가장 좋은 λ이고, 슬라이더에 따라 이 지점이 움직인다.' });
     const ctr = ui.row(p.body);
     const eS = ui.slider(ctr, { label: 'critic 오차 크기 $\\eta$', min: 0, max: 0.8, step: 0.05, value: 0.4, format: ui.fmt.f(2), onInput: run });
     const sS = ui.slider(ctr, { label: '보상 잡음 $\\sigma$', min: 0, max: 0.6, step: 0.05, value: 0.15, format: ui.fmt.f(2), onInput: run });
@@ -416,7 +416,7 @@ $$v_s = V(s_s) + \sum_{t\ge s}\gamma^{t-s}\Big(\prod_{i=s}^{t-1}c_i\Big)\rho_t\,
   }
 
   function mountRace(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: '같은 환경, 다른 $\\Psi_t$: 학습 속도와 안정성', caption: '"학습 실행"을 누르면 세 방법이 차례로 학습하고 곡선이 하나씩 나타난다. 보상 잡음 $\\sigma$를 0과 1로 바꿔 가며 어느 곡선이 최적선에 먼저 닿는지 보라.' });
+    const p = ui.panel(el, { kind: 'SIM', title: '같은 환경, 다른 $\\Psi_t$: 학습 속도와 안정성', caption: '"학습 실행"을 누르면 세 방법이 차례로 학습하고 곡선이 하나씩 나타난다. 보상 잡음 $\\sigma$를 0과 1로 바꾸면 최적선에 먼저 닿는 곡선이 달라진다.' });
     const ctr = ui.row(p.body);
     const sS = ui.slider(ctr, { label: '보상 잡음 $\\sigma$ (매 스텝)', min: 0, max: 1, step: 0.1, value: 0.5, format: ui.fmt.f(1) });
     const lS = ui.slider(ctr, { label: 'GAE의 $\\lambda$', min: 0, max: 1, step: 0.05, value: 0.9, format: ui.fmt.f(2) });
@@ -482,8 +482,10 @@ $$v_s = V(s_s) + \sum_{t\ge s}\gamma^{t-s}\Big(\prod_{i=s}^{t-1}c_i\Big)\rho_t\,
     run();
   }
   /* ---------- 코치와 선수 ---------- */
+  // 받침 유무에 따라 목적격 조사를 붙인다(슛을, 패스를)
+  const withObj = (w) => { const c = w.charCodeAt(w.length - 1); const has = c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 > 0; return w + (has ? '을' : '를'); };
   function mountCoach(el) {
-    const p = ui.panel(el, { kind: 'TRY', title: '코치와 선수: 내가 critic이 되어 보기', caption: '슬라이더로 "이 상황이면 보통 몇 점" 예상을 정한 뒤 "선수가 한 번 뛴다"를 누르라. 놀람(받은 점수 − 내 예상)이 양수면 선수는 방금 한 행동을 더 하고, 음수면 덜 한다. 막대가 어떻게 움직이는지 보라.' });
+    const p = ui.panel(el, { kind: 'TRY', title: '코치와 선수: 내가 critic이 되어 보기', caption: '슬라이더로 "이 상황이면 보통 몇 점" 예상을 정하고 "선수가 한 번 뛴다"를 누르면 플레이가 한 번 진행된다. 놀람(받은 점수 − 내 예상)이 양수면 선수는 방금 한 행동을 더 하고, 음수면 덜 한다. 막대가 그 변화를 바로 보여 준다.' });
     const ACT = [
       { name: '안전 패스', p: 0.9, pts: 1 },
       { name: '3점 슛', p: 0.4, pts: 3 },
@@ -516,7 +518,7 @@ $$v_s = V(s_s) + \sum_{t\ge s}\gamma^{t-s}\Big(\prod_{i=s}^{t-1}c_i\Big)\rho_t\,
     log.className = 'log';
     const tip = document.createElement('p');
     tip.className = 'w-caption';
-    tip.innerHTML = '해 볼 것: 예상을 3으로 올려 놓고 몇 번 뛰어 보라. 무엇을 하든 실망(음수 놀람)만 나와서, 선수가 방금 한 행동을 계속 줄이며 오락가락한다. 예상을 1 근처로 두면 놀람의 부호가 행동의 좋고 나쁨을 가려 준다. "코치도 배운다"를 켜면 예상이 평균 점수 쪽으로 스스로 움직인다.';
+    tip.innerHTML = '예상을 3으로 올려 두고 몇 번 뛰면, 무엇을 하든 실망(음수 놀람)만 나온다. 선수는 방금 한 행동을 계속 줄이며 오락가락한다. 예상을 1 근처에 두면 놀람의 부호가 행동의 좋고 나쁨을 가려 준다. "코치도 배운다"를 켜면 예상이 평균 점수 쪽으로 저절로 움직인다.';
     right.append(log, tip);
     const bars = plot.bars(left, { categories: ACT.map((a) => a.name), series: [], height: 200, y: { min: 0, max: 1 }, labels: true, labelFmt: (v) => Math.round(v * 100) + '%', legend: false });
     function play() {
@@ -533,7 +535,8 @@ $$v_s = V(s_s) + \sum_{t\ge s}\gamma^{t-s}\Big(\prod_{i=s}^{t-1}c_i\Big)\rho_t\,
       hist.push(got);
       const chosen = a === 1 ? after : 1 - after, chosenBefore = a === 1 ? before : 1 - before;
       const reaction = delta > 0 ? '더 하기로' : delta < 0 ? '덜 하기로' : '그대로 두기로';
-      const text = ACT[a].name + ' → ' + got + '점. 놀람 = ' + got + ' − 예상 ' + V.toFixed(1) + ' = ' + (delta >= 0 ? '+' : '') + delta.toFixed(1) + '. 선수는 ' + ACT[a].name + '를 ' + reaction + ' 한다 (' + Math.round(chosenBefore * 100) + '% → ' + Math.round(chosen * 100) + '%).';
+      const signed = (x) => (x >= 0 ? '+' : '−') + Math.abs(x).toFixed(1);
+      const text = ACT[a].name + ' → ' + got + '점. 놀람 = ' + got + ' − 예상 ' + V.toFixed(1) + ' = ' + signed(delta) + '. 선수는 ' + withObj(ACT[a].name) + ' ' + reaction + ' 한다(' + Math.round(chosenBefore * 100) + '% → ' + Math.round(chosen * 100) + '%).';
       lines.unshift(plays + '. ' + text);
       lines = lines.slice(0, 6);
       msg.innerHTML = text;
