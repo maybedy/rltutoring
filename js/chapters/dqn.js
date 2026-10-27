@@ -156,7 +156,7 @@ $$P(i) = \frac{p_i^{\alpha}}{\sum_k p_k^{\alpha}},\quad p_i = |\delta_i| + \epsi
     const btns = ui.row(p.body, 'btns');
     const runB = ui.button(btns, '학습 실행', () => start(), { primary: true });
     const st = ui.stats(p.body, [
-      { key: 'c0', label: '온라인: 최종 오차 / 발산 시드' },
+      { key: 'c0', label: '온라인: 최종 오차(중앙값) / 발산 시드' },
       { key: 'c1', label: '재생만', tone: 'signal' },
       { key: 'c2', label: '재생 + 타깃', tone: 'accent' },
       { key: 'prog', label: '진행' },
@@ -221,7 +221,7 @@ $$P(i) = \frac{p_i^{\alpha}}{\sum_k p_k^{\alpha}},\quad p_i = |\delta_i| + \epsi
           }
           for (let b = 0; b < 2; b++) for (let k = 0; k < K; k++) w[b][k] += alpha * upd[b][k];
           if (cfg.target && t % C === 0) wt = w.map((z) => z.slice());
-          if (!Number.isFinite(w[0][0]) || Math.abs(w[0][0]) + Math.abs(w[1][K - 1]) > 1e6) diverged = true;
+          if (t % 10 === 0) { for (let b = 0; b < 2; b++) for (let k = 0; k < K; k++) if (!(Math.abs(w[b][k]) < 1e6)) diverged = true; }
         }
         x = done ? r() : x2;
         if (t % 100 === 0) curve.push([t, diverged ? 3 : Math.min(3, Math.log10(err(w)))]);
@@ -260,9 +260,9 @@ $$P(i) = \frac{p_i^{\alpha}}{\sum_k p_k^{\alpha}},\quad p_i = |\delta_i| + \epsi
         const curve = rs[0].curve.map((pt, i) => [pt[0], median(rs.map((r) => r.curve[i][1]))]);
         series.push({ name: c.name, color: c.color, data: curve });
         const fin = rs.map((r) => r.final);
-        const ndiv = rs.filter((r) => r.diverged).length;
+        const ndiv = rs.filter((r) => r.diverged || r.final > 100).length;
         const med = median(fin);
-        st.set('c' + ci, (Number.isFinite(med) ? med.toFixed(3) : '발산') + ' / ' + ndiv + '개');
+        st.set('c' + ci, (med < 100 ? med.toFixed(3) : '발산') + ' / ' + ndiv + '개');
       });
       eChart.update({ series });
       drawQ();
@@ -270,15 +270,15 @@ $$P(i) = \frac{p_i^{\alpha}}{\sum_k p_k^{\alpha}},\quad p_i = |\delta_i| + \epsi
     function drawQ() {
       if (!Qstar) return;
       const series = [
-        { name: 'Q*(x, ←)', color: 'c3', dash: '5 4', data: grid.map((x, i) => [x, Qstar[i][0]]), endDot: false },
+        { name: 'Q*(x, ←)', color: 'c4', dash: '5 4', data: grid.map((x, i) => [x, Qstar[i][0]]), endDot: false },
         { name: 'Q*(x, →)', color: 'c6', dash: '5 4', data: grid.map((x, i) => [x, Qstar[i][1]]), endDot: false },
       ];
       const res = lastW && lastW[showCfg];
-      if (res && !res.diverged) {
-        series.push({ name: '학습된 Q(x, ←)', color: 'c3', data: grid.map((x, i) => [x, q(res.w, phiG[i], 0)]), endDot: false });
+      if (res && res.final < 100) {
+        series.push({ name: '학습된 Q(x, ←)', color: 'c4', data: grid.map((x, i) => [x, q(res.w, phiG[i], 0)]), endDot: false });
         series.push({ name: '학습된 Q(x, →)', color: 'c6', data: grid.map((x, i) => [x, q(res.w, phiG[i], 1)]), endDot: false });
       }
-      qChart.update({ series, y: { label: res && res.diverged ? 'Q(x, a) — 선택한 설정의 시드 1은 발산' : 'Q(x, a) (시드 1)', min: 0, max: 1.15 } });
+      qChart.update({ series, y: { label: res && !(res.final < 100) ? 'Q(x, a) — 선택한 설정의 시드 1은 발산' : 'Q(x, a) (시드 1)', min: 0, max: 1.15 } });
     }
     start();
   }
@@ -319,7 +319,7 @@ $$P(i) = \frac{p_i^{\alpha}}{\sum_k p_k^{\alpha}},\quad p_i = |\delta_i| + \epsi
       chart.update({ series: [
         { name: '단일 추정기 (Q-learning / DQN)', color: 'c2', data: single, markers: true },
         { name: '이중 추정기 (Double Q / Double DQN)', color: 'c1', data: dbl, markers: true },
-        { name: '$\\sigma\\sqrt{2\\ln n}$ (Δ=0일 때 상한)', color: 'c5', dash: '4 4', data: sim.range(64).map((i) => [i + 1, sg * Math.sqrt(2 * Math.log(i + 1))]), endDot: false },
+        { name: 'σ√(2 ln n) (Δ=0일 때 상한)', color: 'c5', dash: '4 4', data: sim.range(64).map((i) => [i + 1, sg * Math.sqrt(2 * Math.log(i + 1))]), endDot: false },
       ], hlines: [{ y: 0, label: '편향 0' }] });
       st.set('s', single[single.length - 1][1].toFixed(3));
       st.set('d', dbl[dbl.length - 1][1].toFixed(3));
@@ -346,9 +346,9 @@ $$P(i) = \frac{p_i^{\alpha}}{\sum_k p_k^{\alpha}},\quad p_i = |\delta_i| + \epsi
     split.append(left, right);
     p.body.appendChild(split);
     const deltas = [0.05, 0.1, 0.2, 0.3, 0.5, 0.8, 1.5, 3.0];
-    const cats = deltas.map((d) => '|δ|=' + d);
-    const pc = plot.bars(left, { categories: cats, series: [], height: 230, y: { min: 0, label: '샘플 확률' }, labels: false });
-    const wc = plot.bars(right, { categories: cats, series: [], height: 230, y: { min: 0, max: 1, label: '정규화 IS 가중치' }, labels: false, legend: false });
+    const cats = deltas.map((d) => String(d));
+    const pc = plot.bars(left, { categories: cats, series: [], height: 230, y: { min: 0, label: '샘플 확률' }, labels: false, xLabel: '전이의 |δ|' });
+    const wc = plot.bars(right, { categories: cats, series: [], height: 230, y: { min: 0, max: 1, label: '정규화 IS 가중치' }, labels: false, legend: false, xLabel: '전이의 |δ|' });
     function draw() {
       const a = aS.get(), b = bS.get(), N = deltas.length;
       const pr = deltas.map((d) => Math.pow(d + 0.01, a));

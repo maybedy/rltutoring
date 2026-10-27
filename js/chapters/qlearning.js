@@ -35,8 +35,8 @@
 <p>Q-learning은 다음 조건에서 확률 1로 $Q^*$에 수렴한다(Watkins & Dayan 1992; Jaakkola, Jordan & Singh 1994; Tsitsiklis 1994).</p>
 <ol>
 <li><strong>모든 $(s,a)$ 쌍을 무한히 자주 방문</strong>한다. 행동 정책은 무엇이든 되지만 충분히 탐험해야 한다.</li>
-<li><strong>로빈스-먼로 조건</strong>: 각 쌍의 스텝 크기가 $\sum_k \alpha_k = \infty$, $\sum_k \alpha_k^2 < \infty$를 만족한다. 첫 조건은 초기값의 영향을 지울 만큼 충분히 움직인다는 뜻, 둘째는 잡음이 결국 평균되어 사라진다는 뜻이다. $\alpha_k = 1/k$가 대표적이다.</li>
-<li>보상의 분산이 유한하고, $\gamma<1$이거나 모든 정책이 결국 종료된다.</li>
+<li><strong>로빈스-먼로 조건</strong>: 각 쌍의 스텝 크기가 $\sum_k \alpha_k = \infty$, $\sum_k \alpha_k^2 \lt \infty$를 만족한다. 첫 조건은 초기값의 영향을 지울 만큼 충분히 움직인다는 뜻, 둘째는 잡음이 결국 평균되어 사라진다는 뜻이다. $\alpha_k = 1/k$가 대표적이다.</li>
+<li>보상의 분산이 유한하고, $\gamma \lt 1$이거나 모든 정책이 결국 종료된다.</li>
 </ol>
 <p>SARSA가 $Q^*$로 가려면 여기에 <strong>GLIE</strong>(Greedy in the Limit with Infinite Exploration)가 더 필요하다. 모든 쌍을 무한히 방문하면서 정책이 극한에서 탐욕적이 되어야 한다. 예: $\epsilon_k = 1/k$인 $\epsilon$-greedy(Singh et al. 2000). SARSA는 "지금 실행 중인 정책"의 가치를 배우므로, 정책이 탐욕적으로 수렴해야만 최적 가치에 도달한다.</p>
 <div class="thesis-box"><span class="label">대전제 T1 · T2</span>
@@ -97,7 +97,7 @@ $$Q_1(s,a) \leftarrow Q_1(s,a) + \alpha\Big[r + \gamma\, Q_2\big(s', \hl{\arg\ma
         tex: String.raw`\tm{old}{Q(s,a)} \leftarrow Q(s,a) + \tm{a}{\alpha}\,\Big[\,\tm{tgt}{\tm{r}{r} + \tm{g}{\gamma}\,\tm{max}{\max_{a'} Q(s',a')}} - Q(s,a)\,\Big]`,
         terms: [
           { id: 'old', sym: 'Q(s,a)', label: '현재 추정', desc: '표의 한 칸. 방문한 (s,a)만 바뀐다.', long: '표 형식에서는 업데이트가 정확히 한 칸만 바꾼다. 함수근사(09장)에서는 한 번의 업데이트가 비슷한 상태들의 값까지 함께 바꾸고, 그것이 일반화이자 불안정성의 원천이다.' },
-          { id: 'a', sym: '\\alpha', label: '스텝 크기', desc: '새 샘플을 얼마나 믿을지. 기억 길이 ≈ 1/α.', long: '상수 $\\alpha$는 정확한 수렴을 포기하는 대신 비정상(nonstationary) 상황을 추적한다. 수렴 이론은 $\\sum\\alpha=\\infty, \\sum\\alpha^2<\\infty$를 요구하지만 실전에서는 거의 항상 상수를 쓴다.' },
+          { id: 'a', sym: '\\alpha', label: '스텝 크기', desc: '새 샘플을 얼마나 믿을지. 기억 길이 ≈ 1/α.', long: '상수 $\\alpha$는 정확한 수렴을 포기하는 대신 비정상(nonstationary) 상황을 추적한다. 수렴 이론은 $\\sum\\alpha=\\infty, \\sum\\alpha^2 \\lt \\infty$를 요구하지만 실전에서는 거의 항상 상수를 쓴다.' },
           { id: 'tgt', sym: 'y', label: 'TD 타깃', desc: '한 스텝 실제 보상 + 다음 상태의 추정 가치.', long: '타깃 안에 자기 자신(Q)이 들어 있다(부트스트랩). 그래서 Q가 바뀌면 타깃도 바뀐다. DQN의 타깃 네트워크는 이 움직이는 과녁을 잠시 고정한다.' },
           { id: 'r', sym: 'r', label: '실제 보상', desc: '환경에서 관측된 유일한 "진짜" 정보.' },
           { id: 'g', sym: '\\gamma', label: '할인율', desc: '부트스트랩 항의 가중치 = 오차 전파 계수.' },

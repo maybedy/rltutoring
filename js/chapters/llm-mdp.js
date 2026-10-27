@@ -52,14 +52,14 @@
 
 <h2>두 관점: 시퀀스 밴딧 대 토큰 MDP</h2>
 <p>보상이 끝에 한 번만 온다면 응답 전체 $y$를 하나의 행동으로 볼 수도 있다. 그러면 문제는 <strong>문맥 밴딧</strong>이다: 문맥 $x$, 행동 $y \sim \pi(\cdot|x)$, 보상 $r(x,y)$. 정책 경사(T3)는 두 관점에서 같은 값이지만 분산을 줄이는 도구가 다르다.</p>
-$$\nabla_\theta J = \mathbb{E}_{x,\,y\sim\pi_\theta}\Big[r(x,y)\,\nabla_\theta\log\pi_\theta(y|x)\Big] = \mathbb{E}\Big[r(x,y)\sum_{t}\nabla_\theta\log\pi_\theta(y_t \mid x, y_{&lt;t})\Big]$$
+$$\nabla_\theta J = \mathbb{E}_{x,\,y\sim\pi_\theta}\Big[r(x,y)\,\nabla_\theta\log\pi_\theta(y|x)\Big] = \mathbb{E}\Big[r(x,y)\sum_{t}\nabla_\theta\log\pi_\theta(y_t \mid x, y_{\lt t})\Big]$$
 <div class="table-wrap"><table class="t">
 <thead><tr><th>관점</th><th>행동 단위</th><th>베이스라인 / 가치</th><th>대표 알고리즘</th><th>장단점</th></tr></thead>
 <tbody>
 <tr><td>시퀀스 단위 문맥 밴딧</td><td>응답 전체 $y$</td><td>같은 프롬프트의 다른 응답들의 평균 보상</td><td>REINFORCE, RLOO, ReMax, GRPO</td><td>critic이 필요 없음. 모든 토큰이 같은 advantage를 받음</td></tr>
-<tr><td>토큰 단위 MDP</td><td>토큰 $y_t$</td><td>학습된 가치 함수 $V(x, y_{&lt;t})$</td><td>PPO(RLHF), VinePPO, 토큰 수준 DPO 해석</td><td>토큰별 신용 할당 가능. critic 학습이 어렵고 비쌈</td></tr>
+<tr><td>토큰 단위 MDP</td><td>토큰 $y_t$</td><td>학습된 가치 함수 $V(x, y_{\lt t})$</td><td>PPO(RLHF), VinePPO, 토큰 수준 DPO 해석</td><td>토큰별 신용 할당 가능. critic 학습이 어렵고 비쌈</td></tr>
 </tbody></table></div>
-<p>희소 보상 + 결정적 전이에서 토큰 단위 가치 $V(x, y_{&lt;t})$는 "이 접두사로 시작하면 결국 보상을 받을 확률"이다. 즉 <strong>접두사 분류기</strong>다. 이것이 프로세스 보상모델(PRM, 21~22장)과 같은 대상이라는 점을 기억해 두자.</p>
+<p>희소 보상 + 결정적 전이에서 토큰 단위 가치 $V(x, y_{\lt t})$는 "이 접두사로 시작하면 결국 보상을 받을 확률"이다. 즉 <strong>접두사 분류기</strong>다. 이것이 프로세스 보상모델(PRM, 21~22장)과 같은 대상이라는 점을 기억해 두자.</p>
 
 <h2>KL-정규화 목적과 그 닫힌 해</h2>
 <p>보상만 최대화하면 정책은 보상모델의 허점을 찾아 사전학습 분포에서 멀리 벗어난다(<a href="#rlhf">19장</a>). 그래서 거의 모든 LLM RL은 기준 모델 $\pi_{\text{ref}}$(보통 SFT 모델)와의 KL을 벌점으로 둔다.</p>
@@ -79,7 +79,7 @@ $$\max_\pi\; J_\beta(\pi) = \mathbb{E}_{y\sim\pi(\cdot|x)}\big[r(x,y)\big] - \be
 
 <h2>토큰 단위로 펼치면: 소프트 벨만 방정식</h2>
 <p>시퀀스 KL은 토큰별 로그 비율의 합으로 정확히 분해된다.</p>
-$$\log\frac{\pi(y|x)}{\pi_{\text{ref}}(y|x)} = \sum_{t=1}^{T}\log\frac{\pi(y_t|s_t)}{\pi_{\text{ref}}(y_t|s_t)},\qquad s_t = (x, y_{&lt;t})$$
+$$\log\frac{\pi(y|x)}{\pi_{\text{ref}}(y|x)} = \sum_{t=1}^{T}\log\frac{\pi(y_t|s_t)}{\pi_{\text{ref}}(y_t|s_t)},\qquad s_t = (x, y_{\lt t})$$
 <p>그래서 KL-정규화 목적은 <strong>토큰별 보상</strong> $r_t = -\beta\log\frac{\pi(y_t|s_t)}{\pi_{\text{ref}}(y_t|s_t)} + r(x,y)\,\mathbb{1}[t = T]$를 가진 MDP의 리턴과 같다. InstructGPT식 PPO 구현이 정확히 이렇게 보상을 만든다. 이 MDP의 최적 정책은 엔트로피 정규화 RL(<a href="#maxent">14장</a>)의 소프트 벨만 방정식을 만족한다.</p>
 <div data-w="fx-soft"></div>
 <p>결정적 전이 덕분에 $Q^*(s_t, a) = r(s_t,a) + V^*(s_t \oplus a)$로 기댓값이 사라진다. 위 식을 정리하면 $\beta\log\frac{\pi^*(a|s_t)}{\pi_{\text{ref}}(a|s_t)} = Q^*(s_t,a) - V^*(s_t)$, 즉 <strong>로그 확률 비율이 곧 advantage</strong>다. 또 $\pi_{\text{ref}}$가 거의 균일한 곳에서는 로짓이 $Q^*/\beta$와 상태별 상수만큼만 다르다. "언어 모델의 로짓은 소프트 Q 함수다"(Rafailov et al. 2024, "From r to Q*")라는 관찰이 여기서 나온다(<a href="#qviews">08장</a>의 Q-learning 관점들과 연결).</p>
@@ -165,7 +165,7 @@ $$k_1 = -\log\rho,\qquad k_2 = \tfrac12(\log\rho)^2,\qquad k_3 = (\rho - 1) - \l
       { tag: 'practice', t: '길이와 KL의 숨은 결합',
         d: '<p>시퀀스 KL은 토큰 로그 비율의 <em>합</em>이다. 응답이 길수록 같은 토큰당 이탈에도 KL이 커지고, 반대로 토큰당 평균으로 정규화하면 긴 응답의 벌점이 상대적으로 약해진다. 보상이 길이와 상관되어 있으면(긴 답을 선호하는 보상모델) 두 선택 모두 길이 편향을 만들 수 있다. 응답 길이 분포를 학습 곡선과 함께 항상 모니터링하는 것이 실무의 기본이다.</p>' },
       { tag: 'math', t: '토큰 단위 가치 함수 = 접두사 성공 확률',
-        d: '<p>보상이 0/1(정답 여부)이고 $\\beta \\to 0$에 가까우면 $V(x, y_{&lt;t})$는 "이 접두사에서 출발해 정답에 도달할 확률"이다. 이것은 학습된 critic, 프로세스 보상모델(PRM), MC 롤아웃 추정이 모두 같은 양을 겨냥한다는 뜻이다. 서로 다른 이름의 방법을 비교할 때 "무엇을 추정하는가"를 이 양으로 통일해 보면 차이가 "어떻게 추정하는가(학습 vs 샘플링)"뿐인 경우가 많다.</p>' },
+        d: '<p>보상이 0/1(정답 여부)이고 $\\beta \\to 0$에 가까우면 $V(x, y_{\\lt t})$는 "이 접두사에서 출발해 정답에 도달할 확률"이다. 이것은 학습된 critic, 프로세스 보상모델(PRM), MC 롤아웃 추정이 모두 같은 양을 겨냥한다는 뜻이다. 서로 다른 이름의 방법을 비교할 때 "무엇을 추정하는가"를 이 양으로 통일해 보면 차이가 "어떻게 추정하는가(학습 vs 샘플링)"뿐인 경우가 많다.</p>' },
     ],
     quiz: [
       { q: 'KL-정규화 목적 $\\mathbb{E}_\\pi[r] - \\beta\\mathrm{KL}(\\pi\\|\\pi_{\\text{ref}})$의 최적해는?', options: ['$\\pi^* = \\arg\\max_y r(y)$에 확률 1', '$\\pi^*(y) \\propto \\pi_{\\text{ref}}(y)\\,e^{r(y)/\\beta}$', '$\\pi^*(y) \\propto e^{r(y)}$', '$\\pi^* = \\pi_{\\text{ref}}$'], answer: 1,

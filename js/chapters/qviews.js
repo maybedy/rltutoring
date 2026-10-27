@@ -103,7 +103,7 @@ $$\sum_{t} \beta\log\frac{\pi^*(y_t|s_t)}{\pi_{\text{ref}}(y_t|s_t)} = \sum_t \b
         title: '벨만 고정점 → 로빈스-먼로 → Q-learning',
         steps: [
           { tex: String.raw`F(Q) := \mathcal{T}^*Q - Q = 0`, why: '$Q^*$는 $\\mathcal{T}^*$의 고정점, 즉 $F$의 근(root)이다. 근 찾기 문제로 바꾼다.' },
-          { tex: String.raw`\theta_{k+1} = \theta_k + \alpha_k\big(F(\theta_k) + \hl{\varepsilon_k}\big),\quad \mathbb{E}[\varepsilon_k \mid \theta_k] = 0`, why: '로빈스-먼로(1951): $F$를 직접 계산할 수 없고 평균 0의 잡음이 낀 관측만 있을 때, $\\sum\\alpha_k=\\infty,\\ \\sum\\alpha_k^2<\\infty$이면 근으로 수렴한다(적절한 안정성 조건 아래).' },
+          { tex: String.raw`\theta_{k+1} = \theta_k + \alpha_k\big(F(\theta_k) + \hl{\varepsilon_k}\big),\quad \mathbb{E}[\varepsilon_k \mid \theta_k] = 0`, why: '로빈스-먼로(1951): $F$를 직접 계산할 수 없고 평균 0의 잡음이 낀 관측만 있을 때, $\\sum\\alpha_k=\\infty,\\ \\sum\\alpha_k^2 \\lt \\infty$이면 근으로 수렴한다(적절한 안정성 조건 아래).' },
           { tex: String.raw`(\hat{\mathcal{T}}Q)(s,a) = r + \gamma\max_{a'}Q(s',a'),\qquad \mathbb{E}_{s'}\big[(\hat{\mathcal{T}}Q)(s,a)\big] = (\mathcal{T}^*Q)(s,a)`, why: '샘플 $(r, s\')$ 하나로 만든 연산자는 $\\mathcal{T}^*$의 불편 추정이다. $\\max$가 $s\'$에 대한 기댓값 안쪽에 있어서 가능하다. (반대로 $\\max$가 기댓값 바깥에 있었다면 편향이 생겼을 것이다.)' },
           { tex: String.raw`Q_{k+1}(s,a) = Q_k(s,a) + \alpha_k\big[\hl{(\hat{\mathcal{T}}Q_k)(s,a) - Q_k(s,a)}\big]`, why: '$F$ 자리에 잡음 섞인 관측 $\\hat{\\mathcal{T}}Q_k - Q_k$를 넣으면 바로 Q-learning이다. 경사가 아니라 "연산자 잔차"를 따라간다는 점에서 SGD와 다르다.' },
           { tex: String.raw`\underbrace{Q_{k+1} - Q^*}_{\text{오차}} = (1-\alpha_k)(Q_k - Q^*) + \alpha_k\big(\underbrace{\mathcal{T}^*Q_k - \mathcal{T}^*Q^*}_{\le\,\gamma\|Q_k - Q^*\|}\big) + \alpha_k\,\hl{\varepsilon_k}`, why: '오차 분해. 축약 덕분에 결정적 부분은 매 스텝 $(1-\\alpha_k(1-\\gamma))$배로 줄고, 잡음 항은 $\\alpha_k$에 비례해 더해진다. 상수 $\\alpha$면 잡음이 끝까지 남아 바닥을 만든다. 또 $(1-\\gamma)$가 작으면 결정적 부분이 줄어드는 속도 자체가 느리다.' },
@@ -219,7 +219,9 @@ $$\sum_{t} \beta\log\frac{\pi^*(y_t|s_t)}{\pi_{\text{ref}}(y_t|s_t)} = \sum_t \b
       return sim.range(env.nS).map((s) => (env.cells[s].terminal ? [0, 0, 0, 0] : env.qFromV(V, gm, s)));
     }
     function err(Q, Qs) { let m = 0; for (let s = 0; s < env.nS; s++) for (let a = 0; a < 4; a++) m = Math.max(m, Math.abs(Q[s][a] - Qs[s][a])); return m; }
+    let token = 0;
     function run() {
+      const my = ++token;
       const gm = gS.get(), ca = cS.get(), om = wS.get();
       const Qs = qStar(gm);
       const scheds = { c: () => ca, lin: (k) => 1 / k, poly: (k) => 1 / Math.pow(k, om) };
@@ -231,34 +233,39 @@ $$\sum_{t} \beta\log\frac{\pi^*(y_t|s_t)}{\pi_{\text{ref}}(y_t|s_t)} = \sum_t \b
         const V = Q.map((q) => Math.max(...q));
         Q = sim.range(env.nS).map((s) => (env.cells[s].terminal ? [0, 0, 0, 0] : env.qFromV(V, gm, s)));
       }
-      for (const key of ['c', 'lin', 'poly']) {
-        for (let seed = 0; seed < SEEDS; seed++) {
-          const r = sim.rng(1000 + seed);
-          const Qk = sim.range(env.nS).map(() => [0, 0, 0, 0]);
-          for (let k = 0; k <= K; k++) {
-            acc[key][k] += err(Qk, Qs) / SEEDS;
-            const al = scheds[key](k + 1);
-            const V = Qk.map((q) => Math.max(...q));
-            for (let s = 0; s < env.nS; s++) {
-              if (env.cells[s].terminal) continue;
-              for (let a = 0; a < 4; a++) {
-                const o = env.step(s, a, r);
-                const y = o.r + (o.done ? 0 : gm * V[o.s2]);
-                Qk[s][a] += al * (y - Qk[s][a]);
-              }
+      const jobs = [];
+      ['c', 'lin', 'poly'].forEach((key) => { for (let seed = 0; seed < SEEDS; seed++) jobs.push([key, seed]); });
+      let j = 0;
+      function chunk() {
+        if (my !== token) return;
+        const [key, seed] = jobs[j++];
+        const r = sim.rng(1000 + seed);
+        const Qk = sim.range(env.nS).map(() => [0, 0, 0, 0]);
+        for (let k = 0; k <= K; k++) {
+          acc[key][k] += err(Qk, Qs) / SEEDS;
+          const al = scheds[key](k + 1);
+          const V = Qk.map((q) => Math.max(...q));
+          for (let s = 0; s < env.nS; s++) {
+            if (env.cells[s].terminal) continue;
+            for (let a = 0; a < 4; a++) {
+              const o = env.step(s, a, r);
+              const y = o.r + (o.done ? 0 : gm * V[o.s2]);
+              Qk[s][a] += al * (y - Qk[s][a]);
             }
           }
         }
+        if (j < jobs.length) { setTimeout(chunk, 0); return; }
+        const lg = (arr) => arr.map((v, k) => [k, Math.log10(Math.max(1e-12, v))]);
+        chart.update({ series: [
+          { name: '가치 반복 (정확한 $\\mathcal{T}^*$)', color: 'c1', data: lg(acc.vi) },
+          { name: '상수 $\\alpha$', color: 'c3', data: lg(acc.c) },
+          { name: '$\\alpha_k = 1/k$', color: 'c2', data: lg(acc.lin) },
+          { name: '$\\alpha_k = 1/k^{\\omega}$', color: 'c5', data: lg(acc.poly) },
+        ], y: { label: 'log₁₀ ‖Q_k − Q*‖∞', min: -3, max: 0.3 } });
+        const f = (v) => v.toExponential(2);
+        st.set('vi', f(acc.vi[K])); st.set('c', f(acc.c[K])); st.set('lin', f(acc.lin[K])); st.set('poly', f(acc.poly[K]));
       }
-      const lg = (arr) => arr.map((v, k) => [k, Math.log10(Math.max(1e-12, v))]);
-      chart.update({ series: [
-        { name: '가치 반복 (정확한 $\\mathcal{T}^*$)', color: 'c1', data: lg(acc.vi) },
-        { name: '상수 $\\alpha$', color: 'c3', data: lg(acc.c) },
-        { name: '$\\alpha_k = 1/k$', color: 'c2', data: lg(acc.lin) },
-        { name: '$\\alpha_k = 1/k^{\\omega}$', color: 'c5', data: lg(acc.poly) },
-      ], y: { label: 'log₁₀ ‖Q_k − Q*‖∞', min: -3, max: 0.3 } });
-      const f = (v) => v.toExponential(2);
-      st.set('vi', f(acc.vi[K])); st.set('c', f(acc.c[K])); st.set('lin', f(acc.lin[K])); st.set('poly', f(acc.poly[K]));
+      chunk();
     }
     run();
   }

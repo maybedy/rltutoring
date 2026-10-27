@@ -106,7 +106,7 @@ $$w \leftarrow w + \alpha\big(0 + \gamma\cdot 2w - w\big)\cdot 1 = \big(1 + \alp
         tex: String.raw`\tm{w}{w} \leftarrow w + \tm{a}{\alpha}\,\Big[\,\tm{tgt}{r + \gamma\, \sg\!\big(w^\top x(s')\big)} - \tm{pred}{w^\top x(s)}\,\Big]\;\tm{x}{x(s)}`,
         terms: [
           { id: 'w', sym: 'w', label: '가중치', desc: '모든 상태가 공유하는 파라미터. 한 번의 업데이트가 모든 상태의 값을 바꾼다.' },
-          { id: 'a', sym: '\\alpha', label: '스텝 크기', desc: '선형이면 $\\alpha\\|x\\|^2 < 2$ 정도여야 한 샘플에서도 튀지 않는다.', long: '같은 특징이 반복해서 업데이트되면 LMS처럼 $\\alpha\\|x\\|^2$이 2를 넘을 때 진동 발산한다. 이것은 Deadly Triad와 별개의 스텝 크기 불안정성이다.' },
+          { id: 'a', sym: '\\alpha', label: '스텝 크기', desc: '선형이면 $\\alpha\\|x\\|^2 \\lt 2$ 정도여야 한 샘플에서도 튀지 않는다.', long: '같은 특징이 반복해서 업데이트되면 LMS처럼 $\\alpha\\|x\\|^2$이 2를 넘을 때 진동 발산한다. 이것은 Deadly Triad와 별개의 스텝 크기 불안정성이다.' },
           { id: 'tgt', sym: "r + \\gamma\\,\\mathrm{sg}(\\hat v(s'))", label: '부트스트랩 타깃 (경사 차단)', desc: '자기 추정을 상수처럼 취급. sg = stop-gradient.', long: 'DQN 코드에서 타깃 계산에 <code>no_grad</code>/<code>detach</code>를 쓰는 바로 그 부분. 타깃 네트워크는 이 상수를 아예 오래된 파라미터로 계산한다.' },
           { id: 'pred', sym: '\\hat v(s)', label: '현재 예측', desc: '업데이트되는 쪽.' },
           { id: 'x', sym: 'x(s)', label: '특징 벡터 = 경사', desc: '선형이면 $\\nabla_w\\hat v = x(s)$. 이 방향으로 모든 비슷한 상태가 함께 움직인다.' },
