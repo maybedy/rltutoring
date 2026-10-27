@@ -243,7 +243,7 @@ $$R^{\text{gold}}_{\text{BoN}}(d) = d\,(\alpha_{\text{bon}} - \beta_{\text{bon}}
     ];
     const pref = [0.22, 0.2, 0.18, 0.22, 0.18];
     const ROUNDS = 8, lam = 0.15;
-    const p = ui.panel(el, { kind: 'TRY', title: '내가 라벨러: 두 답 중 더 나은 쪽 고르기', caption: '두 답 중 더 나은 쪽 버튼을 누르면 왼쪽 막대(채점기 점수)가 그 선택을 따라 움직인다. 오른쪽 막대는 이 채점기로 챗봇을 고쳤을 때 각 답을 쓸 확률이다. 8번 고른 뒤 "길이를 좋아하는 라벨러" 버튼을 누르면 라벨러의 버릇이 챗봇에 그대로 옮겨 가는 것이 보인다.' });
+    const p = ui.panel(el, { kind: 'TRY', title: '내가 라벨러: 두 답 중 더 나은 쪽 고르기', caption: '두 답 중 더 나은 쪽 버튼을 누르면 첫 번째 그래프(채점기 점수)가 그 선택을 따라 움직인다. 두 번째 그래프는 이 채점기로 챗봇을 고쳤을 때 각 답을 쓸 확률이다. 8번 고른 뒤 "길이를 좋아하는 라벨러" 버튼을 누르면 라벨러의 버릇이 챗봇에 그대로 옮겨 가는 것이 보인다.' });
     const qbox = document.createElement('div');
     qbox.className = 'fx-detail';
     qbox.innerHTML = '<strong>질문</strong>: 감기 기운이 있을 때 어떻게 하면 좋을까요?<div class="w-caption" style="margin-top:6px">' + ans.map((a) => '<strong>' + a.k + '</strong>. ' + a.t).join('<br>') + '</div>';
