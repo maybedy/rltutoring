@@ -43,7 +43,7 @@
 <div data-w="bandit-sim"></div>
 <ul>
   <li><strong>ε-greedy의 직선:</strong> 고정 $\varepsilon$이면 결국 기울기 $\varepsilon\cdot\bar\Delta$의 직선이 된다. 초반에는 빠르지만 길게 보면 진다.</li>
-  <li><strong>UCB와 Thompson의 로그 곡선:</strong> 점점 눕는다. 팔들의 평균이 가까운 "근접" 프리셋에서는 둘 다 오래 헤맨다. 간격 $\Delta$가 작을수록 어렵다는 하한 그대로다.</li>
+  <li><strong>UCB와 Thompson의 로그 곡선:</strong> 길게 보면 점점 눕는다. 다만 UCB1의 이론 상수 $c=\sqrt2$는 보수적이라, 간격이 작은 "근접" 프리셋의 $T=1000$에서는 오히려 ε-greedy보다 regret이 클 수 있다. $c$를 0.5 근처로 줄이거나 "쉬움" 프리셋으로 바꿔 비교해 보라. 이론 상한이 보장하는 것은 증가 속도이지 유한 $T$에서의 순위가 아니다.</li>
   <li><strong>탐욕(greedy)의 함정:</strong> 운 나쁘게 첫 보상이 좋은 나쁜 팔에 고착되면 영원히 못 빠져나온다. 평균은 직선이지만 실행마다 극단적으로 갈린다.</li>
   <li><strong>baseline의 효과:</strong> gradient bandit에서 baseline을 끄면 보상이 항상 0 이상이라 당긴 팔이 늘 강화되어 학습이 느리고 불안정해진다(T6, <a href="#pg">11장</a>).</li>
 </ul>
@@ -261,18 +261,38 @@
     p.body.append(info, split, tbl);
     const regC = plot.line(left, { height: 270, x: { label: '스텝 t', min: 0 }, y: { label: '누적 regret (기대)', min: 0 }, series: [], hoverDigits: 1, hoverXDigits: 0 });
     const optC = plot.line(right, { height: 270, x: { label: '스텝 t', min: 0 }, y: { label: '최적 팔 선택 비율', min: 0, max: 1 }, series: [], hoverDigits: 2, hoverXDigits: 0 });
-    let timer = 0;
+    let timer = 0, job = 0;
+    if (RL.cleanup) RL.cleanup.push(() => { job++; clearTimeout(timer); });
     function sched() { clearTimeout(timer); timer = setTimeout(run, 60); }
+    // 알고리즘 하나씩 나눠 계산해 메인 스레드를 오래 막지 않는다
     function run() {
+      const my = ++job;
       const mus = presetMus(state.preset);
       const T = state.T, best = Math.max(...mus);
       const stride = Math.max(1, Math.floor(T / 200));
       const regSeries = [], optSeries = [], rows = [];
-      ALGS.forEach((alg, ai) => {
-        if (!on[alg.key]) return;
+      const todo = ALGS.map((alg, ai) => ({ alg, ai })).filter((x) => on[x.alg.key]);
+      let lb = 0;
+      mus.forEach((m) => { if (m < best) lb += (best - m) / bernKL(m, best); });
+      const lbData = [];
+      for (let t = 1; t <= T; t += stride) lbData.push([t, lb * Math.log(t)]);
+      info.innerHTML = '팔의 평균 $\\mu$ = [' + mus.map((m) => m.toFixed(2)).join(', ') + '], 최적 ' + best.toFixed(2) + '. 실행 ' + state.runs + '회 평균.';
+      RL.renderMath(info);
+      function draw() {
+        const rs = regSeries.slice();
+        if (showLB) rs.push({ name: 'Lai–Robbins 점근식', color: 'faint', dash: '5 4', data: lbData, endDot: false });
+        regC.update({ series: rs, x: { label: '스텝 t', min: 0, max: T } });
+        optC.update({ series: optSeries.slice(), x: { label: '스텝 t', min: 0, max: T } });
+        tbl.innerHTML = '<table class="t"><thead><tr><th>알고리즘</th><th>T에서 누적 regret</th><th>마지막 10% 구간 최적 선택률</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+      }
+      let i = 0;
+      function next() {
+        if (my !== job) return;
+        if (i >= todo.length) { draw(); return; }
+        const { alg, ai } = todo[i++];
         const accReg = new Float64Array(T), accOpt = new Float64Array(T);
         const r = sim.rng(1000 + ai * 7919);
-        for (let i = 0; i < state.runs; i++) runOnce(alg.key, mus, T, r, state, accReg, accOpt);
+        for (let k = 0; k < state.runs; k++) runOnce(alg.key, mus, T, r, state, accReg, accOpt);
         const R = [], O = [];
         const optAvg = Array.from(accOpt, (x) => x / state.runs);
         const optSm = sim.smooth(optAvg, Math.max(5, Math.floor(T / 50)));
@@ -283,17 +303,10 @@
         optSeries.push({ name: nm, color: alg.color, data: O });
         const lastTenth = optAvg.slice(Math.floor(T * 0.9));
         rows.push('<tr><td><span class="col-' + alg.color + '">●</span> ' + nm + '</td><td class="num">' + (accReg[T - 1] / state.runs).toFixed(1) + '</td><td class="num">' + (100 * sim.mean(lastTenth)).toFixed(1) + '%</td></tr>');
-      });
-      let lb = 0;
-      mus.forEach((m) => { if (m < best) lb += (best - m) / bernKL(m, best); });
-      const lbData = [];
-      for (let t = 1; t <= T; t += stride) lbData.push([t, lb * Math.log(t)]);
-      if (showLB) regSeries.push({ name: 'Lai–Robbins 점근식', color: 'faint', dash: '5 4', data: lbData, endDot: false });
-      regC.update({ series: regSeries, x: { label: '스텝 t', min: 0, max: T } });
-      optC.update({ series: optSeries, x: { label: '스텝 t', min: 0, max: T } });
-      info.innerHTML = '팔의 평균 $\\mu$ = [' + mus.map((m) => m.toFixed(2)).join(', ') + '], 최적 ' + best.toFixed(2) + '. 실행 ' + state.runs + '회 평균.';
-      RL.renderMath(info);
-      tbl.innerHTML = '<table class="t"><thead><tr><th>알고리즘</th><th>T에서 누적 regret</th><th>마지막 10% 구간 최적 선택률</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+        draw();
+        setTimeout(next, 0);
+      }
+      next();
     }
     run();
   }
