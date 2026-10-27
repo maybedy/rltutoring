@@ -8,7 +8,7 @@ MDP와 벨만 방정식에서 시작해 Q-learning, A3C, PPO, SAC, 오프라인 
 - **FORMULA** 식의 각 항에 마우스를 올리면 의미와 "이 항을 바꾸면 어떤 알고리즘이 되는가"가 나온다.
 - **SIM / CALC** 알고리즘을 브라우저에서 실제로 실행해 학습이 전개되는 모습을 본다.
 - **암묵지** 교과서에 잘 적히지 않는 관점과 경험칙. 25장에 전부 모여 있다.
-- **확인 문제** 장마다 3~4문제, 즉시 해설.
+- **확인 문제** 장마다 3~4문제. 답을 고르면 바로 해설이 나온다.
 
 ## 구성
 
@@ -16,10 +16,10 @@ MDP와 벨만 방정식에서 시작해 Q-learning, A3C, PPO, SAC, 오프라인 
 | --- | --- |
 | 0 오리엔테이션 | 로드맵, 9개의 대전제(Thesis), 알고리즘 계보도와 타임라인 |
 | I 문제 정의 | MDP와 리턴, 벨만 방정식과 축약 사상, 동적계획법과 GPI, POMDP |
-| II 경험으로부터 학습 | 밴딧과 탐험, MC/TD/TD(λ), Q-learning과 SARSA, Q-learning의 여러 관점 |
+| II 경험에서 배우기 | 밴딧과 탐험, MC/TD/TD(λ), Q-learning과 SARSA, Q-learning의 여러 관점 |
 | III 함수근사와 Deep Value | Deadly Triad, DQN에서 Rainbow까지 |
 | IV 정책 최적화 | 정책 경사 정리, Actor-Critic·A3C·GAE, TRPO·PPO, DDPG·TD3·SAC |
-| V 데이터·모델·시퀀스 | 오프라인 RL, 모델 기반 RL과 MCTS, Decision Transformer와 in-context RL |
+| V 데이터·모델·시퀀스 | 온라인 RL과 오프라인 RL, 모델 기반 RL과 MCTS, Decision Transformer와 in-context RL |
 | VI LLM과 강화학습 | 토큰 MDP와 KL 정규화, RLHF, DPO 계열, RLVR·GRPO·R1, 추론 시점 탐색, 탐색 후 증류와 기억 |
 | VII 종합 | 연구 흐름과 열린 문제, 암묵지 노트, 기호·용어·참고문헌 |
 
@@ -28,14 +28,14 @@ MDP와 벨만 방정식에서 시작해 Q-learning, A3C, PPO, SAC, 오프라인 
 | | 대전제 | 한 줄 요약 |
 | --- | --- | --- |
 | T1 | 벨만 고정점 | 벨만 연산자는 γ-축약이므로 고정점이 유일하고 반복이 수렴한다 |
-| T2 | GPI | 평가와 탐욕적 개선의 반복이 거의 모든 알고리즘의 골격이다 |
+| T2 | GPI | 평가와 탐욕적 개선을 반복하는 구조가 거의 모든 알고리즘의 뼈대다 |
 | T3 | 점수함수 경사 | ∇E[f] = E[f ∇log p]. REINFORCE부터 GRPO까지 |
 | T4 | 성능 차이·신뢰영역 | 새 정책의 이득은 옛 advantage로 표현되지만 분포가 바뀌므로 조금씩 움직여야 한다 |
 | T5 | KL-정규화 해 | max E[r] − β KL(π‖π₀)의 해는 π₀·exp(r/β)/Z. SAC, RLHF, DPO, Best-of-N |
-| T6 | 편향-분산 | MC와 TD 사이의 손잡이: n-step, λ, GAE, baseline |
+| T6 | 편향-분산 | MC와 TD 사이의 균형을 고르는 방법: n-step, λ, GAE, baseline |
 | T7 | 낙관과 비관 | 데이터를 더 모을 수 있으면 낙관(UCB), 못 모으면 비관(CQL) |
 | T8 | Deadly Triad | 함수근사·부트스트랩·off-policy의 불안정성과 max의 과대추정 |
-| T9 | 탐색의 상각 | 비싼 개선(탐색·검증)을 정책에 증류: AlphaZero, ExIt, STaR, R1 |
+| T9 | 탐색의 상각 | 비용이 큰 개선(탐색·검증)의 결과를 정책에 증류한다: AlphaZero, ExIt, STaR, R1 |
 
 ## 실행
 

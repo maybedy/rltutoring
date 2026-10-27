@@ -63,7 +63,7 @@ $$P(s_{t+1}, r_{t+1} \mid s_t, a_t, s_{t-1}, a_{t-1}, \dots, s_0) = P(s_{t+1}, r
 <div data-w="step-return"></div>
 <p>리턴의 정의에서 첫 항을 떼어 내면 바로 재귀식이 나온다. 다음 장의 벨만 방정식은 모두 이 한 줄에서 출발한다.</p>
 $$G_t = r_{t+1} + \gamma\big(r_{t+2} + \gamma r_{t+3} + \cdots\big) = r_{t+1} + \gamma\, G_{t+1}$$
-<p>보상이 $|r|\le R_{\max}$로 유계이면 등비급수에 의해 $|G_t| \le \dfrac{R_{\max}}{1-\gamma}$이다. 할인은 무한 합을 유한하게 만드는 수학적 장치다. 동시에 "가까운 보상을 더 쳐준다"는 선호를 나타낸다. $\dfrac{1}{1-\gamma}$을 <strong>유효 지평(effective horizon)</strong>이라 부른다. $\gamma=0.99$면 대략 100 스텝 앞까지 본다.</p>
+<p>보상이 $|r|\le R_{\max}$로 유계이면 등비급수 공식으로 $|G_t| \le \dfrac{R_{\max}}{1-\gamma}$이다. 할인은 무한 합을 유한하게 만드는 수학적 장치다. 동시에 "가까운 보상을 더 쳐준다"는 선호를 나타낸다. $\dfrac{1}{1-\gamma}$을 <strong>유효 지평(effective horizon)</strong>이라 부른다. $\gamma=0.99$면 대략 100 스텝 앞까지 본다.</p>
 
 <div data-w="try-discount"></div>
 <div data-w="discount-lab"></div>
