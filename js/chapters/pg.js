@@ -13,7 +13,7 @@
     easy: {
       hook: '결과가 좋았던 선택은 더 자주, 나빴던 선택은 덜 하도록 선택 확률을 조금씩 직접 옮긴다.',
       intro: '<p><a href="#home">홈 화면</a>에서 강아지에게 "앉아"를 가르쳐 봤다면, 이 장의 알고리즘을 이미 한 번 돌려 본 셈이다. 강아지는 네 가지 행동을 확률에 따라 했고, 간식을 받은 행동의 확률이 올라갔다.</p><p>이 장의 규칙은 하나다. <strong>해 본 행동의 확률을 받은 보상만큼 올리거나 내린다.</strong> 여기에 요령을 하나 더한다. 보상을 그대로 쓰지 않고 평소보다 얼마나 잘했는지를 쓰면 훨씬 덜 흔들린다.</p>',
-      analogy: '시험에서 70점을 받았다고 하자. 칭찬할지 꾸중할지는 평소 점수에 달려 있다. 평소 50점이던 학생에게는 칭찬이고, 평소 90점이던 학생에게는 꾸중이다. 점수에서 "평소 점수"를 빼고 보는 것이 baseline이다. 빼는 값이 어떤 행동을 했는지와 상관없으면, 평균적으로 고치는 방향은 그대로이고 쓸데없는 흔들림만 줄어든다.',
+      analogy: '시험에서 70점을 받은 학생이 있다. 이 학생을 칭찬할지 꾸중할지는 평소 점수에 달려 있다. 평소 50점이던 학생에게는 칭찬이고, 평소 90점이던 학생에게는 꾸중이다. 점수에서 "평소 점수"를 빼고 보는 것이 baseline이다. 빼는 값이 어떤 행동을 했는지와 상관없으면, 평균적으로 고치는 방향은 그대로이고 쓸데없는 흔들림만 줄어든다.',
       path: ['보상을 받은 행동의 확률이 얼마나 오르는지 손으로 계산한다', '보상을 나눠 주며 평균을 뺄 때와 빼지 않을 때를 비교한다', '같은 규칙을 수식으로 적고 짧은 복도에서 돌려 본다', 'LLM 학습에서 이 규칙이 어떻게 쓰이는지 본다'],
       recap: [
         '정책 경사는 해 본 행동의 확률을 받은 보상만큼 올리거나 내리는 방법이다.',
@@ -114,7 +114,7 @@ $$\underbrace{\nabla_\theta\,\mathbb{E}_{(s,a)\sim\mathcal{D}}\big[\log\pi_\thet
         easy: '보상을 미분할 수 없어도 된다. "확률의 변화 = 확률 × 로그확률의 변화"라는 항등식을 쓰면, 해 본 행동의 로그확률 경사에 보상을 곱해 평균 내면 된다. 세상이 움직이는 규칙(전이 확률)은 정책과 상관이 없어서 계산에서 빠진다.',
         steps: [
           { tex: String.raw`\nabla_\theta J(\theta) = \nabla_\theta \int p_\theta(\tau)\,R(\tau)\,d\tau = \int \hl{\nabla_\theta p_\theta(\tau)}\,R(\tau)\,d\tau`, why: '기댓값을 적분으로 쓰고 미분을 안으로 넣는다. $R(\\tau)$는 $\\theta$에 의존하지 않는다(궤적이 주어지면 보상은 정해진다).' },
-          { tex: String.raw`\nabla_\theta p_\theta(\tau) = p_\theta(\tau)\,\hl{\nabla_\theta\log p_\theta(\tau)}`, why: '로그-미분 항등식 $\\nabla p = p\\,\\nabla\\log p$를 쓴다. 로그-미분 트릭은 이 항등식 하나로 이루어진다.', easy: '확률이 0.2이고 그 경사가 0.1이라고 하자. 로그확률의 경사는 0.1 ÷ 0.2 = 0.5다. 여기에 확률 0.2를 다시 곱하면 원래 경사 0.1이 된다.' },
+          { tex: String.raw`\nabla_\theta p_\theta(\tau) = p_\theta(\tau)\,\hl{\nabla_\theta\log p_\theta(\tau)}`, why: '로그-미분 항등식 $\\nabla p = p\\,\\nabla\\log p$를 쓴다. 로그-미분 트릭은 이 항등식 하나로 이루어진다.', easy: '예를 들어 확률이 0.2이고 그 경사가 0.1이면, 로그확률의 경사는 0.1 ÷ 0.2 = 0.5다. 여기에 확률 0.2를 다시 곱하면 원래 경사 0.1이 된다.' },
           { tex: String.raw`\nabla_\theta J(\theta) = \int p_\theta(\tau)\,\nabla_\theta\log p_\theta(\tau)\,R(\tau)\,d\tau = \hl{\mathbb{E}_{\tau\sim p_\theta}}\big[\nabla_\theta\log p_\theta(\tau)\,R(\tau)\big]`, why: '다시 기댓값 형태가 되었다. 이제 $p_\\theta$에서 궤적을 샘플링해 평균 내면 된다.' },
           { tex: String.raw`\log p_\theta(\tau) = \log\rho_0(s_0) + \sum_t \log\pi_\theta(a_t|s_t) + \sum_t \log P(s_{t+1}|s_t,a_t)`, why: '궤적 확률의 곱이 로그에서 합으로 분리된다.' },
           { tex: String.raw`\nabla_\theta\log p_\theta(\tau) = \sum_t \nabla_\theta\log\pi_\theta(a_t|s_t) + \hl{\nabla_\theta\Big[\log\rho_0 + \sum_t\log P\Big]} = \sum_t \nabla_\theta\log\pi_\theta(a_t|s_t) + \hl{0}`, why: '시작 분포와 전이 확률은 $\\theta$와 상관이 없어서 미분하면 0이다. 그래서 <strong>환경 모델을 몰라도 된다.</strong>' },
@@ -183,7 +183,7 @@ $$\underbrace{\nabla_\theta\,\mathbb{E}_{(s,a)\sim\mathcal{D}}\big[\log\pi_\thet
       { tag: 'practice', t: '소프트맥스 정책 경사는 "중력 우물"에 빠진다',
         d: '<p>정확한 경사를 써도 소프트맥스 정책은 거의 결정적인 나쁜 정책 근처에서 매우 느려진다. 경사가 $\\pi(a)A(a)$ 꼴이라 좋은 행동의 확률이 0에 가까우면 신호도 0에 가깝기 때문이다. Mei et al.(2020)은 수렴률이 $O(1/t)$이고 초기화에 따라 지수적으로 오래 걸릴 수 있다는 것을 보였다. 엔트로피 정규화(T5), 자연 경사(13장), 충분한 초기 탐험이 처방이다. LLM에서 "베이스 모델이 한 번도 맞히지 못한 문제는 RL로도 배우지 못한다"는 관찰과 같은 구조다(21장).</p>' },
       { tag: 'research', t: '비볼록인데도 전역 최적에 수렴하는 이유(경사 지배성)',
-        d: '<p>$J(\\theta)$는 $\\theta$에 대해 비볼록이지만, 표 형태 소프트맥스 정책에서는 정책 경사가 전역 최적에 수렴한다(Agarwal et al. 2021). 그 이유는 경사 지배(gradient domination) 성질이다. 최적값과의 차이가 경사 크기의 상수배를 넘지 않는다. 그 상수에는 분포 불일치 계수 $\\|d^{\\pi^*}/\\rho\\|_\\infty$가 들어간다. 최적 정책이 가는 곳을 시작 분포가 덮지 못하면 수렴이 느려진다는 뜻이다. 최적화 이론에서 탐험의 중요성이 드러나는 대목이다.</p>' },
+        d: '<p>$J(\\theta)$는 $\\theta$의 함수로 보면 비볼록이지만, 표 형태 소프트맥스 정책에서는 정책 경사가 전역 최적에 수렴한다(Agarwal et al. 2021). 그 이유는 경사 지배(gradient domination) 성질이다. 최적값과의 차이가 경사 크기의 상수배를 넘지 않는다. 그 상수에는 분포 불일치 계수 $\\|d^{\\pi^*}/\\rho\\|_\\infty$가 들어간다. 최적 정책이 가는 곳을 시작 분포가 덮지 못하면 수렴이 느려진다는 뜻이다. 최적화 이론에서 탐험의 중요성이 드러나는 대목이다.</p>' },
     ],
     quiz: [
       { q: 'REINFORCE 유도에서 전이 확률 $P(s_{t+1}|s_t,a_t)$가 최종 식에서 사라지는 이유는?', options: ['마르코프 성질 때문에', '$\\log p_\\theta(\\tau)$에서 덧셈 항으로 분리되고 $\\theta$에 의존하지 않아서', '보상이 결정적이어서', '$\\gamma<1$이어서'], answer: 1,

@@ -13,7 +13,7 @@
     easy: {
       hook: '좋았던 행동을 더 하되, 한 번에 너무 많이 바꾸지는 않는다.',
       intro: '<p>정책 경사로 한 번 고칠 때마다 새로 수백 판을 해야 한다면 너무 비싸다. 그래서 한 번 모은 경험으로 여러 번 고치고 싶어진다. 그런데 고칠수록 정책은 경험을 모을 때의 모습에서 멀어진다. 멀어질수록 옛 경험으로 새 정책을 판단한 결과가 틀려진다.</p><p>PPO는 간단한 규칙으로 이 문제를 막는다. 어떤 행동의 확률을 <strong>원래의 1.2배까지</strong>(또는 0.8배까지) 바꾸는 동안은 이득을 인정하고, 그보다 더 바꾸면 늘어난 이득을 더는 인정하지 않는다. 더 바꿀 이유가 없어지므로 정책이 스스로 멈춘다.</p>',
-      analogy: '익숙한 동네 지도를 들고 길을 찾는다고 하자. 지도에 나온 근처에서는 지도를 믿고 빠르게 움직여도 된다. 하지만 지도 바깥으로 멀리 나가면 지도가 더는 맞지 않는다. 옛 정책으로 모은 경험이 그 지도다. PPO의 clip은 "지도가 맞는 범위 안에서만 움직여라"라는 울타리다.',
+      analogy: '익숙한 동네 지도를 들고 길을 찾는 상황이다. 지도에 나온 근처에서는 지도를 믿고 빠르게 움직여도 된다. 하지만 지도 바깥으로 멀리 나가면 지도가 더는 맞지 않는다. 옛 정책으로 모은 경험이 그 지도다. PPO의 clip은 "지도가 맞는 범위 안에서만 움직여라"라는 울타리다.',
       path: ['새 확률을 직접 끌어 보며 비율과 clip이 어디서 걸리는지 본다', '구체적인 숫자로 비율, clip, PPO 목적값을 계산한다', '같은 경험을 여러 번 재사용하면 무엇이 망가지는지 실험한다', 'LLM 학습(RLHF, GRPO)에서 PPO가 어떻게 쓰이는지 본다'],
       recap: [
         '한 번 모은 경험으로 여러 번 고치면 효율적이지만, 정책이 멀어질수록 그 경험으로 내린 판단이 틀려진다.',
@@ -91,7 +91,7 @@ $$L^{\text{KLPEN}}(\theta) = \mathbb{E}_t\Big[r_t(\theta)\hat A_t - \beta\,\math
 <h2>LLM에서의 PPO</h2>
 <p>InstructGPT(Ouyang et al. 2022)의 RLHF는 PPO를 토큰 단위로 돌린다. 응답 끝에 보상 모델 점수를 주고, 매 토큰에 기준 모델과의 로그비율 페널티를 더한다. value head가 토큰별 가치를 예측하고, GAE($\gamma=1$)로 advantage를 만든다(<a href="#rlhf">19장</a>).</p>
 $$r_t = -\beta\log\frac{\pi_\theta(y_t|x,y_{\lt t})}{\pi_{\text{ref}}(y_t|x,y_{\lt t})} + \mathbb{1}[t = T]\cdot r_\phi(x, y)$$
-<p>GRPO(Shao et al. 2024)는 여기서 critic을 없앤다. 같은 프롬프트에 대한 응답 $G$개로 보상을 정규화하고, 그 상대 보상을 모든 토큰의 advantage로 쓴다. clip 목적함수는 그대로 둔다. GRPO를 "critic 없는 PPO"라고 부르는 이유다(<a href="#reasoning">21장</a>).</p>
+<p>GRPO(Shao et al. 2024)는 여기서 critic을 없앤다. 같은 프롬프트의 응답 $G$개로 보상을 정규화하고, 그 상대 보상을 모든 토큰의 advantage로 쓴다. clip 목적함수는 그대로 둔다. GRPO를 "critic 없는 PPO"라고 부르는 이유다(<a href="#reasoning">21장</a>).</p>
 
 <h2>파생 알고리즘: 무엇이 바뀌었나</h2>
 <div class="table-wrap"><table class="t">
@@ -100,7 +100,7 @@ $$r_t = -\beta\log\frac{\pi_\theta(y_t|x,y_{\lt t})}{\pi_{\text{ref}}(y_t|x,y_{\
 <tr><td>CPI (Kakade & Langford 2002)</td><td>혼합 정책 $(1-\alpha)\pi + \alpha\pi'$</td><td>최초의 단조 개선 보장</td></tr>
 <tr><td>Natural PG (Kakade 2001)</td><td>Fisher 계량으로 스텝 방향 교정</td><td>파라미터화 불변</td></tr>
 <tr><td>TRPO (Schulman 2015)</td><td>평균 KL ≤ δ 제약 + CG + 선형 탐색</td><td>실용적 신뢰영역</td></tr>
-<tr><td>ACKTR (Wu 2017)</td><td>K-FAC로 Fisher 근사</td><td>2차 정보를 싸게</td></tr>
+<tr><td>ACKTR (Wu 2017)</td><td>K-FAC으로 Fisher 근사</td><td>2차 정보를 싸게</td></tr>
 <tr><td>PPO-penalty / PPO-clip (Schulman 2017)</td><td>적응 KL 페널티 / 비율 clip</td><td>1차 최적화, 미니배치 여러 epoch</td></tr>
 <tr><td>MPO (Abdolmaleki 2018)</td><td>KL 제약 하 비모수 개선 $q \propto \pi e^{Q/\eta}$ 후 투영</td><td>T5 닫힌 해 + 증류(T9)</td></tr>
 <tr><td>PPG (Cobbe 2021)</td><td>정책/가치 단계 분리</td><td>공유 몸통 간섭 제거</td></tr>
@@ -146,14 +146,14 @@ $$r_t = -\beta\log\frac{\pi_\theta(y_t|x,y_{\lt t})}{\pi_{\text{ref}}(y_t|x,y_{\
       }),
       'fx-clip': (el) => ui.formula(el, {
         title: 'PPO-clip 목적함수 해부',
-        say: '{E|모아 둔 경험 전체에 대해}, {r|확률이 몇 배 바뀌었는지}에 {A|그 행동이 평소보다 얼마나 좋았는지}를 곱한 값과, {c|배율을 0.8~1.2배 안으로 묶은 값}에 같은 것을 곱한 값 중 {min|더 작은 쪽}을 골라 평균 낸다.',
+        say: '{E|모아 둔 경험 전체에서}, {r|확률이 몇 배 바뀌었는지}에 {A|그 행동이 평소보다 얼마나 좋았는지}를 곱한 값과, {c|배율을 0.8~1.2배 안으로 묶은 값}에 같은 것을 곱한 값 중 {min|더 작은 쪽}을 골라 평균 낸다.',
         tex: String.raw`L^{\mathrm{CLIP}}(\theta) = \tm{E}{\hat{\mathbb{E}}_t}\Big[\tm{min}{\min}\big(\tm{r}{r_t(\theta)}\,\tm{A}{\hat A_t},\;\; \tm{c}{\clip\big(r_t(\theta),\,1-\epsilon,\,1+\epsilon\big)}\,\hat A_t\big)\Big]`,
         terms: [
           { id: 'E', sym: '\\hat{\\mathbb{E}}_t', label: '배치 평균', desc: 'π_old로 모은 타임스텝의 평균. 미니배치로 나눠 여러 epoch 반복한다.' },
           { id: 'min', sym: '\\min', label: '비관적 선택', desc: 'clip 전과 후 중 작은 쪽. 낙관적 외삽을 버린다.', long: 'min 때문에 목적함수는 clip하지 않은 대리 목적함수의 하한이 된다. "너무 좋아 보이는 개선"은 무시하고 "나빠지는 것"은 그대로 반영한다.' },
           { id: 'r', sym: 'r_t(\\theta)', label: '확률 비율', desc: 'π_θ(a_t|s_t) / π_old(a_t|s_t). 처음엔 1.', long: '첫 epoch의 첫 스텝에서는 모든 비율이 1이라 PPO는 일반 정책 경사와 같다. 업데이트가 쌓일수록 비율이 1에서 멀어지고 clip이 개입한다.' },
           { id: 'A', sym: '\\hat A_t', label: 'advantage', desc: 'GAE로 추정, 보통 미니배치에서 정규화.', long: '부호가 clip의 방향을 정한다. $A>0$이면 위쪽 경계 $1+\\epsilon$, $A<0$이면 아래쪽 경계 $1-\\epsilon$에서 경사가 꺼진다.' },
-          { id: 'c', sym: '\\clip(r,1-\\epsilon,1+\\epsilon)', label: 'clip된 비율', desc: '경계 밖에서는 상수 → θ에 대한 경사 0.', long: '$\\epsilon$은 보통 0.1~0.3이다. DAPO는 위아래 경계를 다르게 두어($\\epsilon_{\\text{high}}$를 키움) 확률이 낮은 좋은 토큰이 더 빨리 올라가게 했다.' },
+          { id: 'c', sym: '\\clip(r,1-\\epsilon,1+\\epsilon)', label: 'clip된 비율', desc: '경계 밖에서는 상수라서 θ로 미분하면 0이다.', long: '$\\epsilon$은 보통 0.1~0.3이다. DAPO는 위아래 경계를 다르게 두어($\\epsilon_{\\text{high}}$를 키움) 확률이 낮은 좋은 토큰이 더 빨리 올라가게 했다.' },
         ],
       }),
       'try-ratio': mountRatio,
@@ -173,7 +173,7 @@ $$r_t = -\beta\log\frac{\pi_\theta(y_t|x,y_{\lt t})}{\pi_{\text{ref}}(y_t|x,y_{\
     },
     tacit: [
       { tag: 'math', t: 'clip은 신뢰영역이 아니다',
-        d: '<p>$L^{\\text{CLIP}}$은 배치 안의 샘플에 대해 "비율을 경계 밖으로 더 밀 유인"만 없앤다. 다른 샘플의 경사가 공유 파라미터를 움직이면 이미 경계를 넘은 샘플의 비율도 계속 변하고, 배치 밖의 상태에서 정책이 얼마나 바뀌는지는 전혀 통제하지 않는다. 실제로 PPO 학습 중 비율이 $1\\pm\\epsilon$을 크게 넘는다는 관찰이 있다(Engstrom et al. 2020; Wang et al. 2020 "Truly PPO"). 신뢰영역 역할은 결국 작은 학습률, 적은 epoch, KL early stopping이 함께 맡는다.</p>' },
+        d: '<p>$L^{\\text{CLIP}}$은 배치 안의 샘플에서 "비율을 경계 밖으로 더 밀 유인"만 없앤다. 다른 샘플의 경사가 공유 파라미터를 움직이면 이미 경계를 넘은 샘플의 비율도 계속 변하고, 배치 밖의 상태에서 정책이 얼마나 바뀌는지는 전혀 통제하지 않는다. 실제로 PPO 학습 중 비율이 $1\\pm\\epsilon$을 크게 넘는다는 관찰이 있다(Engstrom et al. 2020; Wang et al. 2020 "Truly PPO"). 신뢰영역 역할은 결국 작은 학습률, 적은 epoch, KL early stopping이 함께 맡는다.</p>' },
       { tag: 'math', t: '자연 경사 = 미러 디센트 = exp(advantage) 재가중',
         d: '<p>Fisher 계량으로 잰 최급 상승은 파라미터화에 불변이고, 소프트맥스에서는 $\\pi_{k+1}\\propto\\pi_k e^{\\eta A}$가 된다. KL을 근접항으로 쓰는 미러 디센트(Tomar et al. 2020, MDPO)나 곱셈 가중치(multiplicative weights) 알고리즘과 같은 갱신이다. 이렇게 보면 TRPO, PPO, MPO, RLHF의 KL-정규화 목적은 모두 $\\max \\mathbb{E}[A] - \\frac1\\eta\\mathrm{KL}$을 근사적으로 푸는 방법이고, 정확한 해는 T5의 닫힌 해다. Adam이 작은 학습률에서 대략 대각 Fisher 전처리처럼 동작한다는 해석도 같은 맥락이다.</p>' },
       { tag: 'practice', t: 'PPO가 이상할 때 먼저 볼 숫자 네 가지',
@@ -186,7 +186,7 @@ $$r_t = -\beta\log\frac{\pi_\theta(y_t|x,y_{\lt t})}{\pi_{\text{ref}}(y_t|x,y_{\
     quiz: [
       { q: '성능 차이 보조정리 $J(\\pi\')-J(\\pi) = \\frac{1}{1-\\gamma}\\mathbb{E}[A^\\pi]$에서 기댓값의 상태 분포는?', options: ['$d^\\pi$ (옛 정책)', '$d^{\\pi\'}$ (새 정책)', '$\\rho_0$', '균등 분포'], answer: 1,
         explain: '정확한 식에는 새 정책의 방문 분포가 들어간다. 대리 목적함수는 이 분포를 $d^\\pi$로 바꾸므로, 그 근사 오차 때문에 정책을 조금씩만 바꿔야 한다.' },
-      { q: '$\\hat A_t > 0$이고 $r_t(\\theta) > 1+\\epsilon$일 때 $L^{\\text{CLIP}}$의 $\\theta$에 대한 경사는?', options: ['$\\hat A_t\\nabla r_t$', '0', '$-\\hat A_t\\nabla r_t$', '$(1+\\epsilon)\\hat A_t$'], answer: 1,
+      { q: '$\\hat A_t > 0$이고 $r_t(\\theta) > 1+\\epsilon$일 때 $L^{\\text{CLIP}}$을 $\\theta$로 미분한 경사는?', options: ['$\\hat A_t\\nabla r_t$', '0', '$-\\hat A_t\\nabla r_t$', '$(1+\\epsilon)\\hat A_t$'], answer: 1,
         explain: 'min이 clip된 항 $(1+\\epsilon)\\hat A_t$를 고르고, 이 값은 $\\theta$가 바뀌어도 변하지 않는다. 그래서 더 밀어 올릴 이유가 사라진다.' },
       { q: 'TRPO에서 Fisher 정보 행렬 $F$의 역할은?', options: ['보상의 분산 추정', 'KL 발산의 2차 근사(정책 공간의 계량)', 'critic의 헤시안', '학습률 스케줄'], answer: 1,
         explain: '$\\mathrm{KL}(\\pi_\\theta\\|\\pi_{\\theta+\\Delta}) \\approx \\frac12\\Delta^\\top F\\Delta$이다. $F$는 파라미터 변화가 정책을 얼마나 바꾸는지 재는 계량이고, $F^{-1}g$가 자연 경사다.' },
@@ -197,7 +197,7 @@ $$r_t = -\beta\log\frac{\pi_\theta(y_t|x,y_{\lt t})}{\pi_{\text{ref}}(y_t|x,y_{\
 
   /* ---------- clip 목적함수 그래프 ---------- */
   function mountClipPlot(el) {
-    const p = ui.panel(el, { kind: 'CALC', title: '$L^{\\text{CLIP}}$를 비율 $r$의 함수로 보기 (샘플 하나)', caption: 'clip 범위 $\\epsilon$과 $|\\hat A|$ 슬라이더를 움직이면, 실선(PPO의 목적)이 점선(clip 없는 $rA$)에서 갈라져 평평해지는 지점이 바뀐다. 굵은 주황 선 구간에서는 경사가 0이다.' });
+    const p = ui.panel(el, { kind: 'CALC', title: '$L^{\\text{CLIP}}$을 비율 $r$의 함수로 보기 (샘플 하나)', caption: 'clip 범위 $\\epsilon$과 $|\\hat A|$ 슬라이더를 움직이면, 실선(PPO의 목적)이 점선(clip 없는 $rA$)에서 갈라져 평평해지는 지점이 바뀐다. 굵은 주황 선 구간에서는 경사가 0이다.' });
     const ctr = ui.row(p.body);
     const eS = ui.slider(ctr, { label: 'clip 범위 $\\epsilon$', min: 0.05, max: 0.5, step: 0.05, value: 0.2, format: ui.fmt.f(2), onInput: draw });
     const mS = ui.slider(ctr, { label: '$|\\hat A|$', min: 0.2, max: 2, step: 0.1, value: 1, format: ui.fmt.f(1), onInput: draw });
@@ -400,7 +400,7 @@ $$r_t = -\beta\log\frac{\pi_\theta(y_t|x,y_{\lt t})}{\pi_{\text{ref}}(y_t|x,y_{\
           { name: '그대로 계산한 $rA$', color: 'c6', dash: '5 4', data: plot.sample((x) => (x / po) * A, 0.01, 0.99, 120), endDot: false },
           { name: 'PPO 목적값 $\\min(rA, \\clip(r)A)$', color: 'c1', width: 3, data: plot.sample(L, 0.01, 0.99, 240), endDot: false, points: [[pn, ppo, 6]] },
         ],
-        vlines: [{ x: lo, label: (1 - eps).toFixed(2) + '배' }, { x: po, label: '옛 확률' }, { x: hi, label: (1 + eps).toFixed(2) + '배' }],
+        vlines: [{ x: lo, label: A < 0 ? '옛 확률의 ' + (1 - eps).toFixed(2) + '배' : '' }, { x: po, label: '' }, { x: hi, label: A >= 0 ? '옛 확률의 ' + (1 + eps).toFixed(2) + '배' : '' }],
       });
     }
     draw();
