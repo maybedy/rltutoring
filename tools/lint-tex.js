@@ -35,6 +35,8 @@ while (i < src.length) {
   }
   i++;
 }
+// 템플릿 리터럴 안에서 \t, \b, \f, \v 가 제어 문자로 바뀐 경우(예: \times → 탭+imes)도 잡는다
+src.split('\n').forEach((ln, li) => { const m = ln.match(/[\t\x08\x0b\x0c\r]/); if (m) bad.push((li + 1) + ': raw control char ' + JSON.stringify(m[0]) + '  …' + ln.trim().slice(0, 50)); });
 if (bad.length) { console.log(path.relative(process.cwd(), file) + ': ' + bad.length + ' issue(s)'); bad.slice(0, 40).forEach((b) => console.log('  ' + b)); }
 total += bad.length;
 }

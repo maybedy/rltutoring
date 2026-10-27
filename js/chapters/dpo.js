@@ -10,6 +10,22 @@
     level: '중급 · LLM',
     prereq: ['rlhf'],
     theses: ['T5', 'T7', 'T3'],
+    easy: {
+      hook: '채점기를 따로 만들지 않고, 사람이 고른 답 쌍만으로 챗봇을 바로 고치는 방법.',
+      intro: '<p>사람이 두 답 중 하나를 골랐다. RLHF는 이 선택으로 먼저 채점기를 만들고, 그 채점기로 챗봇을 연습시켰다. 두 단계다.</p><p>DPO는 한 단계로 끝낸다. 챗봇이 <strong>고른 답은 원래보다 더 자주</strong>, <strong>버린 답은 원래보다 덜 자주</strong> 쓰도록 바로 고친다. "원래보다 몇 배 더 좋아하게 됐나"가 채점기 점수 역할을 대신한다.</p>',
+      analogy: '선생님이 답안에 점수를 따로 매기지 않고, 학생이 예전과 비교해 어떤 답을 더 즐겨 쓰게 됐는지만 보는 것과 같다. 원래 10번 중 2번 쓰던 답을 이제 3번 쓴다면 "1.5배 더 좋아하게 됐다". 사람이 고른 답은 더 좋아하게, 버린 답은 덜 좋아하게 되어 두 배율의 차이가 벌어질수록 손실이 줄어든다. 차이만 보기 때문에, 두 답을 모두 덜 쓰게 되더라도 버린 답을 더 많이 줄였다면 손실은 줄어든다.',
+      path: [
+        '한 쌍의 답에서 "원래보다 몇 배 좋아하게 됐나"를 직접 움직여 손실과 고칠 힘이 어떻게 바뀌는지 본다',
+        '작은 숫자로 암묵적 점수, 손실, 고칠 힘을 손으로 계산한다',
+        'RLHF의 정답을 거꾸로 읽어 DPO 손실이 나오는 과정을 요지만 본다',
+        '답이 6개뿐인 세계에서 DPO가 RLHF와 같은 답에 도달하는지, 언제 어긋나는지 본다',
+      ],
+      recap: [
+        'DPO는 채점기 없이, 사람이 고른 답을 원래보다 더 자주 쓰고 버린 답을 덜 쓰도록 모델을 바로 고친다.',
+        '원래 대비 몇 배 더 좋아하게 됐는지가 숨은 점수이고, 두 답의 숨은 점수 차이가 클수록 손실이 작다.',
+        '데이터가 적거나 선택이 언제나 한쪽으로만 정해져 있으면 지나치게 한 답으로 몰릴 수 있어, 여러 변형이 이를 막는다.',
+      ],
+    },
     goals: [
       'RLHF 목적의 닫힌 해에서 DPO 손실까지를 분배함수 $Z(x)$가 소거되는 과정까지 포함해 유도할 수 있다.',
       'DPO 기울기의 가중치 $\\sigma(\\hat r_l - \\hat r_w)$가 무엇을 하는지, 왜 선택된 응답의 확률도 내려갈 수 있는지 설명할 수 있다.',
@@ -18,6 +34,11 @@
     ],
     html: String.raw`
 <p>RLHF(<a href="#rlhf">19장</a>)는 보상모델을 학습하고, 그 보상으로 PPO를 돌린다. 모델 네 개, 샘플링 루프, 불안정한 하이퍼파라미터가 따라온다. Rafailov et al.(2023)의 <strong>DPO(Direct Preference Optimization)</strong>는 이렇게 묻는다. KL-정규화 목적의 최적 정책을 우리가 이미 닫힌 형태로 알고 있다면(T5), 보상을 정책으로 표현해 버리면 되지 않는가? 논문의 부제가 요점이다. "Your Language Model is Secretly a Reward Model."</p>
+
+<h2>먼저 손으로: 한 쌍의 답</h2>
+<p>수식보다 먼저 한 쌍으로 감을 잡자. 질문 하나에 사람이 고른 답과 버린 답이 있다. 슬라이더로 모델이 두 답을 원래보다 몇 배 더 (또는 덜) 쓰게 됐는지 정하면, 손실과 "아직 고칠 힘"이 바로 바뀐다.</p>
+<div data-w="try-pair"></div>
+<div data-w="step-dpo"></div>
 
 <h2>유도: 닫힌 해를 뒤집기</h2>
 <div data-w="dv-dpo"></div>
@@ -76,20 +97,22 @@ $$\beta\log\frac{\pi_\theta(y|x)}{\pi_{\text{ref}}(y|x)} = \sum_{t=1}^{T}\beta\l
     mount: {
       'dv-dpo': (el) => ui.derivation(el, {
         title: 'RLHF 목적 → 닫힌 해 → 보상 재매개화 → DPO 손실',
-        caption: '프롬프트 $x$를 하나 고정하고 그 위의 응답 분포 $\\pi(\\cdot|x)$에 대해 푼다. 표기를 줄이려고 $\\pi(y) = \\pi(y|x)$로 쓴다.',
+        easy: 'RLHF의 정답은 "원래 확률에, 점수가 높은 답일수록 큰 가중치를 곱한 것"이다. 이 관계를 거꾸로 읽으면 점수는 "원래보다 몇 배 더 좋아하게 됐나"로 표현되고, 질문마다 붙는 상수는 두 답의 점수를 빼는 순간 사라지므로, 채점기 없이 모델 확률만으로 선호를 맞추는 손실을 바로 쓸 수 있다.',
+        caption: '"다음 단계"를 눌러 한 줄씩 열어 보라. 노란 표시가 그 줄에서 바뀐 부분이다. 프롬프트 $x$를 하나 고정하고 그 위의 응답 분포 $\\pi(\\cdot|x)$에 대해 푼다. 표기를 줄이려고 $\\pi(y) = \\pi(y|x)$로 쓴다.',
         steps: [
           { tex: String.raw`\max_{\pi}\; \mathbb{E}_{y\sim\pi}\big[r(x,y)\big] - \beta\,\mathrm{KL}\big(\pi\,\|\,\pi_{\text{ref}}\big)`, why: 'RLHF의 KL-정규화 목적(19장). 정책 공간 전체에서 최적화한다고 가정한다.' },
           { tex: String.raw`= -\beta\,\mathbb{E}_{y\sim\pi}\Big[\log\frac{\pi(y)}{\pi_{\text{ref}}(y)} - \frac{r(x,y)}{\beta}\Big]`, why: 'KL을 기댓값으로 풀어 쓰고 $-\\beta$로 묶는다.' },
           { tex: String.raw`= -\beta\,\mathbb{E}_{y\sim\pi}\Big[\log\frac{\pi(y)}{\hl{\tfrac{1}{Z(x)}\pi_{\text{ref}}(y)\,e^{r(x,y)/\beta}}}\Big] + \hl{\beta\log Z(x)},\quad Z(x) = \sum_y \pi_{\text{ref}}(y)e^{r(x,y)/\beta}`, why: '$\\log Z(x)$를 더하고 뺀다. 분모가 확률분포가 되도록 정규화한 것이다.' },
-          { tex: String.raw`= -\beta\,\mathrm{KL}\big(\pi\,\|\,\pi^*\big) + \beta\log Z(x), \qquad \hl{\pi^*(y) = \tfrac{1}{Z(x)}\pi_{\text{ref}}(y)e^{r(x,y)/\beta}}`, why: 'KL은 0 이상이고 $\\pi=\\pi^*$일 때만 0이다(깁스 부등식). 따라서 최적 정책은 유일하게 $\\pi^*$. 이것이 대전제 T5.' },
-          { tex: String.raw`r(x,y) = \beta\log\frac{\pi^*(y)}{\pi_{\text{ref}}(y)} + \hl{\beta\log Z(x)}`, why: '양변에 로그를 취해 보상에 대해 푼다. 보상이 최적 정책과 기준 정책의 로그비로 표현된다. 남은 $\\beta\\log Z(x)$는 프롬프트에만 의존한다.' },
-          { tex: String.raw`\Pr(y_w\succ y_l) = \sigma\big(r(x,y_w) - r(x,y_l)\big) = \sigma\Big(\beta\log\frac{\pi^*(y_w)}{\pi_{\text{ref}}(y_w)} - \beta\log\frac{\pi^*(y_l)}{\pi_{\text{ref}}(y_l)}\Big)`, why: 'Bradley–Terry에 대입하면 $\\beta\\log Z(x)$가 <strong>차이에서 소거</strong>된다. 계산 불가능한 분배함수가 사라지는 핵심 단계.' },
-          { tex: String.raw`\mathcal{L}_{\text{DPO}}(\theta) = -\,\mathbb{E}_{(x,y_w,y_l)\sim\mathcal{D}}\Big[\log\sigma\Big(\beta\log\frac{\hl{\pi_\theta}(y_w|x)}{\pi_{\text{ref}}(y_w|x)} - \beta\log\frac{\hl{\pi_\theta}(y_l|x)}{\pi_{\text{ref}}(y_l|x)}\Big)\Big]`, why: '$\\pi^*$ 자리에 학습할 정책 $\\pi_\\theta$를 놓고 선호 데이터의 음의 로그우도를 최소화한다. 보상모델 손실과 똑같은 형태의 이진 분류이며, 정책을 샘플링할 필요가 없다.' },
-          { tex: String.raw`\nabla_\theta\mathcal{L}_{\text{DPO}} = -\beta\,\mathbb{E}\Big[\hl{\sigma\big(\hat r_\theta(y_l) - \hat r_\theta(y_w)\big)}\big(\nabla_\theta\log\pi_\theta(y_w) - \nabla_\theta\log\pi_\theta(y_l)\big)\Big],\quad \hat r_\theta = \beta\log\frac{\pi_\theta}{\pi_{\text{ref}}}`, why: '$\\frac{d}{dz}\\log\\sigma(z) = \\sigma(-z)$를 쓰면 기울기는 "틀린 정도"로 가중된 로그우도 차이의 경사다. $\\pi_{\\text{ref}}$ 항은 상수라 미분에서 사라진다.' },
+          { tex: String.raw`= -\beta\,\mathrm{KL}\big(\pi\,\|\,\pi^*\big) + \beta\log Z(x), \qquad \hl{\pi^*(y) = \tfrac{1}{Z(x)}\pi_{\text{ref}}(y)e^{r(x,y)/\beta}}`, easy: '정답 정책은 원래 확률에 "점수가 높을수록 커지는 가중치"를 곱한 것이다. 점수가 1 오를 때마다 가중치가 일정한 배수로 커진다.', why: 'KL은 0 이상이고 $\\pi=\\pi^*$일 때만 0이다(깁스 부등식). 따라서 최적 정책은 유일하게 $\\pi^*$. 이것이 대전제 T5.' },
+          { tex: String.raw`r(x,y) = \beta\log\frac{\pi^*(y)}{\pi_{\text{ref}}(y)} + \hl{\beta\log Z(x)}`, easy: '거꾸로 말하면, 정답 정책이 어떤 답을 원래보다 몇 배 더 좋아하는지만 알면 그 답의 점수를 알 수 있다. 질문마다 같은 상수가 하나 붙을 뿐이다.', why: '양변에 로그를 취해 보상에 대해 푼다. 보상이 최적 정책과 기준 정책의 로그비로 표현된다. 남은 $\\beta\\log Z(x)$는 프롬프트에만 의존한다.' },
+          { tex: String.raw`\Pr(y_w\succ y_l) = \sigma\big(r(x,y_w) - r(x,y_l)\big) = \sigma\Big(\beta\log\frac{\pi^*(y_w)}{\pi_{\text{ref}}(y_w)} - \beta\log\frac{\pi^*(y_l)}{\pi_{\text{ref}}(y_l)}\Big)`, easy: '사람의 선택은 두 답의 점수 차이만 본다. 차이를 구하는 순간 질문마다 붙던 상수가 서로 빼져 없어진다. 계산할 수 없던 부분이 사라지는 핵심 단계다.', why: 'Bradley–Terry에 대입하면 $\\beta\\log Z(x)$가 <strong>차이에서 소거</strong>된다. 계산 불가능한 분배함수가 사라지는 핵심 단계.' },
+          { tex: String.raw`\mathcal{L}_{\text{DPO}}(\theta) = -\,\mathbb{E}_{(x,y_w,y_l)\sim\mathcal{D}}\Big[\log\sigma\Big(\beta\log\frac{\hl{\pi_\theta}(y_w|x)}{\pi_{\text{ref}}(y_w|x)} - \beta\log\frac{\hl{\pi_\theta}(y_l|x)}{\pi_{\text{ref}}(y_l|x)}\Big)\Big]`, easy: '이제 정답 정책 자리에 학습 중인 모델을 넣고, 사람이 고른 쪽이 이길 확률이 높아지도록 학습한다. 채점기를 학습할 때와 똑같은 모양의 문제다.', why: '$\\pi^*$ 자리에 학습할 정책 $\\pi_\\theta$를 놓고 선호 데이터의 음의 로그우도를 최소화한다. 보상모델 손실과 똑같은 형태의 이진 분류이며, 정책을 샘플링할 필요가 없다.' },
+          { tex: String.raw`\nabla_\theta\mathcal{L}_{\text{DPO}} = -\beta\,\mathbb{E}\Big[\hl{\sigma\big(\hat r_\theta(y_l) - \hat r_\theta(y_w)\big)}\big(\nabla_\theta\log\pi_\theta(y_w) - \nabla_\theta\log\pi_\theta(y_l)\big)\Big],\quad \hat r_\theta = \beta\log\frac{\pi_\theta}{\pi_{\text{ref}}}`, easy: '순위를 이미 잘 맞힌 쌍은 거의 고치지 않고, 순위를 틀리게 보고 있는 쌍을 세게 고친다.', why: '$\\frac{d}{dz}\\log\\sigma(z) = \\sigma(-z)$를 쓰면 기울기는 "틀린 정도"로 가중된 로그우도 차이의 경사다. $\\pi_{\\text{ref}}$ 항은 상수라 미분에서 사라진다.' },
         ],
       }),
       'fx-dpo': (el) => ui.formula(el, {
         title: 'DPO 손실',
+        say: '{data|사람이 고른 답과 버린 답의 쌍마다}, 모델이 {cw|고른 답을 원래보다 얼마나 더 좋아하게 됐는지}에서 {cl|버린 답을 원래보다 얼마나 더 좋아하게 됐는지}를 빼고 {beta|정해 둔 배율}을 곱한다. 이 차이가 클수록 {lsig|손실이 작아진다}.',
         tex: String.raw`\mathcal{L}_{\text{DPO}} = -\,\tm{data}{\mathbb{E}_{(x,y_w,y_l)\sim\mathcal{D}}}\Big[\tm{lsig}{\log\sigma}\Big(\tm{beta}{\beta}\,\tm{cw}{\log\frac{\pi_\theta(y_w|x)}{\pi_{\text{ref}}(y_w|x)}} - \beta\,\tm{cl}{\log\frac{\pi_\theta(y_l|x)}{\pi_{\text{ref}}(y_l|x)}}\Big)\Big]`,
         terms: [
           { id: 'data', sym: '\\mathcal{D}', label: '고정된 선호 데이터', desc: '오프라인. 정책이 직접 생성하지 않는다.', long: '데이터가 어떤 정책에서 생성됐는지가 결과를 크게 좌우한다. 유도는 $y_w, y_l$이 어디서 왔는지 가정하지 않지만, 데이터 support 밖에서 암묵적 보상은 검증되지 않는다(15장의 분포 이동).' },
@@ -97,6 +120,19 @@ $$\beta\log\frac{\pi_\theta(y|x)}{\pi_{\text{ref}}(y|x)} = \sum_{t=1}^{T}\beta\l
           { id: 'beta', sym: '\\beta', label: 'KL 강도 = 온도', desc: '닫힌 해의 β. 작을수록 기준 모델에서 멀리 간다.', long: '$\\beta$는 (1) 암묵적 목적의 KL 계수이고, (2) 로지스틱 함수의 기울기 척도다. 같은 로그비 차이 $h$에 대해 손실은 $-\\log\\sigma(\\beta h)$이므로 $\\beta$가 작으면 같은 선호를 표현하려고 더 큰 $h$, 즉 더 큰 정책 이동이 필요하다.' },
           { id: 'cw', sym: '\\log\\frac{\\pi_\\theta(y_w)}{\\pi_{\\text{ref}}(y_w)}', label: '선택 응답 로그비', desc: 'β를 곱하면 선택 응답의 암묵적 보상.' },
           { id: 'cl', sym: '\\log\\frac{\\pi_\\theta(y_l)}{\\pi_{\\text{ref}}(y_l)}', label: '거절 응답 로그비', desc: 'β를 곱하면 거절 응답의 암묵적 보상.', long: '두 로그비는 공유 접두어의 토큰에서 정확히 상쇄된다. 선택과 거절 응답이 앞부분을 공유하면, 학습 신호는 갈라지는 지점 이후의 토큰에서만 나온다.' },
+        ],
+      }),
+      'try-pair': mountPair,
+      'step-dpo': (el) => ui.walkthrough(el, {
+        title: '한 쌍의 DPO 손실을 숫자로',
+        caption: '"다음 단계"를 누르며 빈칸을 채워 보라. 자연로그 값은 문제에 적어 두었다.',
+        steps: [
+          { say: '원래 모델은 고른 답을 0.20, 버린 답을 0.30의 확률로 썼다. 학습 후 새 모델은 고른 답을 0.30, 버린 답을 0.20으로 쓴다. 고른 답을 원래보다 몇 배 더 쓰게 됐나?', ask: { answer: 1.5, tol: 0.01 }, calc: String.raw`\frac{\pi_\theta(y_w)}{\pi_{\text{ref}}(y_w)} = \frac{0.30}{0.20} = 1.5` },
+          { say: '$\\log 1.5 \\approx 0.405$다. $\\beta = 0.5$일 때 고른 답의 암묵적 점수 $\\beta \\log(\\text{새}/\\text{원래})$는?', ask: { answer: 0.203, tol: 0.005 }, calc: String.raw`\hat r_w = 0.5 \times \log 1.5 \approx 0.5 \times 0.405 \approx 0.203` },
+          { say: '버린 답은 0.30에서 0.20으로 줄었다. 비율은 약 0.667이고 $\\log 0.667 \\approx -0.405$다. 버린 답의 암묵적 점수는?', ask: { answer: -0.203, tol: 0.005 }, calc: String.raw`\hat r_l = 0.5 \times \log \tfrac{0.20}{0.30} \approx -0.203` },
+          { say: '두 점수의 차이(고른 답 − 버린 답)는?', ask: { answer: 0.405, tol: 0.006 }, calc: String.raw`\hat r_w - \hat r_l \approx 0.203 - (-0.203) = 0.405` },
+          { say: '모델이 "고른 답이 낫다"고 볼 확률은 $\\sigma(0.405) = 0.6$이다. 이 쌍의 손실 $-\\log 0.6$은?', ask: { answer: 0.511, tol: 0.01 }, calc: String.raw`\mathcal{L} = -\log\sigma(0.405) = -\log 0.6 \approx 0.511`, note: '학습 전에는 두 확률이 원래와 같아 차이가 0이었다. 그때 확률은 0.5, 손실은 $-\\log 0.5 \\approx 0.693$이었다. 손실이 0.693에서 0.511로 줄었다.' },
+          { say: '고칠 힘(기울기 가중치)은 $\\sigma(\\hat r_l - \\hat r_w) = 1 - 0.6$이다. 몇인가?', ask: { answer: 0.4, tol: 0.01 }, calc: String.raw`\sigma(-0.405) = 0.4`, note: '학습 전에는 0.5였다. 순위를 맞혀 갈수록 이 값이 0에 가까워지며 그 쌍을 덜 고친다. 다만 0이 되려면 차이가 끝없이 커져야 한다. 여기서 과적합 문제가 생긴다.' },
         ],
       }),
       'loss-calc': mountLossCalc,
@@ -130,9 +166,74 @@ $$\beta\log\frac{\pi_\theta(y|x)}{\pi_{\text{ref}}(y|x)} = \sum_{t=1}^{T}\beta\l
     ],
   });
 
+  /* ---------- 한 쌍의 답으로 DPO 느껴 보기 ---------- */
+  function mountPair(el) {
+    const p0w = 0.15, p0l = 0.25;
+    const p = ui.panel(el, { kind: 'TRY', title: '한 쌍의 답으로 DPO 느껴 보기', caption: '두 슬라이더로 모델이 고른 답과 버린 답을 원래의 몇 배로 쓰게 됐는지 정해 보라. 오른쪽 그래프의 점이 손실 곡선을 따라 내려가고, "아직 고칠 힘"이 줄어드는 것을 보라. 아래 버튼 "둘 다 덜 쓰게"도 눌러 보라.' });
+    const card = document.createElement('div');
+    card.className = 'fx-detail';
+    card.innerHTML = '<strong>질문</strong>: 비 오는 날 집에서 할 만한 일을 추천해 줘.<br><span class="col-good"><strong>고른 답</strong></span>: 보드게임, 영화 보기, 새 요리 도전하기를 추천해요.<br><span class="col-bad"><strong>버린 답</strong></span>: 비 오는 날엔 딱히 할 게 없어요.';
+    p.body.appendChild(card);
+    const ctr = ui.row(p.body);
+    const fmtX = (v) => '×' + Math.pow(2, v).toFixed(2);
+    const wS = ui.slider(ctr, { label: '고른 답: 원래의 몇 배로 쓰나', min: -2, max: 2, step: 0.05, value: 0, format: fmtX, onInput: draw });
+    const lS = ui.slider(ctr, { label: '버린 답: 원래의 몇 배로 쓰나', min: -3, max: 0.55, step: 0.05, value: 0, format: fmtX, onInput: draw });
+    const bS = ui.slider(ctr, { label: '배율 $\\beta$', min: 0.1, max: 1, step: 0.05, value: 0.5, format: ui.fmt.f(2), onInput: draw });
+    const btns = ui.row(p.body, 'btns');
+    const preset = (a, b) => { wS.set(Math.log2(a), true); lS.set(Math.log2(b), true); draw(); };
+    ui.button(btns, '처음 상태', () => preset(1, 1));
+    ui.button(btns, '고른 답만 2배로', () => preset(2, 1));
+    ui.button(btns, '버린 답만 절반으로', () => preset(1, 0.5));
+    ui.button(btns, '둘 다 덜 쓰게 (0.5배, 0.125배)', () => preset(0.5, 0.125));
+    const msg = document.createElement('div');
+    msg.className = 'fx-detail';
+    msg.setAttribute('role', 'status');
+    p.body.appendChild(msg);
+    const st = ui.stats(p.body, [
+      { key: 'rw', label: '고른 답 숨은 점수 $\\hat r_w$' },
+      { key: 'rl', label: '버린 답 숨은 점수 $\\hat r_l$' },
+      { key: 'm', label: '점수 차이', tone: 'accent' },
+      { key: 'L', label: '손실', tone: 'signal' },
+      { key: 'g', label: '아직 고칠 힘' },
+    ]);
+    const split = document.createElement('div');
+    split.className = 'w-split';
+    const L = document.createElement('div'), R = document.createElement('div');
+    split.append(L, R);
+    p.body.appendChild(split);
+    const pb = plot.bars(L, { categories: ['고른 답', '버린 답'], series: [], height: 220, y: { min: 0, max: 0.7, label: '답을 쓸 확률' }, labels: true, labelFmt: (v) => v.toFixed(3) });
+    const lc = plot.line(R, { height: 220, x: { min: -3, max: 3, label: '점수 차이 (고른 답 − 버린 답)' }, y: { min: 0, max: 3.2, label: '손실 / 고칠 힘' }, series: [] });
+    function draw() {
+      const rw = Math.pow(2, wS.get()), rl = Math.pow(2, lS.get()), beta = bS.get();
+      const sw = beta * Math.log(rw), sl = beta * Math.log(rl), m = sw - sl;
+      const loss = -Math.log(sim.sigmoid(m)), g = sim.sigmoid(-m);
+      const xs = sim.range(121).map((i) => -3 + i * 0.05);
+      pb.update({ series: [
+        { name: '원래 모델', color: 'c6', values: [p0w, p0l], opacity: 0.6 },
+        { name: '지금 모델', color: 'c1', values: [p0w * rw, p0l * rl] },
+      ] });
+      lc.update({ series: [
+        { name: '손실 $-\\log\\sigma(\\text{차이})$', color: 'c1', data: xs.map((x) => [x, -Math.log(sim.sigmoid(x))]), points: [[Math.max(-3, Math.min(3, m)), -Math.log(sim.sigmoid(Math.max(-3, Math.min(3, m)))), 6]] },
+        { name: '고칠 힘 $\\sigma(-\\text{차이})$', color: 'c2', dash: '5 4', data: xs.map((x) => [x, sim.sigmoid(-x)]), points: [[Math.max(-3, Math.min(3, m)), sim.sigmoid(-Math.max(-3, Math.min(3, m))), 5]] },
+      ] });
+      st.set('rw', sw.toFixed(3));
+      st.set('rl', sl.toFixed(3));
+      st.set('m', m.toFixed(3));
+      st.set('L', loss.toFixed(3));
+      st.set('g', g.toFixed(3));
+      let t = '고른 답은 원래의 ' + rw.toFixed(2) + '배, 버린 답은 ' + rl.toFixed(2) + '배로 쓴다. 점수 차이 ' + m.toFixed(2) + ', 손실 ' + loss.toFixed(3) + ' (처음엔 0.693).';
+      if (Math.abs(m) < 1e-9) t += ' 아직 두 답을 구분하지 못하니 고칠 힘이 0.5로 크다.';
+      else if (m < 0) t += ' 버린 답 쪽을 더 좋아하게 됐다. 손실이 처음보다 커지고 고칠 힘도 커진다.';
+      else if (rw < 1 && rl < 1) t += ' <strong>두 답 모두 원래보다 덜 쓰게 됐는데도 손실은 줄었다.</strong> 버린 답을 더 많이 줄여 차이가 벌어졌기 때문이다. DPO가 고른 답의 확률까지 내릴 수 있는 이유다.';
+      else t += ' 차이가 벌어질수록 손실과 고칠 힘이 함께 줄지만, 0이 되려면 차이가 끝없이 커져야 한다.';
+      msg.innerHTML = t;
+    }
+    draw();
+  }
+
   /* ---------- 손실 · 기울기 가중치 계산기 ---------- */
   function mountLossCalc(el) {
-    const p = ui.panel(el, { kind: 'CALC', title: '로그비 차이 $h$에 대한 손실과 기울기', caption: '$h = \\log\\frac{\\pi_\\theta(y_w)}{\\pi_{\\text{ref}}(y_w)} - \\log\\frac{\\pi_\\theta(y_l)}{\\pi_{\\text{ref}}(y_l)}$. DPO 손실은 $h\\to\\infty$에서만 0이 되지만, 라벨 스무딩(cDPO)과 IPO는 유한한 $h$에서 최소가 된다(세로 점선).' });
+    const p = ui.panel(el, { kind: 'CALC', title: '로그비 차이 $h$에 대한 손실과 기울기', caption: '$\\beta$ 슬라이더를 움직여 보라. 파란 실선(DPO 손실)은 오른쪽 끝까지 가도 0에 닿지 않지만, 주황(cDPO)과 초록(IPO)은 세로 점선에서 바닥을 찍는다. 가로축 $h = \\log\\frac{\\pi_\\theta(y_w)}{\\pi_{\\text{ref}}(y_w)} - \\log\\frac{\\pi_\\theta(y_l)}{\\pi_{\\text{ref}}(y_l)}$는 두 답의 로그비 차이다.' });
     const ctr = ui.row(p.body);
     const bS = ui.slider(ctr, { label: '$\\beta$', min: 0.05, max: 2, step: 0.05, value: 0.5, format: ui.fmt.f(2), onInput: draw });
     const eS = ui.slider(ctr, { label: '라벨 스무딩 $\\epsilon$', min: 0.01, max: 0.4, step: 0.01, value: 0.1, format: ui.fmt.f(2), onInput: draw });
@@ -173,7 +274,7 @@ $$\beta\log\frac{\pi_\theta(y|x)}{\pi_{\text{ref}}(y|x)} = \sum_{t=1}^{T}\beta\l
     const rew = [0.0, 1.0, 0.4, -0.6, 0.7, -1.2];
     const K = names.length;
     const lref = pref.map(Math.log);
-    const p = ui.panel(el, { kind: 'SIM', title: '표 형태 정책의 DPO · IPO · cDPO 학습', caption: '참 보상 $r$ = [' + rew.join(', ') + '], 기준 정책 $\\pi_{\\text{ref}}$ = [' + pref.join(', ') + ']. 비교 쌍은 $\\pi_{\\text{ref}}$에서 서로 다른 두 응답을 뽑아 만든다. 전체 배치 Adam으로 1500 스텝 학습.' });
+    const p = ui.panel(el, { kind: 'SIM', title: '표 형태 정책의 DPO · IPO · cDPO 학습', caption: '"라벨"을 결정적으로 바꿔 보라. 파란 막대(DPO 결과)가 B 하나로 몰리며 주황 막대(RLHF 정답)에서 멀어진다. 손실을 IPO나 cDPO로 바꾸면 몰림이 멈춘다. 참 보상 $r$ = [' + rew.join(', ') + '], 기준 정책 $\\pi_{\\text{ref}}$ = [' + pref.join(', ') + ']. 비교 쌍은 $\\pi_{\\text{ref}}$에서 서로 다른 두 응답을 뽑아 만든다. 전체 배치 Adam으로 1500 스텝 학습.' });
     const ctr = ui.row(p.body);
     const bS = ui.slider(ctr, { label: '$\\beta$', min: 0.1, max: 2, step: 0.05, value: 0.5, format: ui.fmt.f(2), onInput: run });
     const nS = ui.slider(ctr, { label: '선호 쌍 수 $N$', min: 10, max: 2000, step: 10, value: 1000, format: ui.fmt.int, onInput: run });

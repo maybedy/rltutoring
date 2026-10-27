@@ -142,11 +142,11 @@ $$d^\pi(s) = (1-\gamma)\sum_{t\ge 0} \gamma^t \Pr(s_t = s \mid \pi, \rho_0)$$
         title: '리턴을 손으로 계산하기',
         caption: '세 걸음 동안 받은 점수가 $2, 0, 4$이고 할인율이 $\\gamma = 0.5$라고 하자. 칸에 답을 적어 보고 "확인"을 누르면 계산식이 열린다.',
         steps: [
-          { say: '첫 점수 2점은 바로 받는 점수라 깎지 않고 그대로 센다.', calc: String.raw`2 	imes 1 = 2` },
-          { say: '두 번째 점수 0점은 한 걸음 늦게 받으니 $\\gamma$를 한 번 곱한다. 지금 기준으로 몇 점일까?', ask: { answer: 0 }, calc: String.raw`0 	imes 0.5 = 0` },
-          { say: '세 번째 점수 4점은 두 걸음 늦으니 $\\gamma$를 두 번 곱한다. 지금 기준으로 몇 점일까?', ask: { answer: 1 }, calc: String.raw`4 	imes 0.5 	imes 0.5 = 1` },
+          { say: '첫 점수 2점은 바로 받는 점수라 깎지 않고 그대로 센다.', calc: String.raw`2 \times 1 = 2` },
+          { say: '두 번째 점수 0점은 한 걸음 늦게 받으니 $\\gamma$를 한 번 곱한다. 지금 기준으로 몇 점일까?', ask: { answer: 0 }, calc: String.raw`0 \times 0.5 = 0` },
+          { say: '세 번째 점수 4점은 두 걸음 늦으니 $\\gamma$를 두 번 곱한다. 지금 기준으로 몇 점일까?', ask: { answer: 1 }, calc: String.raw`4 \times 0.5 \times 0.5 = 1` },
           { say: '이제 모두 더하면 지금 시점의 리턴 $G_1$은?', ask: { answer: 3 }, calc: String.raw`G_1 = 2 + 0 + 1 = 3` },
-          { say: '뒤에서부터 거꾸로 계산해도 같은 답이 나온다. 마지막 시점의 리턴은 4, 그 앞은 "자기 점수 + 할인된 뒤 리턴", 또 그 앞도 마찬가지다. 이 "자기 점수 + 할인된 다음 리턴" 규칙이 바로 다음 장의 벨만 방정식이 된다.', calc: String.raw`G_3 = 4,\quad G_2 = 0 + 0.5	imes 4 = 2,\quad G_1 = 2 + 0.5	imes 2 = 3` },
+          { say: '뒤에서부터 거꾸로 계산해도 같은 답이 나온다. 마지막 시점의 리턴은 4, 그 앞은 "자기 점수 + 할인된 뒤 리턴", 또 그 앞도 마찬가지다. 이 "자기 점수 + 할인된 다음 리턴" 규칙이 바로 다음 장의 벨만 방정식이 된다.', calc: String.raw`G_3 = 4,\quad G_2 = 0 + 0.5\times 4 = 2,\quad G_1 = 2 + 0.5\times 2 = 3` },
         ],
       }),
       'try-discount': (el) => ui.predict(el, {

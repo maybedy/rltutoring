@@ -10,6 +10,22 @@
     level: '중급 · LLM',
     prereq: ['llm-mdp', 'ppo'],
     theses: ['T5', 'T4', 'T3', 'T7'],
+    easy: {
+      hook: '좋은 답을 점수로 적기는 어렵지만, 두 답 중 어느 쪽이 나은지는 누구나 고를 수 있다.',
+      intro: '<p>챗봇에게 "감기 기운이 있을 때 어떻게 해?"라고 물었다고 하자. 답 두 개를 나란히 보여 주면 사람은 쉽게 "이쪽이 낫다"고 고른다.</p><p>이런 고르기를 수천 번 모으면, 답마다 "사람이 좋아할 만한 정도"를 숫자로 매기는 <strong>채점기</strong>(보상모델)를 만들 수 있다. 그다음 챗봇이 채점기 점수가 높은 답을 더 자주 쓰도록 연습한다. 다만 원래 말투에서 너무 멀어지지 않도록 <strong>고삐</strong>를 맨다.</p>',
+      analogy: '학생이 채점 기준을 너무 잘 알면, 실력이 아니라 채점기의 버릇에 맞춘 답을 쓰게 된다. 채점기가 "길게 쓴 답"을 좋아한다는 걸 알면 내용 없이 길게만 쓰는 식이다. 고삐(KL)는 "평소 쓰던 방식에서 너무 멀리 가지 마라"는 규칙이다. 채점기가 믿을 만한 범위, 즉 사람들이 실제로 비교해 본 답들 근처에 머물게 한다.',
+      path: [
+        '직접 라벨러가 되어 두 답 중 하나를 골라 채점기를 만들어 본다',
+        '점수 차이가 "이쪽을 고를 확률"로 바뀌는 계산을 손으로 해 본다',
+        '채점기 점수로 챗봇을 연습시키는 과정(PPO)과 고삐(KL)를 본다',
+        '채점기를 너무 믿으면 실제 품질이 떨어지는 현상(과최적화)을 그래프로 본다',
+      ],
+      recap: [
+        '사람은 답에 점수를 매기는 대신 두 답 중 나은 쪽을 고르고, 그 선택을 모아 채점기를 만든다.',
+        '챗봇은 채점기 점수가 높은 답을 더 자주 쓰도록 연습하되, 원래 모습에서 너무 멀어지지 않게 고삐를 맨다.',
+        '채점기를 끝까지 믿고 밀어붙이면 채점기의 버릇을 공략하게 되어 실제 품질은 오히려 떨어진다.',
+      ],
+    },
     goals: [
       'SFT → 보상모델 → PPO로 이어지는 RLHF 파이프라인의 각 단계가 무엇을 학습하는지 설명할 수 있다.',
       '잠재 효용에 Gumbel 잡음을 더한 모형에서 Bradley–Terry 선호확률과 보상모델 손실을 유도할 수 있다.',
@@ -74,6 +90,10 @@ $$\pi^*(y\mid x) = \frac{1}{Z(x)}\,\pi_{\text{ref}}(y\mid x)\,\exp\!\Big(\frac{r
 </div>
 
 <h2>Bradley–Terry: 비교에서 보상으로</h2>
+<p>먼저 직접 해 보자. 아래에서 라벨러가 되어 두 답 중 나은 쪽을 고르면, 그 선택만으로 채점기 점수가 만들어지고, 그 채점기로 챗봇을 고치면 어떤 답을 더 자주 쓰게 되는지 바로 보인다.</p>
+<div data-w="try-annotate"></div>
+<p>채점기 안에서 일어나는 계산은 단순하다. 점수 차이를 "이쪽을 고를 확률"로 바꾸는 함수 하나뿐이다. 작은 숫자로 따라가 보자.</p>
+<div data-w="step-bt"></div>
 <p>사람이 두 응답을 비교할 때 머릿속에 잠재 효용이 있고, 매번 약간의 잡음이 섞인다고 가정하자. 잡음 분포로 Gumbel을 고르면 선호확률이 정확히 로지스틱이 된다.</p>
 <div data-w="dv-bt"></div>
 <div data-w="fx-rm"></div>
@@ -132,6 +152,7 @@ $$R^{\text{gold}}_{\text{BoN}}(d) = d\,(\alpha_{\text{bon}} - \beta_{\text{bon}}
     mount: {
       'fx-obj': (el) => ui.formula(el, {
         title: 'RLHF 목적 (InstructGPT의 PPO-ptx 형태)',
+        say: '{max|모델을 고쳐서}, {dx|여러 질문에 대해} {dy|모델이 직접 쓴 답}의 {rm|채점기 점수}는 높이고, 답이 {kl|원래 모델에서 벗어난 정도}에는 {beta|정해 둔 비율만큼} 벌점을 준다. 여기에 {ptx|예전에 읽던 글을 계속 읽는 연습}을 조금 섞는다.',
         tex: String.raw`\tm{max}{\max_{\theta}}\; \tm{dx}{\mathbb{E}_{x\sim\mathcal{D}}}\,\tm{dy}{\mathbb{E}_{y\sim\pi_\theta(\cdot|x)}}\Big[\tm{rm}{r_\phi(x,y)} - \tm{beta}{\beta}\, \tm{kl}{\log\frac{\pi_\theta(y|x)}{\pi_{\text{ref}}(y|x)}}\Big] + \tm{ptx}{\gamma_{\text{ptx}}\,\mathbb{E}_{x\sim\mathcal{D}_{\text{pre}}}\big[\log\pi_\theta(x)\big]}`,
         terms: [
           { id: 'max', sym: '\\max_\\theta', label: '정책 파라미터 최적화', desc: 'LM 전체(또는 LoRA)를 갱신.' },
@@ -145,17 +166,19 @@ $$R^{\text{gold}}_{\text{BoN}}(d) = d\,(\alpha_{\text{bon}} - \beta_{\text{bon}}
       }),
       'dv-bt': (el) => ui.derivation(el, {
         title: 'Gumbel 잡음 효용 모형 → Bradley–Terry → 보상모델 손실',
+        easy: '사람 마음속 점수에 매번 약간의 잡음이 섞인다고 보면, "A를 고를 확률"은 두 점수의 차이 하나로 정해진다. 차이가 0이면 반반, 1이면 약 73%이고, 채점기는 사람이 실제로 고른 쪽의 확률이 높아지도록 점수를 맞춘다.',
         steps: [
           { tex: String.raw`U(y) = r(x,y) + \varepsilon_y,\qquad \varepsilon_y \overset{\text{iid}}{\sim} \mathrm{Gumbel}(0,1)`, why: '라벨러는 잠재 효용 $U$가 더 큰 응답을 고른다고 가정한다. 잡음은 응답마다 독립.' },
           { tex: String.raw`\Pr(y_w \succ y_l) = \Pr\big(U(y_w) > U(y_l)\big) = \Pr\big(\hl{\varepsilon_l - \varepsilon_w} < r_w - r_l\big)`, why: '$r_w = r(x,y_w)$, $r_l = r(x,y_l)$로 줄여 쓴다.' },
           { tex: String.raw`\varepsilon_l - \varepsilon_w \sim \mathrm{Logistic}(0,1),\qquad F(z) = \frac{1}{1+e^{-z}} = \sigma(z)`, why: '독립인 두 표준 Gumbel의 차는 표준 로지스틱 분포를 따른다. 이것이 Gumbel을 고른 이유다.' },
-          { tex: String.raw`\Pr(y_w \succ y_l) = \hl{\sigma(r_w - r_l)} = \frac{e^{r_w}}{e^{r_w} + e^{r_l}}`, why: '<strong>Bradley–Terry 모형</strong>. $K$개 중 하나를 고르는 경우로 일반화하면 softmax(Luce 선택 공리), 순위 전체로 일반화하면 Plackett–Luce가 된다.' },
+          { tex: String.raw`\Pr(y_w \succ y_l) = \hl{\sigma(r_w - r_l)} = \frac{e^{r_w}}{e^{r_w} + e^{r_l}}`, easy: '점수 차이가 0이면 50%, 1이면 73%, 2면 88%, 3이면 95%. 차이가 클수록 확실해진다.', why: '<strong>Bradley–Terry 모형</strong>. $K$개 중 하나를 고르는 경우로 일반화하면 softmax(Luce 선택 공리), 순위 전체로 일반화하면 Plackett–Luce가 된다.' },
           { tex: String.raw`\mathcal{L}_{\text{RM}}(\phi) = -\,\mathbb{E}_{(x,y_w,y_l)\sim\mathcal{D}}\Big[\log\sigma\big(r_\phi(x,y_w) - r_\phi(x,y_l)\big)\Big]`, why: '비교 데이터의 음의 로그우도. 응답 쌍을 입력으로 받는 이진 로지스틱 회귀이며, "정답"은 항상 $y_w$ 쪽이다.' },
-          { tex: String.raw`r_\phi(x,y) \;\to\; r_\phi(x,y) + \hl{f(x)} \quad\Rightarrow\quad \sigma\big((r_w + f) - (r_l + f)\big) = \sigma(r_w - r_l)`, why: '선호확률은 같은 프롬프트 안의 <strong>차이</strong>에만 의존한다. 그래서 RM은 프롬프트별 상수까지만 식별되고, 절대값은 의미가 없다. 척도는 라벨러 잡음의 크기($\\tau$)가 정한다.' },
+          { tex: String.raw`r_\phi(x,y) \;\to\; r_\phi(x,y) + \hl{f(x)} \quad\Rightarrow\quad \sigma\big((r_w + f) - (r_l + f)\big) = \sigma(r_w - r_l)`, easy: '두 답에 똑같이 10점을 더해도 고를 확률은 그대로다. 그래서 채점기 점수의 절대값은 의미가 없고, 같은 질문 안의 비교만 의미가 있다.', why: '선호확률은 같은 프롬프트 안의 <strong>차이</strong>에만 의존한다. 그래서 RM은 프롬프트별 상수까지만 식별되고, 절대값은 의미가 없다. 척도는 라벨러 잡음의 크기($\\tau$)가 정한다.' },
         ],
       }),
       'fx-rm': (el) => ui.formula(el, {
         title: '보상모델 손실 해부',
+        say: '{data|사람이 고른 답 쌍 하나하나에 대해}, {rw|고른 답의 점수}에서 {rl|버린 답의 점수}를 뺀 차이를 {sig|"이쪽을 고를 확률"로 바꾼다}. 그 확률이 1에 가까울수록 좋으므로 {log|로그를 취해 크게 만들고}, 손실은 그 반대 부호로 둔다.',
         tex: String.raw`\mathcal{L}(\phi) = -\,\tm{data}{\mathbb{E}_{(x, y_w, y_l)}}\Big[\,\tm{log}{\log}\,\tm{sig}{\sigma}\big(\tm{rw}{r_\phi(x,y_w)} - \tm{rl}{r_\phi(x,y_l)}\big)\Big]`,
         terms: [
           { id: 'data', sym: '(x,y_w,y_l)', label: '비교 데이터', desc: '프롬프트, 선택된 응답, 거절된 응답.', long: '응답은 보통 SFT 모델에서 샘플한다. 그래서 RM은 SFT 분포 근처에서만 정확하고, 정책이 멀리 이동하면 신뢰도가 떨어진다(과최적화의 근원).' },
@@ -163,6 +186,18 @@ $$R^{\text{gold}}_{\text{BoN}}(d) = d\,(\alpha_{\text{bon}} - \beta_{\text{bon}}
           { id: 'sig', sym: '\\sigma', label: '로지스틱 링크', desc: '점수 차이를 선호확률로 바꾼다 (BT).', long: '$\\sigma(z)$의 기울기는 $z$가 크면 0이 된다. 이미 확실히 구분한 쌍은 더 이상 학습 신호를 주지 않는다. DPO의 가중치 $\\sigma(\\hat r_l - \\hat r_w)$도 같은 성질이다.' },
           { id: 'rw', sym: 'r_\\phi(x,y_w)', label: '선택 응답 점수', desc: '올라가도록 학습.' },
           { id: 'rl', sym: 'r_\\phi(x,y_l)', label: '거절 응답 점수', desc: '내려가도록 학습. 차이만 중요하다.' },
+        ],
+      }),
+      'try-annotate': mountAnnotate,
+      'step-bt': (el) => ui.walkthrough(el, {
+        title: '점수 차이를 확률로: 손으로 한 번',
+        caption: '"다음 단계"를 누르며 빈칸에 계산값을 넣어 보라. 계산기를 써도 된다.',
+        steps: [
+          { say: '채점기가 답 A에 2점, 답 B에 1점을 줬다. 두 점수의 차이는?', ask: { answer: 1 }, calc: String.raw`r_A - r_B = 2 - 1 = 1` },
+          { say: '차이를 "A를 고를 확률"로 바꾸는 함수는 $\\sigma(z) = 1/(1+e^{-z})$다. $e^{-1}\\approx 0.368$이다. 사람이 A를 고를 확률은? (소수로)', ask: { answer: 0.731, tol: 0.01 }, calc: String.raw`\sigma(1) = \frac{1}{1 + 0.368} \approx 0.731`, note: '1점 앞서면 약 73% 확률로 이긴다. 100%가 아니라는 점이 중요하다. 사람의 선택에는 잡음이 있다.' },
+          { say: '두 답에 똑같이 10점을 더해 A = 12, B = 11로 바꾸면 A를 고를 확률은?', ask: { answer: 0.731, tol: 0.01 }, calc: String.raw`\sigma(12 - 11) = \sigma(1) \approx 0.731`, note: '차이만 중요하다. 그래서 채점기 점수의 절대값에는 의미가 없다.' },
+          { say: '실제로 사람이 A를 골랐다. 이 비교 하나의 손실 $-\\log P$는? (자연로그)', ask: { answer: 0.313, tol: 0.01 }, calc: String.raw`-\log 0.731 \approx 0.313`, note: '사람이 B를 골랐다면 손실은 $-\\log 0.269 \\approx 1.31$로 훨씬 크다. 채점기는 이 손실을 줄이려고 B 점수를 올리고 A 점수를 내린다.' },
+          { say: '이제 챗봇이 원래 A와 B를 반반 쓴다고 하자. 고삐 세기 $\\beta = 1$일 때 최적 정책은 원래 확률에 $e^{\\text{점수}/\\beta}$를 곱한 뒤 합이 1이 되게 나눈다. A를 쓸 새 확률은?', ask: { answer: 0.731, tol: 0.01 }, calc: String.raw`\frac{0.5\,e^{2}}{0.5\,e^{2} + 0.5\,e^{1}} = \frac{1}{1 + e^{-1}} \approx 0.731`, note: '고삐를 느슨하게 해서 $\\beta = 0.5$로 두면 $\\sigma(2)\\approx 0.881$로 A 쪽으로 더 쏠린다. 고삐가 약할수록 채점기를 더 믿는다.' },
         ],
       }),
       'rm-sim': mountRM,
@@ -197,10 +232,114 @@ $$R^{\text{gold}}_{\text{BoN}}(d) = d\,(\alpha_{\text{bon}} - \beta_{\text{bon}}
     ],
   });
 
+  /* ---------- 내가 라벨러: 비교 → 채점기 → KL 고삐 정책 ---------- */
+  function mountAnnotate(el) {
+    const ans = [
+      { k: 'A', t: '따뜻한 물을 자주 마시고 푹 쉬세요. 열이 38도를 넘거나 사흘 넘게 이어지면 병원에 가 보세요.', q: 2.0, len: 50 },
+      { k: 'B', t: '그냥 참으면 나아요.', q: 0.0, len: 10 },
+      { k: 'C', t: '항생제를 드시면 금방 낫습니다.', q: -1.5, len: 15 },
+      { k: 'D', t: '잠을 충분히 자고 물을 많이 드세요. 증상이 심해지면 진료를 받으세요.', q: 1.8, len: 36 },
+      { k: 'E', t: '감기에 대해 말씀드리자면, 감기는 예로부터 많은 사람이 겪어 온 흔한 질환으로, 계절이 바뀔 때 특히 자주 찾아오며 사람마다 증상이 조금씩 다르게 나타나곤 합니다.', q: -0.3, len: 85 },
+    ];
+    const pref = [0.22, 0.2, 0.18, 0.22, 0.18];
+    const ROUNDS = 8, lam = 0.15;
+    const p = ui.panel(el, { kind: 'TRY', title: '내가 라벨러: 두 답 중 더 나은 쪽 고르기', caption: '두 답 중 더 나은 쪽 버튼을 눌러라. 8번 고르는 동안 왼쪽 막대(채점기 점수)가 내 선택을 따라 움직인다. 오른쪽 막대는 그 채점기로 챗봇을 고쳤을 때 각 답을 쓸 확률이다. 다 고른 뒤 "길이를 좋아하는 라벨러"도 눌러 비교해 보라.' });
+    const qbox = document.createElement('div');
+    qbox.className = 'fx-detail';
+    qbox.innerHTML = '<strong>질문</strong>: 감기 기운이 있을 때 어떻게 하면 좋을까요?<div class="w-caption" style="margin-top:6px">' + ans.map((a) => '<strong>' + a.k + '</strong>. ' + a.t).join('<br>') + '</div>';
+    const status = document.createElement('p');
+    status.className = 'w-caption';
+    status.setAttribute('role', 'status');
+    const pairRow = ui.row(null, 'btns');
+    const pickBtns = [0, 1].map(() => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn';
+      b.style.cssText = 'white-space:normal;text-align:left;line-height:1.55;flex:1 1 260px;padding:10px 12px';
+      pairRow.appendChild(b);
+      return b;
+    });
+    const ctr = ui.row(null);
+    const bS = ui.slider(ctr, { label: '고삐 세기 $\\beta$ (작을수록 느슨)', min: 0.2, max: 3, step: 0.05, value: 1, format: ui.fmt.f(2), onInput: draw });
+    const btns = ui.row(null, 'btns');
+    ui.button(btns, '처음부터', reset);
+    ui.button(btns, '꼼꼼한 라벨러가 자동으로 8번', () => auto((a, b) => (ans[a].q >= ans[b].q ? a : b)));
+    ui.button(btns, '길이를 좋아하는 라벨러가 자동으로 8번', () => auto((a, b) => (ans[a].len >= ans[b].len ? a : b)));
+    const st = ui.stats(null, [
+      { key: 'n', label: '고른 횟수' },
+      { key: 'top', label: '채점기 1등 답', tone: 'accent' },
+      { key: 'pt', label: '고친 챗봇이 1등 답을 쓸 확률', tone: 'signal' },
+    ]);
+    const split = document.createElement('div');
+    split.className = 'w-split';
+    const L = document.createElement('div'), R = document.createElement('div');
+    split.append(L, R);
+    p.body.append(qbox, status, pairRow, ctr, btns, st.el, split);
+    const sc = plot.bars(L, { categories: ans.map((a) => a.k), series: [], height: 210, y: { min: -2.5, max: 2.5, label: '채점기 점수' }, legend: false, labels: true, labelFmt: (v) => v.toFixed(2) });
+    const pb = plot.bars(R, { categories: ans.map((a) => a.k), series: [], height: 210, y: { min: 0, max: 1, label: '답을 쓸 확률' } });
+    const r = sim.rng(21);
+    let clicks = [], queue = [], cur = null;
+    const allPairs = [];
+    for (let i = 0; i < ans.length; i++) for (let j = i + 1; j < ans.length; j++) allPairs.push([i, j]);
+    function nextPair() {
+      if (!queue.length) {
+        queue = allPairs.slice();
+        for (let i = queue.length - 1; i > 0; i--) { const j = r.int(i + 1); [queue[i], queue[j]] = [queue[j], queue[i]]; }
+      }
+      const pr = queue.pop();
+      cur = r() < 0.5 ? pr : [pr[1], pr[0]];
+    }
+    function fit() {
+      const th = new Array(ans.length).fill(0);
+      if (!clicks.length) return th;
+      for (let it = 0; it < 400; it++) {
+        const g = th.map((x) => lam * x);
+        clicks.forEach(([w, l]) => { const c = (sim.sigmoid(th[w] - th[l]) - 1) / clicks.length; g[w] += c; g[l] -= c; });
+        for (let k = 0; k < th.length; k++) th[k] -= 0.8 * g[k];
+      }
+      const m = sim.mean(th);
+      return th.map((x) => x - m);
+    }
+    function pick(side) {
+      const w = cur[side], l = cur[1 - side];
+      clicks.push([w, l]);
+      nextPair();
+      draw();
+    }
+    pickBtns.forEach((b, side) => b.addEventListener('click', () => pick(side)));
+    function auto(judge) {
+      clicks = []; queue = [];
+      for (let k = 0; k < ROUNDS; k++) { nextPair(); const w = judge(cur[0], cur[1]); clicks.push([w, w === cur[0] ? cur[1] : cur[0]]); }
+      nextPair();
+      draw();
+    }
+    function reset() { clicks = []; queue = []; nextPair(); draw(); }
+    function draw() {
+      const th = fit();
+      const beta = bS.get();
+      const pistar = sim.softmax(pref.map((x, i) => Math.log(x) + th[i] / beta));
+      const n = clicks.length;
+      pickBtns.forEach((b, side) => { b.innerHTML = '<strong>' + ans[cur[side]].k + '</strong>. ' + ans[cur[side]].t; });
+      const order = sim.range(ans.length).sort((a, b) => th[b] - th[a]);
+      if (!n) status.innerHTML = '아직 고른 것이 없다. 채점기 점수는 모두 0이고, 챗봇은 원래 확률 그대로다. 아래 두 답 중 나은 쪽을 눌러라.';
+      else if (n < ROUNDS) status.innerHTML = n + '번 골랐다. 지금 채점기는 ' + order.map((i) => ans[i].k).join(' > ') + ' 순으로 본다. ' + (ROUNDS - n) + '번 더 골라 보자.';
+      else status.innerHTML = n + '번 골랐다. 채점기는 ' + order.map((i) => ans[i].k).join(' > ') + ' 순으로 본다. 비교되지 않았거나 이기고 진 횟수가 같은 답은 0점 근처에 남는다. 더 고르면 계속 반영된다.';
+      sc.update({ series: [{ name: '채점기 점수', values: th, colors: th.map((v) => (v >= 0 ? 'good' : 'bad')) }] });
+      pb.update({ series: [
+        { name: '원래 챗봇', color: 'c6', values: pref, opacity: 0.6 },
+        { name: '고친 챗봇 (원래 확률 × e^(점수/β))', color: 'c1', values: pistar },
+      ] });
+      st.set('n', n);
+      st.set('top', n ? ans[order[0]].k : '–');
+      st.set('pt', n ? ui.fmt.pct(pistar[order[0]]) : '–');
+    }
+    reset();
+  }
+
   /* ---------- 보상모델 학습 시뮬레이터 ---------- */
   function mountRM(el) {
     const K = 16;
-    const p = ui.panel(el, { kind: 'SIM', title: 'Bradley–Terry 보상모델 학습', caption: '왼쪽: 학습한 점수 $\\theta_i$(점)와 이상적인 값 $(u_i-\\bar u)/\\tau$(선). 오른쪽: 경사하강 스텝에 따른 정확도. 라벨 잡음 $\\tau$와 비교 쌍 개수를 바꿔 보라.' });
+    const p = ui.panel(el, { kind: 'SIM', title: 'Bradley–Terry 보상모델 학습', caption: '라벨 잡음 슬라이더를 오른쪽으로 밀어 보라. 오른쪽 그래프에서 파란 검증 정확도가 주황 점선(어떤 채점기도 넘을 수 없는 상한)에 묶여 함께 내려간다. 비교 쌍 수를 30까지 줄이면 초록 학습 정확도만 높고 파란 검증 정확도는 떨어진다. 왼쪽: 학습한 점수 $\\theta_i$(점)와 이상적인 값 $(u_i-\\bar u)/\\tau$(선). 오른쪽: 경사하강 스텝에 따른 정확도.' });
     const ctr = ui.row(p.body);
     const tauS = ui.slider(ctr, { label: '라벨 잡음 $\\tau$', min: 0.1, max: 2, step: 0.05, value: 0.8, format: ui.fmt.f(2), onInput: run });
     const nS = ui.slider(ctr, { label: '학습 비교 쌍 수', min: 20, max: 2000, step: 10, value: 300, format: ui.fmt.int, onInput: run });
@@ -277,7 +416,7 @@ $$R^{\text{gold}}_{\text{BoN}}(d) = d\,(\alpha_{\text{bon}} - \beta_{\text{bon}}
   /* ---------- 토큰 단위 보상 · GAE 계산기 ---------- */
   function mountTokenCalc(el) {
     const T = 12;
-    const p = ui.panel(el, { kind: 'CALC', title: '토큰 단위 보상과 GAE ($\\gamma=1$)', caption: '12토큰짜리 응답 하나. 각 토큰의 로그비 $\\log\\frac{\\pi_\\theta}{\\pi_{\\text{ref}}}$는 "정책 이동량"에 비례해 생성된다. critic은 모든 위치에서 같은 값 $c$를 예측한다고 두었다. $\\lambda$를 0에서 1로 옮기며 끝 보상이 앞 토큰으로 퍼지는 모습을 보라. 한 샘플의 로그비는 음수일 수도 있다. 기댓값만 KL이다.' });
+    const p = ui.panel(el, { kind: 'CALC', title: '토큰 단위 보상과 GAE ($\\gamma=1$)', caption: 'GAE λ 슬라이더를 0에서 1로 천천히 옮겨 보라. 마지막 토큰에만 몰려 있던 파란 막대(advantage)가 앞쪽 토큰들로 번진다. 12토큰짜리 응답 하나. 각 토큰의 로그비 $\\log\\frac{\\pi_\\theta}{\\pi_{\\text{ref}}}$는 "정책 이동량"에 비례해 생성된다. critic은 모든 위치에서 같은 값 $c$를 예측한다고 두었다. 한 샘플의 로그비는 음수일 수도 있다. 기댓값만 KL이다.' });
     const ctr = ui.row(p.body);
     const rmS = ui.slider(ctr, { label: 'RM 점수 $r_\\phi$', min: -2, max: 3, step: 0.1, value: 1.5, format: ui.fmt.f(1), onInput: draw });
     const bS = ui.slider(ctr, { label: 'KL 계수 $\\beta$', min: 0, max: 0.5, step: 0.01, value: 0.1, format: ui.fmt.f(2), onInput: draw });
@@ -318,7 +457,7 @@ $$R^{\text{gold}}_{\text{BoN}}(d) = d\,(\alpha_{\text{bon}} - \beta_{\text{bon}}
 
   /* ---------- 과최적화 곡선 ---------- */
   function mountOveropt(el) {
-    const p = ui.panel(el, { kind: 'CALC', title: '보상모델 과최적화 (Gao et al. 2022 함수형, 계수는 예시)', caption: '가로축은 $d=\\sqrt{\\mathrm{KL}}$. 대리 점수는 예시로 $\\alpha_{\\text{RL}}\\,d$로 두었다. 계수는 논문의 적합값이 아니라 모양을 보기 위한 예시다. 정점의 위치 $d^*_{\\text{bon}} = \\alpha/(2\\beta)$, $d^*_{\\text{RL}} = e^{\\alpha/\\beta - 1}$을 슬라이더로 확인하라.' });
+    const p = ui.panel(el, { kind: 'CALC', title: '보상모델 과최적화 (Gao et al. 2022 함수형, 계수는 예시)', caption: '슬라이더로 계수를 바꿔 보라. 초록 점선(채점기 점수)은 계속 오르지만, 파랑과 주황 곡선(실제 품질)은 꼭대기를 찍고 내려온다. 가로축은 $d=\\sqrt{\\mathrm{KL}}$. 대리 점수는 예시로 $\\alpha_{\\text{RL}}\\,d$로 두었다. 계수는 논문의 적합값이 아니라 모양을 보기 위한 예시다. 정점의 위치 $d^*_{\\text{bon}} = \\alpha/(2\\beta)$, $d^*_{\\text{RL}} = e^{\\alpha/\\beta - 1}$을 슬라이더로 확인하라.' });
     const ctr = ui.row(p.body);
     const aB = ui.slider(ctr, { label: '$\\alpha_{\\text{bon}}$', min: 0.2, max: 2, step: 0.05, value: 1.0, format: ui.fmt.f(2), onInput: draw });
     const bB = ui.slider(ctr, { label: '$\\beta_{\\text{bon}}$', min: 0.02, max: 0.5, step: 0.01, value: 0.12, format: ui.fmt.f(2), onInput: draw });

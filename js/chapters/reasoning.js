@@ -10,6 +10,22 @@
     level: '중급 · LLM',
     prereq: ['rlhf', 'ppo'],
     theses: ['T3', 'T6', 'T5', 'T9'],
+    easy: {
+      hook: '답이 맞았는지 기계가 바로 채점할 수 있는 문제라면, 사람 대신 채점 프로그램으로 모델을 연습시킬 수 있다.',
+      intro: '<p>수학 문제 하나를 모델에게 여덟 번 풀게 한다. 최종 답이 맞으면 1점, 틀리면 0점이다.</p><p>여덟 번 중 세 번 맞혔다면, 맞힌 풀이는 "평소보다 잘했다", 틀린 풀이는 "평소보다 못했다"고 표시하고, 맞힌 풀이를 더 자주 쓰도록 모델을 고친다. 여기서 "평소"는 같은 문제를 푼 여덟 번의 평균이다. 이 단순한 규칙(GRPO)만으로 모델이 길게 생각하고 스스로 검산하는 습관을 익혔다.</p>',
+      analogy: '같은 시험을 본 반 학생들끼리 답안을 비교하는 것과 같다. 반 평균보다 잘 쓴 답안은 칭찬하고, 못 쓴 답안은 지적한다. 시험이 너무 쉬워 모두 100점이거나 너무 어려워 모두 0점이면 비교할 거리가 없어서 그 시험에서는 아무것도 배우지 못한다. 그래서 "가끔 맞히는" 문제가 가장 좋은 연습 문제다.',
+      path: [
+        '채점자가 되어 풀이 6개에 맞음/틀림을 매기고, 각 풀이가 받는 신호를 본다',
+        '풀이 4개로 평균, 표준편차, advantage를 손으로 계산한다',
+        '같은 규칙으로 오래 학습하면 무엇이 좋아지고 무엇을 잃는지 시뮬레이터로 본다',
+        'DeepSeek-R1이 이 방법으로 어떻게 학습됐는지 본다',
+      ],
+      recap: [
+        '같은 문제를 여러 번 풀게 해서, 평균보다 잘한 풀이는 더 자주, 못한 풀이는 덜 자주 쓰도록 고친다.',
+        '모두 맞히거나 모두 틀린 문제는 비교할 거리가 없어 학습 신호가 없다. 가끔 맞히는 문제가 가장 많이 가르친다.',
+        '이 방법은 한 번에 맞힐 확률을 높이지만, 드물게 쓰던 풀이법을 잃어 여러 번 시도할 때의 성공률은 줄어들 수 있다.',
+      ],
+    },
     goals: [
       'RLVR(검증 가능한 보상)이 RLHF와 무엇이 같고 다른지 설명할 수 있다.',
       '그룹 평균 baseline이 leave-one-out baseline의 상수배라 불편이고, 표준편차 정규화가 편향을 만든다는 것을 유도할 수 있다.',
@@ -21,9 +37,15 @@
 $$r(x, y) = \mathbb{1}\big[\,\mathrm{verify}(x, y) = \text{정답}\,\big] \in \{0, 1\}$$
 <p>보상은 희소하고(응답 끝에 한 번), 이진이며, 해킹하기 어렵다(완전히 불가능하지는 않다). DeepSeekMath(Shao et al. 2024)의 GRPO, OpenAI o1(2024, 방법 비공개), DeepSeek-R1(Guo et al. 2025)이 이 흐름을 대표한다.</p>
 
+<h2>먼저 채점자가 되어 보기</h2>
+<p>모델이 같은 문제를 여섯 번 풀었다. 여러분이 채점 프로그램이 되어 각 풀이에 맞음 또는 틀림을 매겨 보자. 채점을 끝내는 순간, 어떤 풀이를 다음에 더 자주 쓰게 될지가 정해진다.</p>
+<div data-w="try-grader"></div>
+
 <h2>GRPO: critic 대신 그룹</h2>
 <p>PPO는 토큰마다 advantage를 만들기 위해 critic을 학습한다. 보상이 끝에 하나뿐이고 정책과 같은 크기의 critic을 둬야 하는 LLM에서는 이것이 큰 부담이다. GRPO(Group Relative Policy Optimization)는 같은 프롬프트에 대해 응답 $G$개를 뽑고, <strong>그룹 안에서의 상대 점수</strong>를 advantage로 쓴다.</p>
 <div data-w="fx-grpo"></div>
+<p>식은 길지만 핵심은 advantage 한 줄이다. 풀이 네 개로 직접 계산해 보자.</p>
+<div data-w="step-grpo"></div>
 
 <h3>왜 그룹 평균을 빼도 되는가</h3>
 <div data-w="dv-baseline"></div>
@@ -119,6 +141,7 @@ $$r(x, y) = \mathbb{1}\big[\,\mathrm{verify}(x, y) = \text{정답}\,\big] \in \{
     mount: {
       'fx-grpo': (el) => ui.formula(el, {
         title: 'GRPO 목적 (DeepSeekMath)',
+        say: '{grp|같은 문제를 여러 번 풀게 해서}, 각 풀이에 {adv|그룹 평균보다 얼마나 잘했는지}를 점수로 준다. 그 점수만큼 풀이에 쓰인 토큰의 확률을 올리거나 내리되, {rho|예전 모델 대비 확률이 바뀐 비율}이 {clip|정해 둔 범위를 넘으면 더 밀지 않고}, {kl|원래 모델에서 너무 멀어지면 벌점}을 준다. 마지막으로 {lavg|풀이마다 토큰 수로 나눈 뒤} {gavg|풀이들끼리 평균}을 낸다.',
         tex: String.raw`\mathcal{J}(\theta) = \tm{grp}{\mathbb{E}_{x,\;\{o_i\}_{i=1}^{G}\sim\pi_{\text{old}}}}\Bigg[\tm{gavg}{\frac{1}{G}\sum_{i=1}^{G}}\tm{lavg}{\frac{1}{|o_i|}\sum_{t=1}^{|o_i|}}\Big(\min\big(\tm{rho}{\rho_{i,t}}\,\tm{adv}{\hat A_{i}},\ \tm{clip}{\clip(\rho_{i,t},1-\epsilon,1+\epsilon)}\,\hat A_{i}\big) - \tm{kl}{\beta\,\mathbb{D}_{\mathrm{KL}}\big[\pi_\theta\|\pi_{\text{ref}}\big]}\Big)\Bigg]`,
         terms: [
           { id: 'grp', sym: '\\{o_i\\}_{i=1}^G\\sim\\pi_{\\text{old}}', label: '그룹 샘플링', desc: '같은 프롬프트에 대해 응답 G개를 뽑는다.', long: '그룹이 critic 역할을 한다. 같은 문제의 형제 샘플들이 "이 문제는 원래 얼마나 쉬운가"를 즉석에서 추정한다. G가 클수록 baseline 추정이 정확해지지만 생성 비용이 선형으로 늘어난다.' },
@@ -132,13 +155,26 @@ $$r(x, y) = \mathbb{1}\big[\,\mathrm{verify}(x, y) = \text{정답}\,\big] \in \{
       }),
       'dv-baseline': (el) => ui.derivation(el, {
         title: '그룹 평균 baseline은 RLOO의 상수배, 표준편차 정규화는 프롬프트 재가중',
+        easy: '맞힌 풀이의 점수에서 그룹 평균을 빼도 학습 방향은 틀어지지 않는다. "나를 뺀 나머지의 평균"을 뺀 것과 크기 비율만 다르기 때문이다. 다만 표준편차로 나누면 아주 쉬운 문제와 아주 어려운 문제가 더 크게 반영되는 쪽으로 치우친다.',
         steps: [
           { tex: String.raw`\nabla_\theta J = \mathbb{E}_{x}\,\mathbb{E}_{o\sim\pi_\theta(\cdot|x)}\big[r(x,o)\,\nabla_\theta\log\pi_\theta(o|x)\big]`, why: '점수함수 경사(T3). 응답 전체를 하나의 행동으로 보는 밴딧 관점.' },
           { tex: String.raw`\mathbb{E}_{o\sim\pi_\theta}\big[b\,\nabla_\theta\log\pi_\theta(o|x)\big] = b\,\nabla_\theta\sum_o \pi_\theta(o|x) = b\,\nabla_\theta 1 = \hl{0}`, why: '$b$가 샘플 $o$에 의존하지 않으면 어떤 baseline도 편향을 만들지 않는다.' },
           { tex: String.raw`\hat g = \frac{1}{G}\sum_{i=1}^{G}\big(r_i - \hl{b_i}\big)\nabla_\theta\log\pi_\theta(o_i|x),\qquad b_i = \frac{1}{G-1}\sum_{j\ne i} r_j`, why: '같은 프롬프트에서 $G$개를 독립 샘플링. $b_i$는 <strong>자기 자신을 뺀</strong> 형제들의 평균이라 $o_i$와 독립이다. 따라서 불편. 이것이 RLOO.' },
-          { tex: String.raw`r_i - \bar r = r_i - \frac{r_i + \sum_{j\ne i}r_j}{G} = \hl{\frac{G-1}{G}}\Big(r_i - \frac{1}{G-1}\sum_{j\ne i}r_j\Big)`, why: '자기 자신을 포함한 그룹 평균을 빼는 것은 RLOO advantage에 상수 $\\frac{G-1}{G}$를 곱한 것과 같다. 학습률에 흡수되므로 <strong>그룹 평균 baseline도 불편</strong>이다.' },
+          { tex: String.raw`r_i - \bar r = r_i - \frac{r_i + \sum_{j\ne i}r_j}{G} = \hl{\frac{G-1}{G}}\Big(r_i - \frac{1}{G-1}\sum_{j\ne i}r_j\Big)`, easy: '평균 안에 자기 점수가 섞여 있어도, 결과는 "나를 뺀 평균"을 쓴 값에 일정한 비율(8개면 7/8)을 곱한 것일 뿐이다. 방향은 같고 크기만 조금 작다.', why: '자기 자신을 포함한 그룹 평균을 빼는 것은 RLOO advantage에 상수 $\\frac{G-1}{G}$를 곱한 것과 같다. 학습률에 흡수되므로 <strong>그룹 평균 baseline도 불편</strong>이다.' },
           { tex: String.raw`\hat A_i = \frac{r_i - \bar r}{\hl{\sigma_x}},\qquad r\in\{0,1\}:\ \sigma_x = \sqrt{\hat p_x(1-\hat p_x)}`, why: '표준편차는 모든 샘플(자신 포함)에 의존하므로 더 이상 정확히 불편이 아니다. 더 중요한 효과는 <strong>프롬프트별 재가중</strong>이다. 정답률 $\\hat p_x$가 0이나 1에 가까운 문제일수록 $1/\\sigma_x$가 커져 가중치가 커진다.' },
-          { tex: String.raw`\hat A_i = \begin{cases} \hl{(1-\hat p_x)/\sigma_x} = \sqrt{\tfrac{1-\hat p_x}{\hat p_x}} & \text{정답} \\ \hl{-\hat p_x/\sigma_x} = -\sqrt{\tfrac{\hat p_x}{1-\hat p_x}} & \text{오답}\end{cases}\qquad \hat p_x\in\{0,1\}\Rightarrow \hat A_i = 0`, why: '이진 보상이면 advantage는 그룹 정답률 $\\hat p_x$만의 함수다. 어려운 문제에서 드물게 맞힌 풀이는 큰 양의 advantage를 받는다. 전부 맞히거나 전부 틀리면 신호가 0이다. Dr. GRPO는 표준편차 정규화를 빼서 이 난이도 재가중을 없앤다.' },
+          { tex: String.raw`\hat A_i = \begin{cases} \hl{(1-\hat p_x)/\sigma_x} = \sqrt{\tfrac{1-\hat p_x}{\hat p_x}} & \text{정답} \\ \hl{-\hat p_x/\sigma_x} = -\sqrt{\tfrac{\hat p_x}{1-\hat p_x}} & \text{오답}\end{cases}\qquad \hat p_x\in\{0,1\}\Rightarrow \hat A_i = 0`, easy: '맞힌 비율만 알면 점수가 정해진다. 8개 중 1개만 맞히면 그 풀이는 큰 칭찬을 받고, 8개 모두 맞히면 아무도 칭찬받지 못한다.', why: '이진 보상이면 advantage는 그룹 정답률 $\\hat p_x$만의 함수다. 어려운 문제에서 드물게 맞힌 풀이는 큰 양의 advantage를 받는다. 전부 맞히거나 전부 틀리면 신호가 0이다. Dr. GRPO는 표준편차 정규화를 빼서 이 난이도 재가중을 없앤다.' },
+        ],
+      }),
+      'try-grader': mountGrader,
+      'step-grpo': (el) => ui.walkthrough(el, {
+        title: '풀이 4개의 advantage를 손으로',
+        caption: '"다음 단계"를 누르며 빈칸을 채워 보라. 표준편차는 여기서 개수 n으로 나누는 방식을 쓴다(구현에 따라 n−1로 나누기도 한다).',
+        steps: [
+          { say: '같은 문제를 네 번 풀었고 첫 번째 풀이만 맞았다. 점수는 1, 0, 0, 0이다. 평균은?', ask: { answer: 0.25, tol: 0.005 }, calc: String.raw`\bar r = \frac{1 + 0 + 0 + 0}{4} = 0.25` },
+          { say: '평균을 빼면 맞힌 풀이는 얼마가 되나?', ask: { answer: 0.75, tol: 0.005 }, calc: String.raw`1 - 0.25 = 0.75`, note: '틀린 풀이 세 개는 각각 $0 - 0.25 = -0.25$다. 더하면 $0.75 - 3\\times0.25 = 0$. 평균을 빼면 늘 합이 0이 된다.' },
+          { say: '표준편차는 "평균과의 차이를 제곱해 평균 낸 뒤 제곱근"이다. $(0.75^2 + 3\\times0.25^2)/4 = 0.1875$. 제곱근은?', ask: { answer: 0.433, tol: 0.005 }, calc: String.raw`\sigma = \sqrt{0.1875} \approx 0.433` },
+          { say: '표준편차로 나누면 맞힌 풀이의 advantage는?', ask: { answer: 1.732, tol: 0.01 }, calc: String.raw`\hat A_1 = \frac{0.75}{0.433} \approx 1.73,\qquad \hat A_{2,3,4} = \frac{-0.25}{0.433} \approx -0.58`, note: '넷 중 하나만 맞힌 어려운 문제라서, 맞힌 풀이 하나가 큰 칭찬(+1.73)을 받는다.' },
+          { say: '이번에는 네 풀이가 모두 맞았다고 하자. 점수 1, 1, 1, 1. 평균은 1이고 모든 풀이가 평균과 같다. 맞힌 풀이 하나의 advantage는?', ask: { answer: 0, tol: 0.001 }, calc: String.raw`r_i - \bar r = 1 - 1 = 0`, note: '모두 같은 점수면 아무 풀이도 칭찬받지 않는다. 이 문제를 푸는 데 쓴 계산은 학습에 아무 영향을 주지 않는다. DAPO는 이런 문제를 버리고 다른 문제를 다시 뽑는다.' },
         ],
       }),
       'grpo-calc': mountGRPOCalc,
@@ -172,9 +208,93 @@ $$r(x, y) = \mathbb{1}\big[\,\mathrm{verify}(x, y) = \text{정답}\,\big] \in \{
     ],
   });
 
+  /* ---------- 채점자가 되어 보기 ---------- */
+  function mountGrader(el) {
+    const sols = [
+      { t: '봉지 4개에 3개씩이면 12개. 2개를 먹었으니 12 − 2 = 10개.', ok: 1 },
+      { t: '3 + 4 = 7개에서 2개를 먹었으니 5개.', ok: 0 },
+      { t: '모두 12개, 남은 건 10개.', ok: 1 },
+      { t: '한 봉지에 3개, 네 봉지면 12개. 먹은 건 2봉지니까 12 − 6 = 6개.', ok: 0 },
+      { t: '3 × 4 = 12, 12 − 2 = 10. 검산: 10 + 2 = 12로 맞다. 답 10개.', ok: 1 },
+      { t: '답: 10개.', ok: 1 },
+    ];
+    const N = sols.length, eta = 2;
+    const p = ui.panel(el, { kind: 'TRY', title: '내가 채점 프로그램: 풀이 6개 채점하기', caption: '각 풀이 아래에서 "맞음" 또는 "틀림"을 눌러라. 6개를 다 채점하면 각 풀이가 다음에 더 자주 쓰일지(초록) 덜 쓰일지(빨강)가 막대로 보인다. "모두 맞음"도 눌러 보라.' });
+    const prob = document.createElement('div');
+    prob.className = 'fx-detail';
+    prob.innerHTML = '<strong>문제</strong>: 사과가 3개씩 든 봉지가 4개 있다. 그중 사과 2개를 먹었다. 남은 사과는 몇 개인가?';
+    p.body.appendChild(prob);
+    const grid = document.createElement('div');
+    grid.className = 'grid2';
+    grid.style.margin = '0';
+    p.body.appendChild(grid);
+    let grades = new Array(N).fill(null);
+    const cardBtns = sols.map((sol, i) => {
+      const c = document.createElement('div');
+      c.className = 'card';
+      c.innerHTML = '<p style="margin:0 0 8px"><strong>풀이 ' + (i + 1) + '</strong>. ' + sol.t + '</p>';
+      const row = ui.row(c, 'btns');
+      const yes = ui.button(row, '맞음 (1점)', () => { grades[i] = 1; draw(); });
+      const no = ui.button(row, '틀림 (0점)', () => { grades[i] = 0; draw(); });
+      grid.appendChild(c);
+      return [yes, no];
+    });
+    const btns = ui.row(p.body, 'btns');
+    ui.button(btns, '정답표대로 채점', () => { grades = sols.map((x) => x.ok); draw(); }, { primary: true });
+    ui.button(btns, '모두 맞음', () => { grades = grades.map(() => 1); draw(); });
+    ui.button(btns, '모두 틀림', () => { grades = grades.map(() => 0); draw(); });
+    ui.button(btns, '처음부터', () => { grades = new Array(N).fill(null); draw(); });
+    const msg = document.createElement('div');
+    msg.className = 'fx-detail';
+    msg.setAttribute('role', 'status');
+    p.body.appendChild(msg);
+    const split = document.createElement('div');
+    split.className = 'w-split';
+    const L = document.createElement('div'), R = document.createElement('div');
+    split.append(L, R);
+    p.body.appendChild(split);
+    const cats = sols.map((_, i) => '풀이' + (i + 1));
+    const ab = plot.bars(L, { categories: cats, series: [], height: 220, y: { min: -2.4, max: 2.4, label: '받는 신호 (advantage)' }, legend: false, labels: true, labelFmt: (v) => (v > 0 ? '+' : '') + v.toFixed(2) });
+    const pb = plot.bars(R, { categories: cats, series: [], height: 220, y: { min: 0, max: 0.5, label: '다음에 쓸 확률' } });
+    const note = document.createElement('p');
+    note.className = 'w-caption';
+    note.innerHTML = '풀이 6은 과정 없이 답만 적었는데도 풀이 5와 똑같은 신호를 받는다. 최종 답만 보는 채점기(결과 보상)의 한계이고, 아래에서 볼 과정 보상(PRM)이 나온 이유다.';
+    p.body.appendChild(note);
+    function draw() {
+      cardBtns.forEach(([yes, no], i) => {
+        yes.setAttribute('aria-pressed', String(grades[i] === 1));
+        no.setAttribute('aria-pressed', String(grades[i] === 0));
+      });
+      const done = grades.filter((g) => g != null).length;
+      const uni = new Array(N).fill(1 / N);
+      if (done < N) {
+        msg.innerHTML = '아직 ' + (N - done) + '개를 채점하지 않았다. 6개를 모두 채점하면 신호가 계산된다. 정답은 10개다.';
+        ab.update({ series: [{ name: '신호', values: new Array(N).fill(0), colors: new Array(N).fill('c6') }] });
+        pb.update({ series: [{ name: '채점 전', color: 'c6', values: uni, opacity: 0.6 }] });
+        return;
+      }
+      const m = sim.mean(grades), sd = sim.std(grades);
+      const A = grades.map((g) => (sd > 1e-9 ? (g - m) / sd : 0));
+      const after = sim.softmax(A.map((a) => (eta * a) / N));
+      const k = sim.sum(grades);
+      const wrongKey = sim.range(N).filter((i) => grades[i] !== sols[i].ok).map((i) => i + 1);
+      let t;
+      if (sd < 1e-9) t = '6개가 모두 ' + (k ? '맞음' : '틀림') + '이다. 모두 평균과 같은 점수라 <strong>어떤 풀이도 신호를 받지 않는다</strong>. 이 문제에 쓴 계산은 학습에 아무 영향이 없다. DAPO 같은 방법은 이런 문제를 버리고 다른 문제를 다시 뽑는다.';
+      else t = '6개 중 ' + k + '개가 맞았다. 평균은 ' + m.toFixed(2) + '. 맞힌 풀이는 <span class="col-good">' + ((1 - m) / sd).toFixed(2) + '</span>, 틀린 풀이는 <span class="col-bad">' + ((0 - m) / sd).toFixed(2) + '</span>를 받는다. 맞힌 풀이가 적을수록 하나가 받는 칭찬이 커진다.';
+      if (wrongKey.length) t += ' <strong>정답표와 다르게 채점한 풀이: ' + wrongKey.join(', ') + '번.</strong> 채점기가 틀리면 틀린 풀이를 칭찬하게 되고, 모델은 그 실수를 그대로 배운다.';
+      msg.innerHTML = t;
+      ab.update({ series: [{ name: '신호', values: A, colors: A.map((a) => (a > 1e-9 ? 'good' : a < -1e-9 ? 'bad' : 'c6')) }] });
+      pb.update({ series: [
+        { name: '채점 전 (모두 같은 확률)', color: 'c6', values: uni, opacity: 0.6 },
+        { name: '한 번 고친 뒤', color: 'c1', values: after },
+      ] });
+    }
+    draw();
+  }
+
   /* ---------- GRPO 그룹 계산기 ---------- */
   function mountGRPOCalc(el) {
-    const p = ui.panel(el, { kind: 'CALC', title: '한 그룹의 advantage와 토큰 가중치' });
+    const p = ui.panel(el, { kind: 'CALC', title: '한 그룹의 advantage와 토큰 가중치', caption: '"정답/오답" 버튼과 길이 칸을 바꿔 보라. 아래 막대는 각 풀이의 토큰 하나가 받는 신호다(초록은 올리기, 빨강은 내리기). GRPO에서 오답의 길이를 늘리면 빨간 막대가 짧아진다. 손실 정규화를 Dr. GRPO로 바꾸면 길이와 무관해진다.' });
     const ctr = ui.row(p.body);
     let G = 8;
     let correct = [1, 0, 1, 0, 0, 1, 0, 1];
@@ -272,7 +392,7 @@ $$r(x, y) = \mathbb{1}\big[\,\mathrm{verify}(x, y) = \text{정답}\,\big] \in \{
   /* ---------- 그룹 학습 동역학 장난감 ---------- */
   function mountGRPOSim(el) {
     const P = 200, K = 6, B = 64, ITERS = 300;
-    const p = ui.panel(el, { kind: 'SIM', title: '전략 6개 · 문제 200개 세계의 GRPO 학습' });
+    const p = ui.panel(el, { kind: 'SIM', title: '전략 6개 · 문제 200개 세계의 GRPO 학습', caption: '"다시 학습"이나 "애니메이션으로 보기"를 눌러 보라. 위 그래프에서 파란선(한 번에 맞힐 확률)은 오르는데 주황선(16번 중 한 번이라도 맞힐 확률)은 내려간다. KL 계수를 올리면 그 하락이 줄어든다.' });
     const ctr = ui.row(p.body);
     const gS = ui.slider(ctr, { label: '그룹 크기 $G$', min: 2, max: 16, step: 1, value: 8, format: ui.fmt.int, onInput: () => run(false) });
     const lrS = ui.slider(ctr, { label: '학습률', min: 0.1, max: 2, step: 0.05, value: 0.6, format: ui.fmt.f(2), onInput: () => run(false) });
