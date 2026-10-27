@@ -23,6 +23,27 @@
     html: String.raw`
 <p>강화학습의 알고리즘은 수십 개지만, 그것들이 기대는 수학적 사실은 생각보다 적다. 이 사이트는 RL을 <strong>몇 개의 대전제(thesis) 위에서 손잡이 하나씩을 돌려 만든 변주들</strong>로 읽는다. Q-learning은 벨만 고정점(T1)을 샘플로 푼 것이고, PPO는 성능 차이 보조정리(T4)를 안전하게 쓰기 위한 클리핑이며, DPO는 KL-정규화 문제의 닫힌 해(T5)를 거꾸로 푼 것이다.</p>
 
+<h2>3분 체험: 간식으로 강아지 가르치기</h2>
+<p>수식보다 먼저 손으로 느껴 보자. 강아지에게 "앉아!"라고 말하면 강아지는 아직 뜻을 몰라서 아무 행동이나 한다. 마음에 드는 행동을 했을 때만 간식을 주면, 강아지는 그 행동을 점점 더 자주 한다. <strong>이것이 강화학습의 전부다.</strong> 아래에서 직접 훈련해 보라.</p>
+<div data-w="puppy"></div>
+<div class="grid2">
+  <div class="card"><h4>강아지 = 에이전트</h4><p>배우는 주체. 행동을 고르는 규칙(정책)을 가지고 있다. 위의 막대가 그 정책이다.</p></div>
+  <div class="card"><h4>"앉아!" = 상태</h4><p>지금 처한 상황. 상황이 여러 개면 상황마다 다른 막대(정책)가 생긴다.</p></div>
+  <div class="card"><h4>간식 = 보상</h4><p>행동 직후 받는 점수. 강아지는 이 숫자만 보고 배운다. 무엇이 "좋은 행동"인지는 간식을 주는 사람이 정한다.</p></div>
+  <div class="card"><h4>막대가 변하는 것 = 학습</h4><p>보상을 받은 행동의 확률을 올리고 나머지를 내린다. 11장의 정책 경사, 21장의 LLM 추론 RL이 이 규칙을 그대로 쓴다.</p></div>
+</div>
+
+<h2>수식이 낯설다면, 이렇게 읽자</h2>
+<p>이 사이트는 수식 없이도 끝까지 따라올 수 있게 만들어졌다. 오른쪽 위의 <strong>"쉽게 보기"</strong>가 켜져 있으면 긴 유도는 접히고 요지만 보인다.</p>
+<div class="grid2">
+  <div class="card"><h4>먼저 쉽게</h4><p>각 장은 주황색 상자에서 시작한다. 수식 없이 한두 문장과 비유 하나로 그 장의 핵심을 말한다.</p></div>
+  <div class="card"><h4>말로 읽으면</h4><p>수식마다 같은 색으로 칠한 문장이 붙어 있다. 문장의 색깔 단어에 마우스를 올리면 수식의 어느 부분인지 함께 표시된다.</p></div>
+  <div class="card"><h4>점선 밑줄 단어</h4><p>처음 나오는 전문 용어에는 점선이 있다. 올리거나 누르면 쉬운 뜻이 뜬다.</p></div>
+  <div class="card"><h4>기호 사전</h4><p>위쪽 "기호 사전" 버튼을 누르면 $\gamma$, $\pi$, $V$, $Q$ 같은 기호의 읽는 법과 뜻이 나온다.</p></div>
+  <div class="card"><h4><span class="w-kind k-try">TRY</span> 직접 해보기</h4><p>숫자를 예측해 적어 보거나, 직접 에이전트가 되어 버튼을 누르는 활동. 틀리면 힌트가 나온다.</p></div>
+  <div class="card"><h4><span class="w-kind k-step">STEP</span> 숫자로 따라가기</h4><p>작은 숫자로 계산을 한 단계씩 해 본다. 수식이 무슨 계산을 시키는지 손으로 확인하는 곳.</p></div>
+</div>
+
 <h2>RL 전체를 한 식으로</h2>
 <p>거의 모든 정책 개선 알고리즘은 아래 템플릿의 네 칸을 어떻게 채우느냐로 구분된다. 어느 데이터에서($d$), 어떤 추정량으로 행동의 좋음을 재고($\hat A$), 기준 정책에서 얼마나 멀어지는 것을 허용하는가($\beta, D$).</p>
 <div data-w="fx-master"></div>
@@ -67,6 +88,7 @@
     mount: {
       'fx-master': (el) => ui.formula(el, {
         title: '정책 개선의 통합 템플릿',
+        say: '다음 정책은, {d|연습할 상황들}에서 {A|각 행동이 평소보다 얼마나 좋은지}를 최대한 많이 고르되, {D|원래 방식에서 멀어진 정도}에 {b|벌점}을 매겨 너무 멀리 가지는 않도록 정한다.',
         tex: String.raw`\pi_{k+1} = \arg\max_{\pi}\; \mathbb{E}_{s\sim \tm{d}{d}}\Big[\, \mathbb{E}_{a\sim\pi(\cdot|s)}\big[\tm{A}{\hat A_k(s,a)}\big] \;-\; \tm{b}{\beta}\, \tm{D}{D\big(\pi(\cdot|s)\,\|\,\pi_{\text{base}}(\cdot|s)\big)} \Big]`,
         terms: [
           { id: 'd', sym: 'd', label: '데이터 분포', desc: '어느 상태들에서 개선할 것인가.', long: 'on-policy 방문 분포 $d^{\\pi_k}$(REINFORCE, PPO), 리플레이 버퍼(DQN, SAC), 고정 데이터셋(CQL, IQL, DPO), LLM의 프롬프트 분포. 이 선택이 온라인/오프라인을 가르고, 분포가 바뀌는 문제(T4, 15장)를 만든다.' },
@@ -89,8 +111,68 @@
         el.appendChild(wrap);
       },
       paths: mountPaths,
+      puppy: mountPuppy,
     },
   });
+
+  /* ---------- 강아지 훈련: 보상에 따라 행동 확률이 움직이는 것을 체험 ---------- */
+  function mountPuppy(el) {
+    const p = ui.panel(el, { kind: 'TRY', title: '간식으로 "앉아" 가르치기', caption: '"앉아!"를 누르면 강아지가 막대의 확률대로 행동 하나를 한다. 그 행동이 마음에 들면 간식을, 아니면 무시를 고르자. 10번쯤 반복하면 막대가 어떻게 변하는지 보라.' });
+    const acts = ['앉기', '짖기', '뒹굴기', '꼬리 쫓기'];
+    let h = [0, 0, 0, 0], last = null, n = 0, treats = 0, baseline = 0;
+    const lr = 0.6;
+    const r = RL.sim.rng(5);
+    const scene = document.createElement('div');
+    scene.style.cssText = 'display:grid;gap:10px;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);align-items:center';
+    const say = document.createElement('div');
+    say.className = 'fx-detail';
+    say.style.fontSize = 'var(--fs-md)';
+    const barsEl = document.createElement('div');
+    scene.append(say, barsEl);
+    const btns = ui.row(p.body, 'btns');
+    const cmdB = ui.button(btns, '"앉아!" 말하기', command, { primary: true });
+    const yesB = ui.button(btns, '간식 주기 (+1)', () => feedback(1));
+    const noB = ui.button(btns, '무시하기 (0)', () => feedback(0));
+    ui.button(btns, '자동 훈련 20번 (앉을 때만 간식)', auto);
+    ui.button(btns, '처음부터', () => { h = [0, 0, 0, 0]; last = null; n = 0; treats = 0; baseline = 0; draw('아직 아무것도 배우지 않았다. 네 행동이 모두 25%다.'); });
+    const st = ui.stats(p.body, [{ key: 'n', label: '훈련 횟수' }, { key: 't', label: '준 간식' }, { key: 'sit', label: '앉을 확률', tone: 'signal' }]);
+    p.body.insertBefore(scene, btns);
+    const probs = () => RL.sim.softmax(h);
+    const bars = RL.plot.bars(barsEl, { categories: acts, series: [], height: 190, y: { min: 0, max: 1, label: '확률' }, labels: true, labelFmt: (v) => Math.round(v * 100) + '%', legend: false });
+    function command() {
+      last = r.choice(probs());
+      draw('강아지가 <strong>' + acts[last] + '</strong>을(를) 했다. 간식을 줄까?');
+    }
+    function feedback(rew) {
+      if (last == null) { draw('먼저 "앉아!"를 눌러 강아지가 행동하게 하자.'); return; }
+      const pr = probs();
+      const adv = rew - baseline;
+      // 정책 경사(그래디언트 밴딧): 한 행동만 올리고 나머지는 확률만큼 내린다
+      for (let i = 0; i < 4; i++) h[i] += lr * adv * ((i === last ? 1 : 0) - pr[i]);
+      baseline += 0.2 * (rew - baseline);
+      n++; if (rew) treats++;
+      const before = Math.round(pr[last] * 100), after = Math.round(probs()[last] * 100);
+      const msg = rew ? '간식을 받았다. <strong>' + acts[last] + '</strong> 확률 ' + before + '% → ' + after + '%' : '무시당했다. <strong>' + acts[last] + '</strong> 확률 ' + before + '% → ' + after + '%';
+      last = null;
+      draw(msg);
+    }
+    function auto() {
+      const lines = [];
+      for (let k = 0; k < 20; k++) { command(); const a = last; feedback(a === 0 ? 1 : 0); lines.push(acts[a][0]); }
+      draw('자동으로 20번 훈련했다 (행동 순서: ' + lines.join(' ') + '). 처음엔 아무거나 하다가 점점 "앉" 이 많아진다.');
+    }
+    function draw(msg) {
+      const pr = probs();
+      bars.update({ series: [{ name: '행동 확률', color: 'c1', values: pr, colors: ['signal', 'c1', 'c1', 'c1'] }] });
+      say.innerHTML = msg;
+      st.set('n', n);
+      st.set('t', treats);
+      st.set('sit', Math.round(pr[0] * 100) + '%');
+      yesB.disabled = noB.disabled = last == null;
+      cmdB.disabled = last != null;
+    }
+    draw('아직 아무것도 배우지 않았다. 네 행동이 모두 25%다. "앉아!"를 눌러 보자.');
+  }
 
   function mountPaths(el) {
     const p = ui.panel(el, { kind: 'MAP', title: '학습 경로' });

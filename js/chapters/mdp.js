@@ -9,6 +9,17 @@
     time: 25,
     level: '기초',
     theses: ['T6'],
+    easy: {
+      hook: '강화학습은 "해 보고, 점수를 받고, 다음엔 더 잘하기"를 숫자로 적은 것이다.',
+      intro: '<p>게임 캐릭터든 배달 로봇이든 챗봇이든 구조는 같다. 지금 <strong>상황</strong>을 보고, 할 수 있는 것 중 하나를 <strong>선택</strong>하면, 세상이 <strong>점수</strong>와 <strong>다음 상황</strong>을 돌려준다. 목표는 한 번의 점수가 아니라 <strong>앞으로 받을 점수의 합</strong>을 크게 만드는 것이다. 단, 먼 미래의 점수는 조금씩 깎아서 센다.</p>',
+      analogy: '오늘 받는 1만 원이 1년 뒤의 1만 원보다 소중한 것과 같다. 할인율 $\\gamma=0.9$는 "한 걸음 늦을 때마다 10% 깎아서 센다"는 뜻이다. 그래서 3걸음 뒤의 10점은 지금 기준으로 $10\\times0.9\\times0.9\\times0.9 = 7.29$점이다.',
+      path: ['선택하고 점수를 받는 반복을 그림으로 본다', '점수를 합치는 법(리턴)을 손으로 계산한다', '"이 상황은 평균 몇 점짜리인가"(가치)를 직접 여러 번 해 보며 구한다'],
+      recap: [
+        '상황을 보고 선택하면 점수와 다음 상황이 돌아온다. 이 반복이 강화학습의 전부다.',
+        '목표는 앞으로 받을 점수의 합(리턴)이고, 먼 미래 점수는 한 걸음마다 할인율만큼 깎아서 더한다.',
+        '가치는 "이 상황에서(이 선택을 하면) 평균 몇 점을 받을까"이고, 여러 번 해 보고 평균을 내면 구할 수 있다.',
+      ],
+    },
     goals: [
       'MDP 5-튜플 $(\\mathcal{S},\\mathcal{A},P,R,\\gamma)$의 각 요소를 설명할 수 있다.',
       '리턴 $G_t$의 재귀식 $G_t = r_{t+1} + \\gamma G_{t+1}$을 유도하고, 할인율이 선호를 어떻게 바꾸는지 설명할 수 있다.',
@@ -49,10 +60,12 @@ $$P(s_{t+1}, r_{t+1} \mid s_t, a_t, s_{t-1}, a_{t-1}, \dots, s_0) = P(s_{t+1}, r
 <h2>리턴: 미래 보상의 할인 합</h2>
 <p>시점 $t$ 이후 받는 보상을 할인해 더한 값을 <strong>리턴</strong>이라 한다.</p>
 <div data-w="fx-return"></div>
+<div data-w="step-return"></div>
 <p>리턴의 정의에서 첫 항을 떼어내면 바로 재귀식이 나온다. 이 한 줄이 다음 장의 벨만 방정식 전체의 씨앗이다.</p>
 $$G_t = r_{t+1} + \gamma\big(r_{t+2} + \gamma r_{t+3} + \cdots\big) = r_{t+1} + \gamma\, G_{t+1}$$
 <p>보상이 $|r|\le R_{\max}$로 유계이면 등비급수에 의해 $|G_t| \le \dfrac{R_{\max}}{1-\gamma}$이다. 할인은 무한 합을 유한하게 만드는 수학적 장치이자, "가까운 보상을 더 쳐주는" 선호의 표현이다. $\dfrac{1}{1-\gamma}$을 <strong>유효 지평(effective horizon)</strong>이라 부른다. $\gamma=0.99$면 대략 100 스텝 앞까지 본다.</p>
 
+<div data-w="try-discount"></div>
 <div data-w="discount-lab"></div>
 
 <div class="key"><span class="label">해석</span>$\gamma$는 단순한 하이퍼파라미터가 아니라 <strong>문제 정의의 일부</strong>다. 같은 환경이라도 $\gamma$가 바뀌면 최적 정책이 바뀐다. 또 하나의 해석: 매 스텝 확률 $1-\gamma$로 에피소드가 강제 종료되는 세계에서의 (할인 없는) 기대 보상 합과 같다.</div>
@@ -67,6 +80,9 @@ $$V^\pi(s) = \sum_a \pi(a\mid s)\, Q^\pi(s,a), \qquad Q^\pi(s,a) = R(s,a) + \gam
 
 <h2>가치는 리턴의 평균이다: 샘플링으로 확인</h2>
 <p>아래 작은 MDP에서 상태 A의 선택지는 둘이다. <em>안전</em>은 즉시 +1을 받고 B로 가며, <em>모험</em>은 60% 확률로 C(이후 +10)에 가지만 40% 확률로 -2를 받고 끝난다. 에피소드를 샘플링해 리턴을 평균내면 정확한 $V^\pi(A)$로 수렴한다. 할인율과 정책을 바꿔 보며 어느 쪽이 나은지가 뒤집히는 지점을 찾아보자.</p>
+<p>먼저 직접 에이전트가 되어 보자. A에서 무엇을 고를지 버튼으로 정하면 그 뒤는 확률대로 흘러간다. 같은 선택을 여러 번 해 보면 "그 선택의 평균 점수", 즉 $Q(A,\text{선택})$이 드러난다.</p>
+<div data-w="play-mdp"></div>
+<p>이번에는 정책(모험을 고를 확률)을 정해 두고 컴퓨터가 수백 번 해 보게 한다.</p>
 <div data-w="mrp-sampler"></div>
 
 <h2>목적 함수와 상태 방문 분포</h2>
@@ -86,6 +102,7 @@ $$d^\pi(s) = (1-\gamma)\sum_{t\ge 0} \gamma^t \Pr(s_t = s \mid \pi, \rho_0)$$
     mount: {
       'fx-mdp': (el) => ui.formula(el, {
         title: 'MDP 5-튜플',
+        say: '문제는 {S|어떤 상황들이 있는지}, {A|무엇을 고를 수 있는지}, {P|고르면 다음에 어디로 가는지}, {R|그때 몇 점을 받는지}, {g|미래 점수를 얼마나 쳐주는지}의 다섯 가지로 완전히 정해진다.',
         tex: String.raw`\mathcal{M} = \big(\tm{S}{\mathcal{S}},\ \tm{A}{\mathcal{A}},\ \tm{P}{P(s'\mid s,a)},\ \tm{R}{R(s,a)},\ \tm{g}{\gamma}\big)`,
         terms: [
           { id: 'S', sym: '\\mathcal{S}', label: '상태 공간', desc: '에이전트가 놓일 수 있는 모든 상황.', long: '결정에 필요한 정보를 모두 담은 상황의 집합. 격자 위치, 바둑판 배치, 로봇의 관절각과 속도, LLM의 "프롬프트+생성 토큰". 유한하면 표(tabular)로, 크면 함수근사로 다룬다.' },
@@ -97,6 +114,7 @@ $$d^\pi(s) = (1-\gamma)\sum_{t\ge 0} \gamma^t \Pr(s_t = s \mid \pi, \rho_0)$$
       }),
       'fx-return': (el) => ui.formula(el, {
         title: '리턴의 정의',
+        say: '{G|지금부터 받을 총점}은 {r1|바로 다음에 받는 점수}에서 시작해, 그다음 점수에는 {g|할인율}을 한 번, 그다음에는 두 번 곱해 계속 더한 것이다. 즉 {rk|k걸음 뒤의 점수}에는 {gk|할인율을 k번 곱한 가중치}가 붙는다.',
         tex: String.raw`\tm{G}{G_t} \;=\; \tm{r1}{r_{t+1}} + \tm{g}{\gamma}\, r_{t+2} + \gamma^2 r_{t+3} + \cdots \;=\; \sum_{k=0}^{\infty} \tm{gk}{\gamma^k}\, \tm{rk}{r_{t+k+1}}`,
         terms: [
           { id: 'G', sym: 'G_t', label: '리턴', desc: '시점 t 이후의 할인 누적 보상. 확률변수.', long: '정책과 환경의 무작위성 때문에 같은 상태에서 출발해도 매번 다른 값이 나온다. 그래서 그 기댓값(가치 함수)을 다룬다.' },
@@ -108,6 +126,7 @@ $$d^\pi(s) = (1-\gamma)\sum_{t\ge 0} \gamma^t \Pr(s_t = s \mid \pi, \rho_0)$$
       }),
       'fx-q': (el) => ui.formula(el, {
         title: '행동 가치 함수',
+        say: '{Q|상황 s에서 행동 a를 하면 기대되는 총점}은, {c|s에서 a를 하고 시작해서} 그 뒤로는 정책대로 행동했을 때 받는 {G|할인된 총점}을 {E|아주 여러 번 해 보고 평균 낸 값}이다.',
         tex: String.raw`\tm{Q}{Q^{\pi}(s,a)} = \tm{E}{\mathbb{E}_{\pi}}\Big[\, \tm{G}{\textstyle\sum_{k\ge0}\gamma^k r_{t+k+1}} \;\Big|\; \tm{c}{s_t=s,\ a_t=a} \Big]`,
         terms: [
           { id: 'Q', sym: 'Q^\\pi(s,a)', label: '행동 가치', desc: 's에서 a를 한 번 하고 이후 π를 따를 때의 기대 리턴.', long: 'Q가 있으면 환경 모델 없이도 $\\arg\\max_a Q(s,a)$로 행동을 고를 수 있다. 이것이 Q-learning과 DQN이 V 대신 Q를 학습하는 이유다.' },
@@ -118,6 +137,27 @@ $$d^\pi(s) = (1-\gamma)\sum_{t\ge 0} \gamma^t \Pr(s_t = s \mid \pi, \rho_0)$$
       }),
       'discount-lab': mountDiscountLab,
       'mrp-sampler': mountSampler,
+      'play-mdp': mountPlay,
+      'step-return': (el) => ui.walkthrough(el, {
+        title: '리턴을 손으로 계산하기',
+        caption: '세 걸음 동안 받은 점수가 $2, 0, 4$이고 할인율이 $\\gamma = 0.5$라고 하자. 칸에 답을 적어 보고 "확인"을 누르면 계산식이 열린다.',
+        steps: [
+          { say: '첫 점수 2점은 바로 받는 점수라 깎지 않고 그대로 센다.', calc: String.raw`2 	imes 1 = 2` },
+          { say: '두 번째 점수 0점은 한 걸음 늦게 받으니 $\\gamma$를 한 번 곱한다. 지금 기준으로 몇 점일까?', ask: { answer: 0 }, calc: String.raw`0 	imes 0.5 = 0` },
+          { say: '세 번째 점수 4점은 두 걸음 늦으니 $\\gamma$를 두 번 곱한다. 지금 기준으로 몇 점일까?', ask: { answer: 1 }, calc: String.raw`4 	imes 0.5 	imes 0.5 = 1` },
+          { say: '이제 모두 더하면 지금 시점의 리턴 $G_1$은?', ask: { answer: 3 }, calc: String.raw`G_1 = 2 + 0 + 1 = 3` },
+          { say: '뒤에서부터 거꾸로 계산해도 같은 답이 나온다. 마지막 시점의 리턴은 4, 그 앞은 "자기 점수 + 할인된 뒤 리턴", 또 그 앞도 마찬가지다. 이 "자기 점수 + 할인된 다음 리턴" 규칙이 바로 다음 장의 벨만 방정식이 된다.', calc: String.raw`G_3 = 4,\quad G_2 = 0 + 0.5	imes 4 = 2,\quad G_1 = 2 + 0.5	imes 2 = 3` },
+        ],
+      }),
+      'try-discount': (el) => ui.predict(el, {
+        title: '할인 감각 테스트',
+        caption: '계산기 없이 어림해도 된다. 틀리면 힌트가 나온다.',
+        items: [
+          { q: '$\\gamma = 0.9$일 때, 3걸음 뒤에 받는 10점은 지금 기준으로 몇 점일까?', answer: 7.29, tol: 0.05, hint: '0.9를 세 번 곱한다: $10\\times0.9\\times0.9\\times0.9$.', explain: '$10 \\times 0.9^3 = 7.29$. 한 걸음마다 10%씩 깎인다.' },
+          { q: '매 걸음 1점씩 끝없이 받는다면, $\\gamma = 0.9$에서 총점은 몇 점일까?', answer: 10, tol: 0.05, hint: '$1 + 0.9 + 0.81 + \\cdots$는 $1/(1-0.9)$로 모인다.', explain: '$1 + 0.9 + 0.9^2 + \\cdots = \\dfrac{1}{1-0.9} = 10$. 끝없이 받아도 총점이 유한한 것이 할인의 첫 번째 역할이다. 이 10을 "유효 지평"이라고 부르며, 대략 10걸음 앞까지 본다는 뜻이다.' },
+          { q: '$\\gamma = 0.9$일 때 더 좋은 쪽은? (A) 지금 바로 5점 (B) 5걸음 뒤에 8점', choices: ['(A) 지금 5점', '(B) 5걸음 뒤 8점'], correct: 0, hint: '$8\\times0.9^5$를 어림해 보자.', explain: '$8 \\times 0.9^5 \\approx 4.72 < 5$이므로 지금 5점이 낫다. 하지만 $\\gamma = 0.95$면 $8\\times0.95^5\\approx6.19$로 뒤집힌다. 할인율이 선호를 바꾼다.' },
+        ],
+      }),
     },
     tacit: [
       { tag: 'math', t: '$1/(1-\\gamma)$이 보이면 "지평"을 읽어라',
@@ -197,6 +237,60 @@ $$d^\pi(s) = (1-\gamma)\sum_{t\ge 0} \gamma^t \Pr(s_t = s \mid \pi, \rho_0)$$
       });
     }
     draw();
+  }
+
+  /* ---------- 직접 에이전트가 되어 보기 ---------- */
+  function mountPlay(el) {
+    const p = ui.panel(el, { kind: 'TRY', title: '내가 에이전트: A에서 무엇을 고를까', caption: '버튼을 누를 때마다 한 판이 진행된다. A로 되돌아오면 같은 선택을 다시 한다. 몇 판 해 보고 어느 쪽 평균이 높은지 예상한 뒤 "정답 보기"로 확인하라.' });
+    const ctr = ui.row(p.body);
+    const gS = ui.slider(ctr, { label: '할인율 $\\gamma$', min: 0.1, max: 0.99, step: 0.01, value: 0.9, format: ui.fmt.f(2), onInput: reset });
+    const btns = ui.row(p.body, 'btns');
+    ui.button(btns, '안전을 고른다 (+1, B로)', () => play(0), { primary: true });
+    ui.button(btns, '모험을 고른다 (60%로 C, 40%로 −2)', () => play(1), { primary: true });
+    const revealB = ui.button(btns, '정답 보기', () => { shown = true; upd(); });
+    ui.button(btns, '다시 하기', reset);
+    const st = ui.stats(p.body, [
+      { key: 's', label: '안전: 해 본 횟수 / 평균 점수', tone: 'accent' },
+      { key: 'r', label: '모험: 해 본 횟수 / 평균 점수', tone: 'signal' },
+      { key: 'v', label: '정답 (그 선택을 계속할 때)' },
+    ]);
+    const log = document.createElement('div');
+    log.className = 'log';
+    p.body.appendChild(log);
+    const r = sim.rng(42);
+    let n = [0, 0], tot = [0, 0], lines = [], shown = false;
+    void revealB;
+    const exact = (gm, pr) => ((1 - pr) * (1 + 1.4 * gm) + pr * (6 * gm - 0.8)) / (1 - (1 - pr) * 0.3 * gm * gm);
+    function play(choice) {
+      const gm = gS.get();
+      let s = 'A', G = 0, disc = 1;
+      const path = ['A'];
+      for (let t = 0; t < 100 && s !== '끝'; t++) {
+        let rew = 0, nx;
+        if (s === 'A') {
+          if (choice === 1) { if (r() < 0.6) { nx = 'C'; rew = 0; } else { nx = '끝'; rew = -2; } }
+          else { nx = 'B'; rew = 1; }
+        } else if (s === 'B') { if (r() < 0.3) { nx = 'A'; rew = 0; } else { nx = '끝'; rew = 2; } }
+        else { nx = '끝'; rew = 10; }
+        G += disc * rew;
+        path.push((rew >= 0 ? '+' : '') + rew + ' → ' + nx);
+        disc *= gm;
+        s = nx;
+      }
+      n[choice]++; tot[choice] += G;
+      lines.unshift((choice ? '모험' : '안전') + ': ' + path.join('  ') + '   총점(할인) = ' + G.toFixed(2));
+      lines = lines.slice(0, 6);
+      upd();
+    }
+    function reset() { n = [0, 0]; tot = [0, 0]; lines = []; shown = false; upd(); }
+    function upd() {
+      const gm = gS.get();
+      st.set('s', n[0] + '판 / ' + (n[0] ? (tot[0] / n[0]).toFixed(2) : '–'));
+      st.set('r', n[1] + '판 / ' + (n[1] ? (tot[1] / n[1]).toFixed(2) : '–'));
+      st.set('v', shown ? '안전 ' + exact(gm, 0).toFixed(2) + ' · 모험 ' + exact(gm, 1).toFixed(2) : '버튼으로 확인');
+      log.textContent = lines.length ? lines.join('\n') : '아직 한 판도 하지 않았다. 위 버튼으로 시작하라.';
+    }
+    upd();
   }
 
   /* ---------- 작은 MDP 샘플러 ---------- */

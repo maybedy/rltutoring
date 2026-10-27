@@ -10,6 +10,17 @@
     level: '기초 · 핵심',
     prereq: ['mdp'],
     theses: ['T1', 'T2'],
+    easy: {
+      hook: '목표 바로 옆 칸의 가치는 쉽다. 그 옆 칸은 "옆 칸 가치를 조금 깎은 값"이다. 이렇게 거꾸로 한 칸씩 채우는 규칙이 벨만 방정식이다.',
+      intro: '<p>앞 장에서 리턴을 뒤에서부터 계산하면 "자기 점수 + 할인된 다음 리턴"이 된다는 것을 봤다. 이 규칙에 평균을 씌우면 <strong>"이 칸의 가치 = 바로 받는 점수 + 할인된 다음 칸의 가치"</strong>가 된다. 놀라운 점은, 처음에 가치표를 아무렇게나 적어 놓고 이 규칙을 반복 적용해도 <strong>항상 같은 정답으로 모인다</strong>는 것이다. 이 장은 그 이유를 보여 준다.</p>',
+      analogy: '산꼭대기에 물을 부으면 물이 한 칸씩 아래로 흘러 퍼지듯, 목표 칸의 점수가 반복할 때마다 한 칸씩 주변으로 번진다. 한 번 퍼질 때마다 $\\gamma$만큼 줄어들기 때문에 먼 칸일수록 값이 작다.',
+      path: ['복도 다섯 칸으로 "거꾸로 채우기"를 손으로 해 본다', '그 규칙을 식으로 쓴 것이 벨만 방정식이다', '아무 값에서 시작해도 같은 답으로 모이는 이유(축약)를 본다', '격자 세계에서 가치가 퍼지는 모습을 시뮬레이터로 본다'],
+      recap: [
+        '칸의 가치는 "바로 받는 점수 + 할인된 다음 칸의 가치"로 계산되고, 목표에서부터 거꾸로 채워 나갈 수 있다.',
+        '가장 좋은 행동을 고르는 경우에는 평균 대신 "가장 좋은 쪽"을 택한다. 이것이 최적 가치이고, 알면 각 칸에서 무엇을 할지 바로 정해진다.',
+        '이 계산을 반복하면 두 가치표의 차이가 매번 γ배 이하로 줄어서, 어디서 시작하든 같은 정답에 도달한다.',
+      ],
+    },
     goals: [
       '리턴의 재귀식에서 벨만 기대 방정식을 단계별로 유도할 수 있다.',
       '벨만 최적 방정식과 기대 방정식의 차이(평균 vs 최대)를 설명할 수 있다.',
@@ -19,6 +30,7 @@
 <p>앞 장에서 $G_t = r_{t+1} + \gamma G_{t+1}$을 얻었다. 양변에 기댓값을 씌우면 가치 함수가 자기 자신으로 표현되는 식, 즉 <strong>벨만 방정식</strong>이 나온다. 이 식은 RL 전체에서 가장 많이 재사용되는 문장이다. TD 타깃, Q-learning 타깃, DQN 손실, Soft Q, 토큰 단위 LLM 가치까지 모두 이 식의 변형이다.</p>
 
 <h2>벨만 기대 방정식 유도</h2>
+<div data-w="step-corridor"></div>
 <div data-w="dv-expect"></div>
 <div data-w="fx-expect"></div>
 
@@ -68,6 +80,10 @@ $$(\mathcal{T}^\pi V)(s) = \sum_a \pi(a|s)\Big[R(s,a) + \gamma\sum_{s'}P(s'|s,a)
 <p>이 성질이 깨지는 곳이 RL의 불안정성의 근원이다. 함수근사를 끼우면 "투영 후 백업"이 더 이상 축약이 아닐 수 있고(<a href="#approx">09장 Deadly Triad</a>), $\max$ 대신 log-sum-exp를 쓰면 여전히 축약이지만 다른 고정점(soft 가치)을 갖는다(<a href="#qviews">08장</a>, <a href="#maxent">14장</a>).</p>
 </div>
 
+<h2>복도에서 손으로 반복해 보기</h2>
+<p>격자로 가기 전에 한 줄짜리 복도에서 반복을 한 번씩 눌러 보자. 누를 때마다 모든 칸이 "바로 받는 점수 + $\gamma\times$ 이웃 칸 가치 중 큰 쪽"으로 고쳐지고, 그 계산식이 그대로 표시된다. 처음 값이 0이든 엉뚱한 숫자든 결국 같은 답에 모인다.</p>
+<div data-w="corridor"></div>
+
 <h2>시뮬레이터: 가치 반복의 수렴</h2>
 <p>아래 격자에서 가치 반복 $V_{k+1} = \mathcal{T}^* V_k$를 한 스윕씩 실행해 보자. 색은 가치(파랑 양수, 주황 음수), 화살표는 현재 $V_k$에 대한 탐욕 정책이다. 오른쪽 그래프는 $\log_{10}\|V_k - V^*\|_\infty$이며, 점선은 이론 상한 $\gamma^k\|V_0 - V^*\|_\infty$의 기울기다. $\gamma$를 키우면 수렴이 느려지는 이유가 기울기 $\log_{10}\gamma$로 보인다.</p>
 <div data-w="vi-sim"></div>
@@ -97,10 +113,11 @@ $$V^\pi = (I - \gamma P^\pi)^{-1} r^\pi = \sum_{k=0}^{\infty} \gamma^k (P^\pi)^k
     mount: {
       'dv-expect': (el) => ui.derivation(el, {
         title: '$G_t$의 재귀식에서 $V^\\pi$의 벨만 방정식으로',
+        easy: '"리턴 = 첫 점수 + 할인된 나머지 리턴"에 평균을 씌우면 "가치 = 바로 받는 점수의 평균 + 할인된 다음 칸 가치의 평균"이 된다. 과거는 필요 없고 지금 칸만 알면 된다(마르코프 성질).',
         steps: [
           { tex: String.raw`V^\pi(s) = \mathbb{E}_\pi\left[G_t \mid s_t = s\right]`, why: '가치 함수의 정의에서 출발한다.' },
-          { tex: String.raw`= \mathbb{E}_\pi\left[\hl{r_{t+1} + \gamma G_{t+1}} \mid s_t = s\right]`, why: '리턴의 재귀식 $G_t = r_{t+1} + \gamma G_{t+1}$을 대입한다.' },
-          { tex: String.raw`= \hl{\sum_a \pi(a|s)}\;\mathbb{E}\left[r_{t+1} + \gamma G_{t+1} \mid s_t = s, a_t = a\right]`, why: '전확률 법칙으로 첫 행동 $a$에 대해 나눈다. 행동은 정책 $\pi$에서 나온다.' },
+          { tex: String.raw`= \mathbb{E}_\pi\left[\hl{r_{t+1} + \gamma G_{t+1}} \mid s_t = s\right]`, why: '리턴의 재귀식 $G_t = r_{t+1} + \\gamma G_{t+1}$을 대입한다.' },
+          { tex: String.raw`= \hl{\sum_a \pi(a|s)}\;\mathbb{E}\left[r_{t+1} + \gamma G_{t+1} \mid s_t = s, a_t = a\right]`, why: '전확률 법칙으로 첫 행동 $a$에 대해 나눈다. 행동은 정책 $\\pi$에서 나온다.' },
           { tex: String.raw`= \sum_a \pi(a|s) \hl{\sum_{s'} P(s'|s,a)}\Big[R(s,a) + \gamma\,\mathbb{E}_\pi\left[G_{t+1} \mid \hl{s_{t+1} = s'}\right]\Big]`, why: '다음 상태 $s\'$에 대해 다시 나눈다. <strong>마르코프 성질</strong> 덕분에 $G_{t+1}$의 기댓값은 $s_{t+1}=s\'$만 알면 되고 $s_t, a_t$는 더 필요 없다.' },
           { tex: String.raw`\boxed{\,V^\pi(s) = \sum_a \pi(a|s)\Big[R(s,a) + \gamma \sum_{s'} P(s'|s,a)\, \hl{V^\pi(s')}\Big]\,}`, why: '안쪽 기댓값이 바로 $V^\\pi(s\')$이다. 가치가 자기 자신으로 표현되는 <strong>벨만 기대 방정식</strong>.' },
           { tex: String.raw`Q^\pi(s,a) = R(s,a) + \gamma\sum_{s'}P(s'|s,a)\hl{\sum_{a'}\pi(a'|s')\,Q^\pi(s',a')}`, why: '같은 논리를 $Q$에 적용하면 행동 가치 버전이 나온다. SARSA(07장)는 이 식의 샘플 버전이다.' },
@@ -108,6 +125,7 @@ $$V^\pi = (I - \gamma P^\pi)^{-1} r^\pi = \sum_{k=0}^{\infty} \gamma^k (P^\pi)^k
       }),
       'fx-expect': (el) => ui.formula(el, {
         title: '벨만 기대 방정식 해부',
+        say: '{V|지금 칸의 가치}는, {pi|내가 고를 행동들을 확률만큼 섞어서}, {R|바로 받는 점수}에 {Vn|다음 칸의 가치}를 {g|할인율}만큼 깎아 더한 값이다. 다음 칸이 여럿이면 {P|도착할 확률만큼 평균}을 낸다.',
         tex: String.raw`\tm{V}{V^\pi(s)} = \tm{pi}{\sum_a \pi(a|s)} \Big[\, \tm{R}{R(s,a)} + \tm{g}{\gamma} \tm{P}{\sum_{s'} P(s'|s,a)} \, \tm{Vn}{V^\pi(s')} \,\Big]`,
         terms: [
           { id: 'V', sym: 'V^\\pi(s)', label: '현재 상태 가치', desc: '좌변: 알고 싶은 값.' },
@@ -120,6 +138,7 @@ $$V^\pi = (I - \gamma P^\pi)^{-1} r^\pi = \sum_{k=0}^{\infty} \gamma^k (P^\pi)^k
       }),
       'fx-opt': (el) => ui.formula(el, {
         title: '벨만 최적 방정식 (Q 형태)',
+        say: '{Q|이 행동의 최고 기대 총점}은 {R|바로 받는 점수}에, 다음 칸에서 {max|가장 좋은 행동을 했을 때의} {Qn|가치}를 할인해서 더한 것이다. 다음 칸이 여럿이면 {P|도착할 확률만큼 평균}을 낸다.',
         tex: String.raw`\tm{Q}{Q^*(s,a)} = \tm{R}{R(s,a)} + \gamma\,\tm{P}{\mathbb{E}_{s'\sim P(\cdot|s,a)}}\Big[\,\tm{max}{\max_{a'}}\; \tm{Qn}{Q^*(s',a')}\,\Big]`,
         terms: [
           { id: 'Q', sym: 'Q^*(s,a)', label: '최적 행동 가치', desc: 'a를 하고 이후 최적으로 행동할 때의 기대 리턴.' },
@@ -131,6 +150,7 @@ $$V^\pi = (I - \gamma P^\pi)^{-1} r^\pi = \sum_{k=0}^{\infty} \gamma^k (P^\pi)^k
       }),
       'dv-contract': (el) => ui.derivation(el, {
         title: '$\\mathcal{T}^*$는 $\\gamma$-축약이다',
+        easy: '서로 다른 가치표 두 장을 넣고 벨만 계산을 한 번 돌리면, 두 표의 가장 큰 차이가 적어도 γ배로 줄어든다. 차이가 계속 줄어드니 결국 하나의 표로 모이고, 그 표가 정답이다.',
         caption: '두 임의의 가치 함수 $V, U$에 대해 연산자를 적용한 뒤의 거리가 원래 거리의 $\\gamma$배 이하임을 보인다.',
         steps: [
           { tex: String.raw`|(\mathcal{T}^*V)(s) - (\mathcal{T}^*U)(s)| = \Big|\max_a f_V(a) - \max_a f_U(a)\Big|,\quad f_V(a) = R(s,a) + \gamma\textstyle\sum_{s'}P(s'|s,a)V(s')`, why: '한 상태 $s$에서의 차이를 본다.' },
@@ -142,6 +162,18 @@ $$V^\pi = (I - \gamma P^\pi)^{-1} r^\pi = \sum_{k=0}^{\infty} \gamma^k (P^\pi)^k
         ],
       }),
       'vi-sim': mountVI,
+      corridor: mountCorridor,
+      'step-corridor': (el) => ui.walkthrough(el, {
+        title: '복도 다섯 칸의 가치를 거꾸로 채우기',
+        caption: '칸 1~5가 일렬로 있고, 5번 칸에 들어가면 10점을 받고 끝난다. 오른쪽으로 한 칸씩 가는 데는 점수가 없고, 할인율은 $\\gamma = 0.9$다. 5번 바로 옆 칸부터 거꾸로 채워 보자.',
+        steps: [
+          { say: '4번 칸에서 오른쪽으로 가면 바로 10점을 받고 끝난다. 4번 칸의 가치는?', ask: { answer: 10 }, calc: String.raw`V(4) = 10` },
+          { say: '3번 칸은 점수 0을 받고 4번 칸으로 간다. 4번 칸의 가치를 한 번 할인하면?', ask: { answer: 9 }, calc: String.raw`V(3) = 0 + 0.9 \times V(4) = 0.9 \times 10 = 9` },
+          { say: '같은 규칙으로 2번 칸은?', ask: { answer: 8.1, tol: 0.01 }, calc: String.raw`V(2) = 0 + 0.9 \times 9 = 8.1` },
+          { say: '1번 칸은?', ask: { answer: 7.29, tol: 0.01 }, calc: String.raw`V(1) = 0 + 0.9 \times 8.1 = 7.29` },
+          { say: '방금 쓴 규칙 "이 칸의 가치 = 바로 받는 점수 + γ × 다음 칸 가치"가 벨만 방정식이다. 목표에서 멀어질수록 가치가 γ배씩 줄어드는 모습이 앞 장의 할인과 같다.', calc: String.raw`V(s) = r + \gamma\, V(s')` },
+        ],
+      }),
     },
     tacit: [
       { tag: 'math', t: '"축약이냐"를 먼저 묻는 습관',
@@ -166,6 +198,68 @@ $$V^\pi = (I - \gamma P^\pi)^{-1} r^\pi = \sum_{k=0}^{\infty} \gamma^k (P^\pi)^k
         explain: '$\\Pi\\mathcal{T}$에서 투영 $\\Pi$가 sup-노름 비확장이 아니면 합성 연산자가 축약이 아닐 수 있다. 09장의 Deadly Triad에서 구체적 발산 예를 본다.' },
     ],
   });
+
+  /* ---------- 복도 가치 반복: 계산식을 그대로 보여 준다 ---------- */
+  function mountCorridor(el) {
+    const p = ui.panel(el, { kind: 'TRY', title: '복도에서 한 번씩 반복하기', caption: '칸 0과 6은 끝 칸이다. 오른쪽 끝에 닿으면 +10, 왼쪽 끝에 닿으면 −5. 한 칸 움직일 때마다 이동 점수(비용)를 받는다. 각 칸은 왼쪽과 오른쪽 중 더 좋은 쪽을 고른다.' });
+    const ctr = ui.row(p.body);
+    const gS = ui.slider(ctr, { label: '할인율 $\\gamma$', min: 0.5, max: 0.99, step: 0.01, value: 0.9, format: ui.fmt.f(2), onInput: () => reset(start) });
+    const cS = ui.slider(ctr, { label: '이동 점수', min: -2, max: 0, step: 0.1, value: 0, format: ui.fmt.f(1), onInput: () => reset(start) });
+    const btns = ui.row(p.body, 'btns');
+    ui.button(btns, '한 번 반복', step, { primary: true });
+    ui.button(btns, '0에서 다시 시작', () => reset('zero'));
+    ui.button(btns, '엉뚱한 값에서 시작', () => reset('wild'));
+    const st = ui.stats(p.body, [{ key: 'k', label: '반복 횟수' }, { key: 'd', label: '이번에 가장 크게 바뀐 칸의 변화' }]);
+    const strip = document.createElement('div');
+    strip.style.cssText = 'display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px';
+    const lines = document.createElement('div');
+    lines.className = 'log';
+    lines.style.maxHeight = '220px';
+    p.body.append(strip, lines);
+    const N = 7;
+    let V, k, start = 'zero';
+    function reset(kind) {
+      start = kind;
+      V = new Array(N).fill(0);
+      if (kind === 'wild') for (let i = 1; i < N - 1; i++) V[i] = [20, -15, 7, 30, -8][i - 1];
+      k = 0;
+      draw([], NaN);
+    }
+    function step() {
+      const g = gS.get(), c = cS.get();
+      const nv = V.slice(), out = [];
+      let d = 0;
+      for (let i = 1; i < N - 1; i++) {
+        const left = i - 1 === 0 ? c - 5 : c + g * V[i - 1];
+        const right = i + 1 === N - 1 ? c + 10 : c + g * V[i + 1];
+        nv[i] = Math.max(left, right);
+        d = Math.max(d, Math.abs(nv[i] - V[i]));
+        const lt = i - 1 === 0 ? c.toFixed(1) + ' + (−5)' : c.toFixed(1) + ' + ' + g.toFixed(2) + '×' + V[i - 1].toFixed(2);
+        const rt = i + 1 === N - 1 ? c.toFixed(1) + ' + 10' : c.toFixed(1) + ' + ' + g.toFixed(2) + '×' + V[i + 1].toFixed(2);
+        out.push('칸 ' + i + ':  max( 왼쪽 ' + lt + ' = ' + left.toFixed(2) + ',  오른쪽 ' + rt + ' = ' + right.toFixed(2) + ' )  →  ' + nv[i].toFixed(2));
+      }
+      V = nv; k++;
+      draw(out, d);
+    }
+    function draw(out, d) {
+      strip.innerHTML = '';
+      const vmax = Math.max(10, ...V.map(Math.abs));
+      for (let i = 0; i < N; i++) {
+        const term = i === 0 || i === N - 1;
+        const v = term ? (i === 0 ? -5 : 10) : V[i];
+        const pct = Math.round((Math.abs(v) / vmax) * 60);
+        const col = v >= 0 ? 'var(--pos)' : 'var(--neg)';
+        const cell = document.createElement('div');
+        cell.style.cssText = 'border:1px solid var(--line);border-radius:6px;padding:8px 2px;text-align:center;font-family:var(--font-mono);font-size:var(--fs-sm);background:color-mix(in srgb, ' + col + ' ' + pct + '%, var(--surface))';
+        cell.innerHTML = '<div style="font-size:var(--fs-xs);color:var(--muted)">' + (term ? (i === 0 ? '끝 −5' : '끝 +10') : '칸 ' + i) + '</div>' + (term ? '' : v.toFixed(2));
+        strip.appendChild(cell);
+      }
+      st.set('k', k);
+      st.set('d', Number.isFinite(d) ? d.toFixed(3) : '–');
+      lines.textContent = out.length ? out.join('\n') : '"한 번 반복"을 누르면 각 칸의 계산식이 여기에 나온다. 처음 몇 번은 오른쪽 끝의 +10이 한 칸씩 왼쪽으로 번지는 것을 보라.';
+    }
+    reset('zero');
+  }
 
   function mountVI(el) {
     const p = ui.panel(el, { kind: 'SIM', title: '가치 반복 (Value Iteration)' });

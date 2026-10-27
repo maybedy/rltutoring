@@ -132,10 +132,23 @@
     const list = h('div', { class: 'fx-terms' });
     let pinned = null;
     const cards = {};
+    // "말로 읽으면": {id|문장 조각}으로 항과 같은 색의 문장을 만든다
+    let sayEl = null;
+    if (o.say) {
+      sayEl = h('p', { class: 'fx-say' });
+      sayEl.innerHTML = '<span class="label">말로 읽으면</span>' + o.say.replace(/\{([A-Za-z0-9_-]+)\|([^}]*)\}/g, (m, id, txt) => '<span class="say-t c' + (colorOf[id] || 1) + '" data-id="' + id + '" tabindex="0">' + txt + '</span>');
+      sayEl.addEventListener('mouseover', (e) => { const n = e.target.closest('.say-t'); if (n && !pinned) show(n.dataset.id); });
+      sayEl.addEventListener('mouseleave', () => { if (!pinned) show(null); });
+      sayEl.addEventListener('click', (e) => { const n = e.target.closest('.say-t'); if (n) { pinned = pinned === n.dataset.id ? null : n.dataset.id; show(pinned); } });
+    }
     function show(id) {
       box.classList.toggle('fx-dim', !!id);
       box.querySelectorAll('.fx-t').forEach((n) => n.classList.remove('on'));
       Object.values(cards).forEach((c) => c.classList.remove('on'));
+      if (sayEl) {
+        sayEl.classList.toggle('dim', !!id);
+        sayEl.querySelectorAll('.say-t').forEach((n) => n.classList.toggle('on', n.dataset.id === id));
+      }
       if (!id) { detail.innerHTML = o.hint || '항 위에 마우스를 올리거나 아래 카드를 눌러 각 항의 의미를 확인하세요.'; return; }
       box.querySelectorAll('.fx-t-' + id).forEach((n) => n.classList.add('on'));
       if (cards[id]) cards[id].classList.add('on');
@@ -145,7 +158,7 @@
     }
     o.terms.forEach((t) => {
       const card = h('button', { type: 'button', class: 'fx-term c' + colorOf[t.id] });
-      card.innerHTML = '<span class="ft-h">' + (t.sym ? '<span class="ft-sym">' + RL.tex(t.sym) + '</span>' : '') + '<span>' + t.label + '</span></span><span class="ft-d">' + t.desc + '</span>';
+      card.innerHTML = '<span class="ft-h">' + (t.sym ? '<span class="ft-sym">' + RL.tex(t.sym) + '</span>' : '') + '<span>' + t.label + '</span></span><span class="ft-d">' + (RL.isEasy && RL.isEasy() && t.easy ? t.easy : t.desc) + '</span>';
       card.addEventListener('mouseenter', () => { if (!pinned) show(t.id); });
       card.addEventListener('mouseleave', () => { if (!pinned) show(null); });
       card.addEventListener('click', () => { pinned = pinned === t.id ? null : t.id; show(pinned); });
@@ -166,8 +179,10 @@
       const id = [...n.classList].find((c) => c.startsWith('fx-t-') && !/^fx-t-c\d$/.test(c));
       if (id) { pinned = pinned === id.slice(5) ? null : id.slice(5); show(pinned); }
     });
+    if (sayEl) p.body.append(sayEl);
     p.body.append(box, detail, list);
     RL.renderMath(list);
+    if (sayEl) RL.renderMath(sayEl);
     return { show };
   }
 
@@ -177,7 +192,7 @@
     const list = h('div', { class: 'dv-steps' });
     const nodes = o.steps.map((s, i) => {
       const n = h('div', { class: 'dv-step' });
-      n.innerHTML = '<div class="dv-n">' + String(i + 1).padStart(2, '0') + '</div><div><div class="dv-tex">' + RL.tex(s.tex, true) + '</div>' + (s.why ? '<div class="dv-why">' + s.why + '</div>' : '') + '</div>';
+      n.innerHTML = '<div class="dv-n">' + String(i + 1).padStart(2, '0') + '</div><div><div class="dv-tex">' + RL.tex(s.tex, true) + '</div>' + (s.why ? '<div class="dv-why">' + s.why + '</div>' : '') + (s.easy ? '<div class="dv-easy"><span class="label">쉽게</span>' + s.easy + '</div>' : '') + '</div>';
       list.appendChild(n);
       return n;
     });
@@ -201,7 +216,131 @@
     p.body.append(list, foot);
     RL.renderMath(list);
     upd();
+    if (RL.isEasy && RL.isEasy()) {
+      // 쉽게 보기: 요지만 보여 주고 유도는 접어 둔다
+      list.hidden = true;
+      foot.hidden = true;
+      const fold = h('div', { class: 'dv-fold' });
+      fold.innerHTML = (o.easy ? '<p class="dv-gist"><span class="label">요지</span>' + o.easy + '</p>' : '') +
+        '<p class="w-caption">수식으로 한 줄씩 따라가는 ' + o.steps.length + '단계 유도가 접혀 있다. 결론만 알아도 다음으로 넘어갈 수 있다.</p>';
+      button(fold, '유도 과정 펼치기', () => { fold.remove(); list.hidden = false; foot.hidden = false; });
+      p.body.insertBefore(fold, list);
+      RL.renderMath(fold);
+    }
     return { set: (i) => { k = i; upd(); } };
+  }
+
+
+  /* 숫자 비교: 절대 오차 tol 또는 상대 오차 rtol */
+  function close(v, ans, o) {
+    if (!Number.isFinite(v)) return false;
+    const tol = o.tol != null ? o.tol : Math.max(1e-9, Math.abs(ans) * (o.rtol != null ? o.rtol : 0.02));
+    return Math.abs(v - ans) <= tol;
+  }
+  function parseNum(str) {
+    const t = String(str).trim().replace(/,/g, '').replace(/^−/, '-');
+    if (/^-?\d*\.?\d+\s*\/\s*-?\d*\.?\d+$/.test(t)) { const [a, b] = t.split('/').map(Number); return a / b; }
+    if (/%$/.test(t)) return parseFloat(t) / 100;
+    return t === '' ? NaN : Number(t);
+  }
+
+  /* 먼저 예측하기: items [{q, answer | choices+correct, tol, rtol, unit, hint, explain}] */
+  function predict(el, o) {
+    const p = panel(el, { kind: 'TRY', title: o.title || '먼저 예측해 보기', caption: o.caption });
+    const items = o.items || [o];
+    items.forEach((it, qi) => {
+      const box = h('div', { class: 'pr-item' });
+      box.innerHTML = '<p class="pr-q">' + (items.length > 1 ? '<span class="mono" style="background:none;padding:0">' + (qi + 1) + '.</span> ' : '') + it.q + '</p>';
+      const fb = h('div', { class: 'pr-fb', role: 'status' });
+      const exp = h('div', { class: 'pr-exp', html: it.explain || '' });
+      exp.hidden = true;
+      const reveal = (ok) => {
+        exp.hidden = false;
+        RL.renderMath(exp);
+        if (ok === true) fb.innerHTML = '<strong class="col-good">맞았다.</strong>';
+      };
+      if (it.choices) {
+        const row = h('div', { class: 'pr-choices' });
+        it.choices.forEach((c, ci) => {
+          const b = button(row, c, () => {
+            row.querySelectorAll('button').forEach((x, xi) => { x.disabled = true; if (xi === it.correct) x.classList.add('right'); });
+            if (ci !== it.correct) { b.classList.add('wrong'); fb.innerHTML = '<strong class="col-bad">아쉽다.</strong> ' + (it.hint || ''); }
+            reveal(ci === it.correct);
+          });
+        });
+        box.append(row, fb, exp);
+      } else {
+        const id = nextId('pr');
+        const inp = h('input', { id, class: 'inp pr-inp', type: 'text', inputmode: 'decimal', autocomplete: 'off', placeholder: '숫자 입력' });
+        const lab = h('label', { for: id, class: 'sr-only', text: '답' });
+        const row = h('div', { class: 'pr-row' }, lab, inp, it.unit ? h('span', { class: 'col-muted', html: it.unit }) : null);
+        let tries = 0;
+        const check = () => {
+          const v = parseNum(inp.value);
+          if (!Number.isFinite(v)) { fb.innerHTML = '숫자로 적어 주세요. 분수(1/3)나 퍼센트(25%)도 됩니다.'; return; }
+          tries++;
+          if (close(v, it.answer, it)) { reveal(true); return; }
+          const dir = v < it.answer ? '조금 더 크다' : '조금 더 작다';
+          fb.innerHTML = '<strong class="col-bad">아직.</strong> 정답은 이것보다 ' + dir + '. ' + (tries >= 2 && it.hint ? it.hint : '');
+          RL.renderMath(fb);
+        };
+        inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') check(); });
+        button(row, '확인', check, { primary: true });
+        button(row, '정답 보기', () => { fb.innerHTML = '정답: <strong>' + (it.answerText || +it.answer.toFixed(4)) + '</strong>' + (it.unit ? ' ' + it.unit : ''); reveal(); RL.renderMath(fb); });
+        box.append(row, fb, exp);
+      }
+      p.body.appendChild(box);
+    });
+    RL.renderMath(p.body);
+  }
+
+  /* 숫자로 따라가기: steps [{say, calc(tex), ask:{answer,tol,rtol,unit}, note}] — 한 단계씩 연다 */
+  function walkthrough(el, o) {
+    const p = panel(el, { kind: 'STEP', title: o.title || '숫자로 따라가기', caption: o.caption });
+    const list = h('ol', { class: 'wk-steps' });
+    const nodes = o.steps.map((st) => {
+      const li = h('li', { class: 'wk-step' });
+      li.innerHTML = '<div class="wk-say">' + st.say + '</div>';
+      const calc = h('div', { class: 'wk-calc' });
+      if (st.calc) calc.innerHTML = RL.tex(st.calc, true);
+      if (st.note) calc.insertAdjacentHTML('beforeend', '<div class="w-caption">' + st.note + '</div>');
+      if (st.ask) {
+        calc.hidden = true;
+        const id = nextId('wk');
+        const inp = h('input', { id, class: 'inp pr-inp', type: 'text', inputmode: 'decimal', autocomplete: 'off', placeholder: '계산해 보기' });
+        const fb = h('span', { class: 'pr-fb', role: 'status' });
+        const row = h('div', { class: 'pr-row' }, h('label', { for: id, class: 'sr-only', text: '계산 값' }), inp, st.ask.unit ? h('span', { class: 'col-muted', html: st.ask.unit }) : null);
+        const done = (ok) => { calc.hidden = false; row.remove(); if (ok) li.classList.add('ok'); fb.innerHTML = ok ? '<strong class="col-good">맞았다.</strong>' : ''; };
+        const check = () => {
+          const v = parseNum(inp.value);
+          if (!Number.isFinite(v)) { fb.textContent = '숫자로 적어 주세요.'; return; }
+          if (close(v, st.ask.answer, st.ask)) done(true);
+          else fb.innerHTML = '<span class="col-bad">다시 한번.</span> 정답은 이것보다 ' + (v < st.ask.answer ? '크다.' : '작다.');
+        };
+        inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') check(); });
+        button(row, '확인', check, { primary: true });
+        button(row, '바로 보기', () => done(false));
+        li.append(row, fb);
+      }
+      li.appendChild(calc);
+      list.appendChild(li);
+      return li;
+    });
+    let k = 1;
+    const foot = h('div', { class: 'dv-foot' });
+    const nextB = button(foot, '다음 단계', () => { k = Math.min(nodes.length, k + 1); upd(); }, { primary: true });
+    button(foot, '전부 펼치기', () => { k = nodes.length; upd(); });
+    button(foot, '처음부터', () => { k = 1; upd(); });
+    const count = h('span', { class: 'dv-count' });
+    foot.appendChild(count);
+    function upd() {
+      nodes.forEach((n, i) => { n.hidden = i >= k; n.classList.toggle('cur', i === k - 1); });
+      nextB.disabled = k >= nodes.length;
+      count.textContent = k + ' / ' + nodes.length;
+    }
+    p.body.append(list, foot);
+    RL.renderMath(list);
+    upd();
   }
 
   /* 탭: items [{label, html | render(el)}] */
@@ -247,6 +386,6 @@
     int: (v) => String(Math.round(v)),
   };
 
-  RL.ui = { h, panel, slider, select, button, checkbox, row, stats, formula, derivation, tabs, loop, fmt, nextId };
+  RL.ui = { h, panel, slider, select, button, checkbox, row, stats, formula, derivation, predict, walkthrough, tabs, loop, fmt, nextId };
   RL.widgets = RL.widgets || {};
 })();

@@ -5,7 +5,7 @@
   "description": "MDP에서 RLHF·추론 RL까지, 수식 유도와 시뮬레이터로 배우는 강화학습 인터랙티브 커리큘럼",
   "scripts": {
     "serve": "python3 -m http.server 8000",
-    "check": "node tools/check.js"
+    "check": "node tools/lint-tex.js && node tools/check.js"
   },
   "devDependencies": {
     "playwright": "^1.50.0"

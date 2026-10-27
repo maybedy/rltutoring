@@ -16,8 +16,11 @@
   <button type="button" class="icon-btn menu-btn" id="menu-btn" aria-label="커리큘럼 열기" aria-expanded="false" aria-controls="sidebar">목차</button>
   <a class="brand" href="#home"><b>RL Atlas</b><span>MDP → RLHF</span></a>
   <div class="crumb" id="crumb"></div>
+  <button type="button" class="icon-btn" id="mode-btn" aria-pressed="true">쉽게 보기</button>
+  <button type="button" class="icon-btn" id="sym-btn" aria-expanded="false" aria-controls="sym-panel" aria-label="기호 사전 열기">기호<span class="lg"> 사전</span></button>
   <button type="button" class="icon-btn" id="theme-btn" aria-label="테마 변경">시스템</button>
 </header>
+<aside class="sym-panel" id="sym-panel" hidden aria-label="기호 사전"></aside>
 <div class="shell">
   <nav class="sidebar" id="sidebar" aria-label="커리큘럼"><div id="toc"></div></nav>
   <div class="scrim" id="scrim" hidden></div>
