@@ -5,14 +5,14 @@
   RL.chapter({
     id: 'reasoning',
     title: '추론 RL: RLVR과 GRPO',
-    subtitle: '정답을 기계가 확인할 수 있다면 보상모델이 필요 없다. 같은 문제를 여러 번 풀게 하고, 맞힌 풀이를 그룹 평균보다 올리는 것. 이 단순한 규칙이 긴 사고 사슬을 만들어 냈다.',
+    subtitle: '정답을 기계가 확인할 수 있으면 보상모델이 필요 없다. 같은 문제를 여러 번 풀게 하고, 그룹 평균보다 잘한 풀이의 확률을 올린다. 이 단순한 규칙으로 모델이 긴 사고 사슬을 쓰게 되었다.',
     time: 45,
     level: '중급 · LLM',
     prereq: ['rlhf', 'ppo'],
     theses: ['T3', 'T6', 'T5', 'T9'],
     easy: {
       hook: '답이 맞았는지 기계가 바로 채점할 수 있는 문제라면, 사람 대신 채점 프로그램으로 모델을 연습시킬 수 있다.',
-      intro: '<p>수학 문제 하나를 모델에게 여덟 번 풀게 한다. 최종 답이 맞으면 1점, 틀리면 0점이다.</p><p>여덟 번 중 세 번 맞혔다면, 맞힌 풀이는 "평소보다 잘했다", 틀린 풀이는 "평소보다 못했다"고 표시하고, 맞힌 풀이를 더 자주 쓰도록 모델을 고친다. 여기서 "평소"는 같은 문제를 푼 여덟 번의 평균이다. 이 단순한 규칙(GRPO)만으로 모델이 길게 생각하고 스스로 검산하는 습관을 익혔다.</p>',
+      intro: '<p>수학 문제 하나를 모델에게 여덟 번 풀게 한다. 최종 답이 맞으면 1점, 틀리면 0점이다.</p><p>여덟 번 중 세 번 맞혔다면 맞힌 풀이에는 "평소보다 잘했다", 틀린 풀이에는 "평소보다 못했다"고 표시한다. 그리고 맞힌 풀이를 더 자주 쓰도록 모델을 고친다. 여기서 "평소"는 같은 문제를 푼 여덟 번의 평균이다. 이 단순한 규칙(GRPO)만으로 모델은 길게 생각하고 스스로 검산하는 습관을 익혔다.</p>',
       analogy: '같은 시험을 본 반 학생들끼리 답안을 비교하는 것과 같다. 반 평균보다 잘 쓴 답안은 칭찬하고, 못 쓴 답안은 지적한다. 시험이 너무 쉬워 모두 100점이거나 너무 어려워 모두 0점이면 비교할 거리가 없어서 그 시험에서는 아무것도 배우지 못한다. 그래서 "가끔 맞히는" 문제가 가장 좋은 연습 문제다.',
       path: [
         '채점자가 되어 풀이 6개에 맞음/틀림을 매기고, 각 풀이가 받는 신호를 본다',
@@ -22,57 +22,57 @@
       ],
       recap: [
         '같은 문제를 여러 번 풀게 해서, 평균보다 잘한 풀이는 더 자주, 못한 풀이는 덜 자주 쓰도록 고친다.',
-        '모두 맞히거나 모두 틀린 문제는 비교할 거리가 없어 학습 신호가 없다. 가끔 맞히는 문제가 가장 많이 가르친다.',
+        '모두 맞히거나 모두 틀린 문제는 비교할 거리가 없어 학습 신호가 없다. 가끔 맞히는 문제에서 가장 많이 배운다.',
         '이 방법은 한 번에 맞힐 확률을 높이지만, 드물게 쓰던 풀이법을 잃어 여러 번 시도할 때의 성공률은 줄어들 수 있다.',
       ],
     },
     goals: [
       'RLVR(검증 가능한 보상)이 RLHF와 무엇이 같고 다른지 설명할 수 있다.',
-      '그룹 평균 baseline이 leave-one-out baseline의 상수배라 불편이고, 표준편차 정규화가 편향을 만든다는 것을 유도할 수 있다.',
+      '그룹 평균 baseline은 leave-one-out baseline의 상수배라서 불편이고, 표준편차 정규화는 편향을 만든다는 것을 유도할 수 있다.',
       'GRPO, Dr. GRPO, DAPO의 손실 정규화 차이를 계산기로 비교하고 길이 편향의 원인을 설명할 수 있다.',
       '그룹 학습의 동역학(pass@1 상승, 엔트로피 붕괴, 신호 없는 그룹 증가, pass@k 역전)을 시뮬레이터로 관찰한다.',
     ],
     html: String.raw`
-<p>RLHF의 보상은 사람 선호를 흉내 내는 보상모델이었고, 그 모델의 오류가 과최적화를 불렀다(<a href="#rlhf">19장</a>). 수학 문제의 최종 답, 코드의 단위 테스트, 형식 규칙처럼 <strong>정답 여부를 프로그램이 판정할 수 있는</strong> 과제에서는 보상모델 없이 판정기 자체를 보상으로 쓸 수 있다. 이것이 RLVR(RL with Verifiable Rewards)이다.</p>
+<p>RLHF의 보상은 사람 선호를 흉내 내는 보상모델이었고, 그 모델의 오류가 과최적화를 불렀다(<a href="#rlhf">19장</a>). 수학 문제의 최종 답, 코드의 단위 테스트, 형식 규칙처럼 <strong>정답 여부를 프로그램이 판정할 수 있는</strong> 과제에서는 보상모델 없이 판정기를 그대로 보상으로 쓸 수 있다. 이 방식을 RLVR(RL with Verifiable Rewards)이라고 부른다.</p>
 $$r(x, y) = \mathbb{1}\big[\,\mathrm{verify}(x, y) = \text{정답}\,\big] \in \{0, 1\}$$
-<p>보상은 희소하고(응답 끝에 한 번), 이진이며, 해킹하기 어렵다(완전히 불가능하지는 않다). DeepSeekMath(Shao et al. 2024)의 GRPO, OpenAI o1(2024, 방법 비공개), DeepSeek-R1(Guo et al. 2025)이 이 흐름을 대표한다.</p>
+<p>이 보상은 희소하고(응답 끝에 한 번), 이진값이며, 해킹하기 어렵다(불가능하지는 않다). DeepSeekMath(Shao et al. 2024)의 GRPO, OpenAI o1(2024, 방법 비공개), DeepSeek-R1(Guo et al. 2025)이 이 흐름을 대표한다.</p>
 
 <h2>먼저 채점자가 되어 보기</h2>
-<p>모델이 같은 문제를 여섯 번 풀었다. 여러분이 채점 프로그램이 되어 각 풀이에 맞음 또는 틀림을 매겨 보자. 채점을 끝내는 순간, 어떤 풀이를 다음에 더 자주 쓰게 될지가 정해진다.</p>
+<p>모델이 같은 문제를 여섯 번 풀어 응답 6개를 냈다. 아래에서 채점 프로그램 역할을 맡아 각 풀이에 맞음 또는 틀림을 매길 수 있다. 채점이 끝나면 어떤 풀이를 다음에 더 자주 쓰게 될지가 정해진다.</p>
 <div data-w="try-grader"></div>
 
 <h2>GRPO: critic 대신 그룹</h2>
-<p>PPO는 토큰마다 advantage를 만들기 위해 critic을 학습한다. 보상이 끝에 하나뿐이고 정책과 같은 크기의 critic을 둬야 하는 LLM에서는 이것이 큰 부담이다. GRPO(Group Relative Policy Optimization)는 같은 프롬프트에 대해 응답 $G$개를 뽑고, <strong>그룹 안에서의 상대 점수</strong>를 advantage로 쓴다.</p>
+<p>PPO는 토큰마다 advantage를 만들려고 critic을 학습한다. LLM에서는 보상이 끝에 하나뿐이고 정책과 같은 크기의 critic을 둬야 하므로 부담이 크다. GRPO(Group Relative Policy Optimization)는 같은 프롬프트에서 응답 $G$개를 뽑고, <strong>그룹 안의 상대 점수</strong>를 advantage로 쓴다.</p>
 <div data-w="fx-grpo"></div>
-<p>식은 길지만 핵심은 advantage 한 줄이다. 풀이 네 개로 직접 계산해 보자.</p>
+<p>식은 길지만 중요한 부분은 advantage 한 줄이다. 아래에서 풀이 네 개로 직접 계산한다.</p>
 <div data-w="step-grpo"></div>
 
 <h3>왜 그룹 평균을 빼도 되는가</h3>
 <div data-w="dv-baseline"></div>
 <div class="thesis-box"><span class="label">대전제 T3 + T6 · 점수함수 경사와 baseline</span>
-<p>정책 경사는 $\mathbb{E}[r\,\nabla\log\pi]$이고(T3), 샘플 자신과 무관한 baseline은 아무리 빼도 편향을 만들지 않는다. GRPO의 그룹 평균은 leave-one-out baseline의 상수배라 불편이다. 남는 질문은 <strong>분산을 얼마나 줄이느냐</strong>다(T6). critic은 상태마다 다른 baseline을 학습하고, 그룹은 같은 프롬프트의 형제 샘플로 그것을 즉석에서 추정한다. 비용은 프롬프트당 $G$번의 생성이다.</p>
+<p>정책 경사는 $\mathbb{E}[r\,\nabla\log\pi]$이고(T3), 샘플 자신과 무관한 baseline은 얼마를 빼도 편향을 만들지 않는다. GRPO의 그룹 평균은 leave-one-out baseline의 상수배라서 불편이다. 따라서 남는 문제는 <strong>분산을 얼마나 줄이느냐</strong>다(T6). critic은 상태마다 다른 baseline을 학습하고, 그룹 방식은 같은 프롬프트에서 뽑은 다른 샘플들로 baseline을 그때그때 추정한다. 대가로 프롬프트마다 $G$번 생성해야 한다.</p>
 </div>
 
 <h2>계산기: 한 그룹의 advantage와 토큰 가중치</h2>
-<p>한 프롬프트에 대해 응답 $G$개를 뽑았다고 하자. 각 응답의 정답 여부를 바꾸고 길이를 고쳐 보라. 세 가지 정규화가 같은 그룹에서 서로 다른 학습 신호를 만든다.</p>
+<p>한 프롬프트에서 응답 $G$개를 뽑았다. 아래 계산기에서 각 응답의 정답 여부와 길이를 바꿀 수 있다. 같은 그룹이라도 정규화 방식 세 가지가 서로 다른 학습 신호를 만든다.</p>
 <div data-w="grpo-calc"></div>
 <div class="table-wrap"><table class="t">
 <thead><tr><th>정규화</th><th>토큰 하나의 가중치</th><th>결과</th></tr></thead>
 <tbody>
-<tr><td>GRPO (응답별 길이 평균 후 그룹 평균)</td><td>$\hat A_i \,/\, (G\,|o_i|)$</td><td>짧은 정답은 토큰당 크게 보상, <strong>긴 오답은 토큰당 작게 벌점</strong>. 오답이 길어지는 쪽으로 기우는 편향.</td></tr>
-<tr><td>DAPO (그룹 전체 토큰 평균, Yu et al. 2025)</td><td>$\hat A_i \,/\, \sum_j |o_j|$</td><td>모든 토큰이 같은 가중치. 긴 응답의 토큰도 제 몫의 신호를 받는다.</td></tr>
-<tr><td>Dr. GRPO (상수로 나눔, Liu et al. 2025)</td><td>$\hat A_i \,/\, (G\,L)$, $L$은 고정 상수</td><td>길이 편향 제거. 표준편차 정규화도 함께 제거해 문제 난이도 편향도 없앤다.</td></tr>
+<tr><td>GRPO (응답별 길이 평균 후 그룹 평균)</td><td>$\hat A_i \,/\, (G\,|o_i|)$</td><td>짧은 정답은 토큰마다 큰 보상을, <strong>긴 오답은 토큰마다 작은 벌점</strong>을 받는다. 그래서 오답이 길어지는 쪽으로 편향된다.</td></tr>
+<tr><td>DAPO (그룹 전체 토큰 평균, Yu et al. 2025)</td><td>$\hat A_i \,/\, \sum_j |o_j|$</td><td>모든 토큰의 가중치가 같다. 긴 응답의 토큰도 제 몫의 신호를 받는다.</td></tr>
+<tr><td>Dr. GRPO (상수로 나눔, Liu et al. 2025)</td><td>$\hat A_i \,/\, (G\,L)$, $L$은 고정 상수</td><td>길이 편향이 사라진다. 표준편차 정규화도 함께 빼서 문제 난이도에 따른 편향도 없앤다.</td></tr>
 </tbody></table></div>
 
 <h2>시뮬레이터: 그룹 학습의 동역학</h2>
-<p>장난감 세계다. 문제 200개가 있고, 정책은 문제를 풀 "전략" 6개 중 하나를 고른다(모든 문제에 공유되는 정책). 전략 1은 범용이라 쉬운 문제를 잘 풀고, 문제의 30%는 특정 소수 전략으로만 풀린다. 기준 모델은 전략을 고르게 섞어 쓴다. 매 반복마다 문제 64개를 골라 그룹 크기 $G$로 샘플링하고 GRPO 방식으로 갱신한다. 지표는 샘플이 아니라 정확한 기댓값으로 계산한다.</p>
+<p>아래는 장난감 세계다. 문제 200개가 있고, 정책은 문제를 풀 "전략" 6개 중 하나를 고른다(모든 문제가 같은 정책을 쓴다). 전략 1은 범용이라 쉬운 문제를 잘 풀고, 문제의 30%는 특정 소수 전략으로만 풀린다. 기준 모델은 여러 전략을 고르게 섞어 쓴다. 반복마다 문제 64개를 골라 문제당 $G$개씩 샘플링하고 GRPO 방식으로 갱신한다. 지표는 샘플로 어림하지 않고 정확한 기댓값으로 계산한다.</p>
 <div data-w="grpo-sim"></div>
 <ul>
-  <li><strong>sharpening</strong>: pass@1이 오르는 동안 엔트로피가 빠르게 떨어진다. 정책은 평균적으로 가장 이득인 전략으로 몰린다.</li>
-  <li><strong>신호 없는 그룹의 증가</strong>: 학습이 진행될수록 "전부 정답" 또는 "전부 오답" 그룹이 늘어 advantage가 0이 된다. 같은 배치 크기라도 유효 학습 신호가 줄어든다. DAPO의 동적 샘플링은 이런 그룹을 버리고 다시 뽑는다.</li>
-  <li><strong>pass@k 역전</strong>: 오른쪽 아래 그래프에서 작은 $k$에서는 학습된 정책이 낫지만 큰 $k$에서는 기준 모델이 더 많은 문제를 푼다. 드문 전략으로만 풀리는 문제를 버렸기 때문이다. KL 계수 $\beta$를 올리면 역전이 늦춰진다.</li>
+  <li><strong>분포가 뾰족해진다(sharpening)</strong>: pass@1이 오르는 동안 엔트로피가 빠르게 떨어진다. 정책은 평균적으로 가장 이득인 전략으로 몰린다.</li>
+  <li><strong>신호 없는 그룹이 늘어난다</strong>: 학습이 진행될수록 전부 정답이거나 전부 오답인 그룹이 늘고, 이런 그룹의 advantage는 0이다. 배치 크기가 같아도 실제로 쓸모 있는 학습 신호는 줄어든다. DAPO의 동적 샘플링은 이런 그룹을 버리고 다시 뽑는다.</li>
+  <li><strong>pass@k가 역전된다</strong>: 오른쪽 아래 그래프를 보면 $k$가 작을 때는 학습된 정책이 낫지만 $k$가 크면 기준 모델이 더 많은 문제를 푼다. 학습된 정책이 드문 전략으로만 풀리는 문제를 포기했기 때문이다. KL 계수 $\beta$를 올리면 역전이 늦게 일어난다.</li>
 </ul>
-<div class="aside"><span class="label">해석의 범위</span>이 시뮬레이터는 현상의 메커니즘을 보여 주는 장난감이다. 실제 LLM에서 RLVR이 기준 모델의 능력 경계를 넓히는지는 열린 논쟁이다. Yue et al.(2025)은 큰 $k$에서 기준 모델의 pass@k가 RL 모델보다 높아지는 현상을 여러 설정에서 보고하며 RLVR이 주로 샘플링 효율을 높인다고 해석했다. 반면 학습을 훨씬 길게 하거나 엔트로피를 유지하면 경계가 넓어진다는 후속 보고(예: NVIDIA의 ProRL, 2025)도 있다.</div>
+<div class="aside"><span class="label">해석의 범위</span>이 시뮬레이터는 현상이 생기는 원리를 보여 주는 장난감이다. 실제 LLM에서 RLVR이 기준 모델의 능력 경계를 넓히는지는 아직 논쟁 중이다. Yue et al.(2025)은 여러 설정에서 $k$가 크면 기준 모델의 pass@k가 RL 모델보다 높아진다고 보고했고, RLVR이 주로 샘플링 효율을 높인다고 해석했다. 반면 학습을 훨씬 길게 하거나 엔트로피를 유지하면 경계가 넓어진다는 후속 보고(예: NVIDIA의 ProRL, 2025)도 있다.</div>
 
 <h2>DeepSeek-R1: 순수 RL에서 나타난 긴 사고</h2>
 <div class="w wide" style="box-shadow:none"><div class="w-body" style="overflow-x:auto">
@@ -101,80 +101,80 @@ $$r(x, y) = \mathbb{1}\big[\,\mathrm{verify}(x, y) = \text{정답}\,\big] \in \{
   </g>
 </svg></div></div>
 <ul>
-  <li><strong>R1-Zero</strong>: SFT 없이 기반 모델에 GRPO와 규칙 보상(답의 정확도, 형식)만 적용했다. 학습이 진행되며 응답 길이가 늘고, 스스로 검토하고 되돌아가는 행동이 나타났다(논문의 "aha moment"). 대신 가독성이 낮고 여러 언어가 섞였다.</li>
-  <li><strong>R1</strong>: 소량의 긴 CoT 데이터로 cold-start SFT → 추론 RL → RL 모델의 출력을 거절 샘플링해 대규모 SFT 데이터를 만들고(일반 과제 데이터와 혼합) 다시 SFT → 모든 영역에 대한 RL. 탐색(RL)과 증류(SFT)를 번갈아 하는 구조다.</li>
-  <li><strong>증류</strong>: 작은 모델에 직접 RL을 하는 것보다 큰 RL 모델의 추론 궤적으로 SFT하는 편이 더 좋았다고 보고했다. 비싼 탐색의 결과를 싼 지도학습으로 옮기는 T9의 전형이다(<a href="#memory">23장</a>).</li>
+  <li><strong>R1-Zero</strong>: SFT 없이 기반 모델에 GRPO와 규칙 보상(답의 정확도, 형식)만 적용했다. 학습이 진행되면서 응답 길이가 늘고, 스스로 검토하고 되돌아가는 행동이 나타났다(논문의 "aha moment"). 다만 가독성이 낮고 여러 언어가 섞였다.</li>
+  <li><strong>R1</strong>: 네 단계를 거친다. 먼저 긴 CoT 데이터 소량으로 초기 SFT(cold start)를 하고 추론 RL을 돌린다. 이어 RL 모델의 출력을 거절 샘플링해 대규모 SFT 데이터를 만들고, 일반 과제 데이터와 섞어 다시 SFT를 한다. 마지막으로 모든 영역에 RL을 적용한다. 탐색(RL)과 증류(SFT)를 번갈아 하는 구조다.</li>
+  <li><strong>증류</strong>: 작은 모델에 직접 RL을 하기보다 큰 RL 모델의 추론 궤적으로 SFT를 하는 편이 더 좋았다고 보고했다. 비싼 탐색으로 얻은 결과를 값싼 지도학습으로 옮기는 T9의 전형적인 예다(<a href="#memory">23장</a>).</li>
   <li>논문은 실패한 시도로 PRM(보상 해킹과 단계 정의의 어려움)과 MCTS(토큰 공간의 거대한 분기)를 함께 기록했다.</li>
 </ul>
 
-<h2>결과 보상 vs 과정 보상</h2>
+<h2>결과 보상과 과정 보상</h2>
 <div class="grid2">
-  <div class="card"><h4>ORM (Outcome Reward Model)</h4><p>최종 답의 정오만 본다. 판정기가 있으면 학습조차 필요 없다. 단점은 신용 할당: 30단계 풀이에서 어느 단계가 틀렸는지 알려 주지 않으며, 틀린 과정으로 맞힌 답(운)도 보상한다.</p></div>
-  <div class="card"><h4>PRM (Process Reward Model)</h4><p>각 단계의 옳음을 평가한다. Lightman et al.(2023, <em>Let's Verify Step by Step</em>)은 사람이 단계별로 라벨링한 PRM800K로 학습한 PRM이 MATH의 best-of-N 선택에서 ORM보다 낫다고 보고했다.</p></div>
+  <div class="card"><h4>ORM (Outcome Reward Model)</h4><p>최종 답이 맞았는지만 본다. 판정기가 있으면 학습할 필요도 없다. 신용 할당이 약점이다. 30단계 풀이에서 어느 단계가 틀렸는지 알려 주지 않고, 틀린 과정으로 운 좋게 맞힌 답에도 보상을 준다.</p></div>
+  <div class="card"><h4>PRM (Process Reward Model)</h4><p>각 단계가 옳은지 평가한다. Lightman et al.(2023, <em>Let's Verify Step by Step</em>)은 사람이 단계별로 라벨링한 PRM800K로 학습한 PRM이 MATH의 best-of-N 선택에서 ORM보다 낫다고 보고했다.</p></div>
 </div>
-<p>단계 라벨을 사람 없이 얻는 방법이 Math-Shepherd(Wang et al. 2023)다. 어떤 단계까지의 풀이에서 여러 번 이어 풀게 하고(rollout), 정답에 도달한 비율을 그 단계의 점수로 쓴다. 이것은 정확히 <strong>접두어의 가치 $V^\pi(s_t)$에 대한 몬테카를로 추정</strong>이다(<a href="#td">06장</a>). PRM은 결국 토큰 MDP에서 critic의 다른 이름이고, 그래서 critic의 문제(추정 잡음, 정책이 바뀌면 낡음, 해킹 대상)를 그대로 물려받는다. VinePPO(Kazemnejad et al. 2024)는 같은 MC rollout을 PPO의 가치 추정에 직접 쓴다.</p>
+<p>Math-Shepherd(Wang et al. 2023)는 사람 없이 단계 라벨을 얻는다. 어떤 단계까지 쓴 풀이에서 이어 풀기(롤아웃, rollout)를 여러 번 하고, 정답에 도달한 비율을 그 단계의 점수로 쓴다. 이 값은 <strong>접두어의 가치 $V^\pi(s_t)$를 몬테카를로로 추정</strong>한 것이다(<a href="#td">06장</a>). 결국 PRM은 토큰 MDP의 critic과 같다. 그래서 critic의 문제도 그대로 물려받는다. 추정에 잡음이 있고, 정책이 바뀌면 낡으며, 해킹 대상이 된다. VinePPO(Kazemnejad et al. 2024)는 같은 롤아웃을 PPO의 가치 추정에 직접 쓴다.</p>
 
 <h2>검증기 해킹</h2>
-<p>검증 가능한 보상도 대리 지표다. 판정 프로그램의 빈틈은 정책이 찾아낸다.</p>
+<p>검증 가능한 보상도 대리 지표다. 판정 프로그램에 빈틈이 있으면 정책이 찾아낸다.</p>
 <ul>
-  <li><strong>형식 공략</strong>: 답 추출 정규식이 첫 번째 boxed만 보면 여러 답을 나열하는 행동이 보상받는다.</li>
-  <li><strong>테스트 공략</strong>: 코드 과제에서 테스트 입력을 특수 처리하거나, 테스트 자체를 수정하는 행동.</li>
-  <li><strong>추측</strong>: 선택지 문제나 정수 답 문제에서 추론 없이 찍기. 보상은 받지만 일반화되는 능력이 아니다.</li>
+  <li><strong>형식 공략</strong>: 답 추출 규칙이 허술하면, 예를 들어 boxed 답 중 하나만 맞아도 통과시키면, 여러 답을 나열하는 행동이 보상받는다.</li>
+  <li><strong>테스트 공략</strong>: 코드 과제에서 테스트 입력만 특수 처리하거나 테스트 자체를 고친다.</li>
+  <li><strong>추측</strong>: 선택지 문제나 정수 답 문제에서 추론 없이 찍는다. 보상은 받지만 일반화되는 능력으로 이어지지 않는다.</li>
   <li><strong>LLM 판정자 공략</strong>: 판정을 모델에게 맡기면 RLHF의 보상 해킹이 그대로 돌아온다.</li>
 </ul>
-<p>처방은 판정기 강화(형식 엄격화, 숨긴 테스트), 형식 보상의 분리, 그리고 학습 중 샘플을 사람이 직접 읽어 보는 것이다.</p>
+<p>대응책은 세 가지다. 판정기를 강화하고(엄격한 형식, 숨긴 테스트), 형식 보상을 따로 두고, 학습 중 샘플을 사람이 직접 읽어 본다.</p>
 
 <h2>파생: 무엇이 바뀌었나</h2>
 <div class="table-wrap"><table class="t">
 <thead><tr><th>방법</th><th>advantage / baseline</th><th>바꾼 부분</th></tr></thead>
 <tbody>
 <tr><td>REINFORCE (<a href="#pg">11장</a>)</td><td>$r$ 또는 이동평균 baseline</td><td>출발점</td></tr>
-<tr><td>ReMax (Li et al. 2023)</td><td>$r(y) - r(y_{\text{greedy}})$</td><td>greedy 응답의 보상을 baseline으로. critic 제거.</td></tr>
-<tr><td>RLOO (Ahmadian et al. 2024)</td><td>$r_i - \frac{1}{G-1}\sum_{j\ne i} r_j$</td><td>leave-one-out. 정확히 불편.</td></tr>
+<tr><td>ReMax (Li et al. 2023)</td><td>$r(y) - r(y_{\text{greedy}})$</td><td>greedy 응답의 보상을 baseline으로 쓰고 critic을 없앤다.</td></tr>
+<tr><td>RLOO (Ahmadian et al. 2024)</td><td>$r_i - \frac{1}{G-1}\sum_{j\ne i} r_j$</td><td>자기 자신을 뺀 평균(leave-one-out)을 쓴다. 정확히 불편이다.</td></tr>
 <tr><td>GRPO (Shao et al. 2024)</td><td>$(r_i - \bar r)/\mathrm{std}(r)$</td><td>그룹 정규화 + PPO 클립 + KL 손실 항($k_3$ 추정량)</td></tr>
-<tr><td>Dr. GRPO (Liu et al. 2025)</td><td>$r_i - \bar r$</td><td>std 정규화와 응답 길이 정규화 제거</td></tr>
-<tr><td>DAPO (Yu et al. 2025)</td><td>GRPO와 같음</td><td>clip-higher(상한 $\epsilon$을 키워 낮은 확률 토큰이 올라갈 여지), 동적 샘플링(신호 0 그룹 제거), 토큰 수준 손실 평균, 너무 긴 응답의 보상 셰이핑, KL 제거</td></tr>
-<tr><td>VinePPO (Kazemnejad et al. 2024)</td><td>MC rollout으로 추정한 $V(s_t)$</td><td>critic 대신 중간 상태에서 rollout. 토큰 수준 신용 할당 회복.</td></tr>
+<tr><td>Dr. GRPO (Liu et al. 2025)</td><td>$r_i - \bar r$</td><td>표준편차 정규화와 응답 길이 정규화를 뺀다</td></tr>
+<tr><td>DAPO (Yu et al. 2025)</td><td>GRPO와 같음</td><td>clip-higher(상한 $\epsilon$을 키워 확률이 낮은 토큰도 올라갈 수 있게 한다), 동적 샘플링(신호가 0인 그룹 제거), 토큰 수준 손실 평균, 너무 긴 응답의 보상 셰이핑, KL 제거</td></tr>
+<tr><td>VinePPO (Kazemnejad et al. 2024)</td><td>몬테카를로 롤아웃으로 추정한 $V(s_t)$</td><td>critic 대신 중간 상태에서 롤아웃한다. 토큰 수준 신용 할당을 되살린다.</td></tr>
 <tr><td>PRM 기반 RL (Math-Shepherd 등)</td><td>단계별 PRM 점수</td><td>희소한 결과 보상 → 조밀한 과정 보상</td></tr>
 </tbody></table></div>
 `,
     mount: {
       'fx-grpo': (el) => ui.formula(el, {
         title: 'GRPO 목적 (DeepSeekMath)',
-        say: '{grp|같은 문제를 여러 번 풀게 해서}, 각 풀이에 {adv|그룹 평균보다 얼마나 잘했는지}를 점수로 준다. 그 점수만큼 풀이에 쓰인 토큰의 확률을 올리거나 내리되, {rho|예전 모델 대비 확률이 바뀐 비율}이 {clip|정해 둔 범위를 넘으면 더 밀지 않고}, {kl|원래 모델에서 너무 멀어지면 벌점}을 준다. 마지막으로 {lavg|풀이마다 토큰 수로 나눈 뒤} {gavg|풀이들끼리 평균}을 낸다.',
+        say: '{grp|같은 문제를 여러 번 풀게 하고} 각 풀이에 {adv|그룹 평균보다 얼마나 잘했는지}를 점수로 준다. 그 점수만큼 풀이에 쓰인 토큰의 확률을 올리거나 내린다. 다만 {rho|예전 모델보다 확률이 바뀐 비율}이 {clip|정해 둔 범위를 넘으면 더 밀지 않고}, 모델이 {kl|원래 모델에서 너무 멀어지면 벌점}을 준다. 마지막으로 {lavg|풀이마다 토큰 수로 나누고} {gavg|풀이끼리 평균}을 낸다.',
         tex: String.raw`\mathcal{J}(\theta) = \tm{grp}{\mathbb{E}_{x,\;\{o_i\}_{i=1}^{G}\sim\pi_{\text{old}}}}\Bigg[\tm{gavg}{\frac{1}{G}\sum_{i=1}^{G}}\tm{lavg}{\frac{1}{|o_i|}\sum_{t=1}^{|o_i|}}\Big(\min\big(\tm{rho}{\rho_{i,t}}\,\tm{adv}{\hat A_{i}},\ \tm{clip}{\clip(\rho_{i,t},1-\epsilon,1+\epsilon)}\,\hat A_{i}\big) - \tm{kl}{\beta\,\mathbb{D}_{\mathrm{KL}}\big[\pi_\theta\|\pi_{\text{ref}}\big]}\Big)\Bigg]`,
         terms: [
-          { id: 'grp', sym: '\\{o_i\\}_{i=1}^G\\sim\\pi_{\\text{old}}', label: '그룹 샘플링', desc: '같은 프롬프트에 대해 응답 G개를 뽑는다.', long: '그룹이 critic 역할을 한다. 같은 문제의 형제 샘플들이 "이 문제는 원래 얼마나 쉬운가"를 즉석에서 추정한다. G가 클수록 baseline 추정이 정확해지지만 생성 비용이 선형으로 늘어난다.' },
-          { id: 'gavg', sym: '\\frac1G\\sum_i', label: '응답 평균', desc: '그룹 내 응답들의 평균.' },
-          { id: 'lavg', sym: '\\frac{1}{|o_i|}\\sum_t', label: '길이 정규화', desc: '응답마다 토큰 수로 나눈다. 길이 편향의 원인.', long: '토큰 하나의 가중치가 $1/|o_i|$가 되므로 긴 응답의 토큰은 신호가 약하다. 오답($\\hat A<0$)이면 길수록 토큰당 벌점이 작아져 긴 오답이 상대적으로 덜 억제된다. Dr. GRPO와 DAPO가 고친 부분이다.' },
-          { id: 'rho', sym: '\\rho_{i,t}=\\frac{\\pi_\\theta(o_{i,t}|\\cdot)}{\\pi_{\\text{old}}(o_{i,t}|\\cdot)}', label: '중요도비', desc: '샘플을 만든 정책 대비 현재 정책의 확률비.' },
+          { id: 'grp', sym: '\\{o_i\\}_{i=1}^G\\sim\\pi_{\\text{old}}', label: '그룹 샘플링', desc: '같은 프롬프트에서 응답 G개를 뽑는다.', long: '그룹이 critic 역할을 한다. 같은 문제에서 뽑은 샘플들이 "이 문제가 원래 얼마나 쉬운가"를 그때그때 추정한다. G가 클수록 baseline 추정이 정확해지지만 생성 비용도 G에 비례해 늘어난다.' },
+          { id: 'gavg', sym: '\\frac1G\\sum_i', label: '응답 평균', desc: '그룹 안 응답들의 평균이다.' },
+          { id: 'lavg', sym: '\\frac{1}{|o_i|}\\sum_t', label: '길이 정규화', desc: '응답마다 토큰 수로 나눈다. 길이 편향이 여기서 생긴다.', long: '토큰 하나의 가중치가 $1/|o_i|$가 되므로 긴 응답의 토큰은 신호가 약하다. 오답($\\hat A<0$)이면 길수록 토큰당 벌점이 작아져 긴 오답이 상대적으로 덜 억제된다. Dr. GRPO와 DAPO가 고친 부분이다.' },
+          { id: 'rho', sym: '\\rho_{i,t}=\\frac{\\pi_\\theta(o_{i,t}|\\cdot)}{\\pi_{\\text{old}}(o_{i,t}|\\cdot)}', label: '중요도비', desc: '샘플을 만든 정책에 대한 현재 정책의 확률비다.' },
           { id: 'adv', sym: '\\hat A_i = \\frac{r_i - \\mathrm{mean}(r)}{\\mathrm{std}(r)}', label: '그룹 상대 advantage', desc: '응답의 모든 토큰이 같은 값을 받는다.', long: '결과 보상만 있으므로 한 응답 안의 모든 토큰이 같은 advantage를 공유한다. 토큰 수준 신용 할당은 여러 샘플에 걸친 통계로만 일어난다. 모두 정답이거나 모두 오답이면 분자가 0이라 그 프롬프트는 신호가 없다.' },
-          { id: 'clip', sym: '\\operatorname{clip}(\\rho,1\\pm\\epsilon)', label: 'PPO 클립', desc: '한 번의 데이터로 너무 멀리 가지 않게 (13장).', long: 'DAPO는 상한과 하한을 다르게 두는 clip-higher를 제안했다. 확률이 낮은 토큰은 비율 상한에 금방 막혀 올라가기 어렵고, 그것이 엔트로피 붕괴를 부추기기 때문이다.' },
-          { id: 'kl', sym: '\\beta\\,\\mathbb{D}_{\\mathrm{KL}}', label: 'KL 손실 항', desc: '보상에 섞지 않고 손실에 직접. k3 추정량 사용.', long: 'GRPO는 토큰마다 $\\frac{\\pi_{\\text{ref}}}{\\pi_\\theta} - \\log\\frac{\\pi_{\\text{ref}}}{\\pi_\\theta} - 1$을 쓴다. 항상 0 이상이고 불편인 KL 추정량이다. 검증 가능한 보상은 해킹 위험이 낮아 DAPO처럼 KL을 아예 빼는 설정도 흔하다.' },
+          { id: 'clip', sym: '\\operatorname{clip}(\\rho,1\\pm\\epsilon)', label: 'PPO 클립', desc: '같은 데이터로 정책을 너무 멀리 옮기지 않게 막는다(13장).', long: 'DAPO는 상한과 하한을 다르게 두는 clip-higher를 제안했다. 확률이 낮은 토큰은 비율 상한에 금방 막혀 잘 올라가지 못하고, 이 현상이 엔트로피 붕괴를 부추기기 때문이다.' },
+          { id: 'kl', sym: '\\beta\\,\\mathbb{D}_{\\mathrm{KL}}', label: 'KL 손실 항', desc: '보상에 섞지 않고 손실에 직접 넣는다. k3 추정량을 쓴다.', long: 'GRPO는 토큰마다 $\\frac{\\pi_{\\text{ref}}}{\\pi_\\theta} - \\log\\frac{\\pi_{\\text{ref}}}{\\pi_\\theta} - 1$을 쓴다. 항상 0 이상이고 불편인 KL 추정량이다. 검증 가능한 보상은 해킹 위험이 낮아 DAPO처럼 KL을 아예 빼는 설정도 흔하다.' },
         ],
       }),
       'dv-baseline': (el) => ui.derivation(el, {
         title: '그룹 평균 baseline은 RLOO의 상수배, 표준편차 정규화는 프롬프트 재가중',
-        easy: '맞힌 풀이의 점수에서 그룹 평균을 빼도 학습 방향은 틀어지지 않는다. "나를 뺀 나머지의 평균"을 뺀 것과 크기 비율만 다르기 때문이다. 다만 표준편차로 나누면 아주 쉬운 문제와 아주 어려운 문제가 더 크게 반영되는 쪽으로 치우친다.',
+        easy: '풀이 점수에서 그룹 평균을 빼도 "나를 뺀 나머지의 평균"을 뺀 값과 크기 비율만 다르므로 학습 방향은 틀어지지 않는다. 다만 표준편차로 나누면 아주 쉬운 문제와 아주 어려운 문제가 더 크게 반영된다.',
         steps: [
-          { tex: String.raw`\nabla_\theta J = \mathbb{E}_{x}\,\mathbb{E}_{o\sim\pi_\theta(\cdot|x)}\big[r(x,o)\,\nabla_\theta\log\pi_\theta(o|x)\big]`, why: '점수함수 경사(T3). 응답 전체를 하나의 행동으로 보는 밴딧 관점.' },
+          { tex: String.raw`\nabla_\theta J = \mathbb{E}_{x}\,\mathbb{E}_{o\sim\pi_\theta(\cdot|x)}\big[r(x,o)\,\nabla_\theta\log\pi_\theta(o|x)\big]`, why: '점수함수 경사(T3)다. 응답 전체를 행동 하나로 보는 밴딧 관점이다.' },
           { tex: String.raw`\mathbb{E}_{o\sim\pi_\theta}\big[b\,\nabla_\theta\log\pi_\theta(o|x)\big] = b\,\nabla_\theta\sum_o \pi_\theta(o|x) = b\,\nabla_\theta 1 = \hl{0}`, why: '$b$가 샘플 $o$에 의존하지 않으면 어떤 baseline도 편향을 만들지 않는다.' },
-          { tex: String.raw`\hat g = \frac{1}{G}\sum_{i=1}^{G}\big(r_i - \hl{b_i}\big)\nabla_\theta\log\pi_\theta(o_i|x),\qquad b_i = \frac{1}{G-1}\sum_{j\ne i} r_j`, why: '같은 프롬프트에서 $G$개를 독립 샘플링. $b_i$는 <strong>자기 자신을 뺀</strong> 형제들의 평균이라 $o_i$와 독립이다. 따라서 불편. 이것이 RLOO.' },
+          { tex: String.raw`\hat g = \frac{1}{G}\sum_{i=1}^{G}\big(r_i - \hl{b_i}\big)\nabla_\theta\log\pi_\theta(o_i|x),\qquad b_i = \frac{1}{G-1}\sum_{j\ne i} r_j`, why: '같은 프롬프트에서 $G$개를 독립으로 샘플링한다. $b_i$는 <strong>자기 자신을 뺀</strong> 나머지 샘플의 평균이라 $o_i$와 독립이다. 따라서 불편 추정량이다. 이 방식이 RLOO다.' },
           { tex: String.raw`r_i - \bar r = r_i - \frac{r_i + \sum_{j\ne i}r_j}{G} = \hl{\frac{G-1}{G}}\Big(r_i - \frac{1}{G-1}\sum_{j\ne i}r_j\Big)`, easy: '평균 안에 자기 점수가 섞여 있어도, 결과는 "나를 뺀 평균"을 쓴 값에 일정한 비율(8개면 7/8)을 곱한 것일 뿐이다. 방향은 같고 크기만 조금 작다.', why: '자기 자신을 포함한 그룹 평균을 빼는 것은 RLOO advantage에 상수 $\\frac{G-1}{G}$를 곱한 것과 같다. 학습률에 흡수되므로 <strong>그룹 평균 baseline도 불편</strong>이다.' },
-          { tex: String.raw`\hat A_i = \frac{r_i - \bar r}{\hl{\sigma_x}},\qquad r\in\{0,1\}:\ \sigma_x = \sqrt{\hat p_x(1-\hat p_x)}`, why: '표준편차는 모든 샘플(자신 포함)에 의존하므로 더 이상 정확히 불편이 아니다. 더 중요한 효과는 <strong>프롬프트별 재가중</strong>이다. 정답률 $\\hat p_x$가 0이나 1에 가까운 문제일수록 $1/\\sigma_x$가 커져 가중치가 커진다.' },
-          { tex: String.raw`\hat A_i = \begin{cases} \hl{(1-\hat p_x)/\sigma_x} = \sqrt{\tfrac{1-\hat p_x}{\hat p_x}} & \text{정답} \\ \hl{-\hat p_x/\sigma_x} = -\sqrt{\tfrac{\hat p_x}{1-\hat p_x}} & \text{오답}\end{cases}\qquad \hat p_x\in\{0,1\}\Rightarrow \hat A_i = 0`, easy: '맞힌 비율만 알면 점수가 정해진다. 8개 중 1개만 맞히면 그 풀이는 큰 칭찬을 받고, 8개 모두 맞히면 아무도 칭찬받지 못한다.', why: '이진 보상이면 advantage는 그룹 정답률 $\\hat p_x$만의 함수다. 어려운 문제에서 드물게 맞힌 풀이는 큰 양의 advantage를 받는다. 전부 맞히거나 전부 틀리면 신호가 0이다. Dr. GRPO는 표준편차 정규화를 빼서 이 난이도 재가중을 없앤다.' },
+          { tex: String.raw`\hat A_i = \frac{r_i - \bar r}{\hl{\sigma_x}},\qquad r\in\{0,1\}:\ \sigma_x = \sqrt{\hat p_x(1-\hat p_x)}`, why: '표준편차는 자신을 포함한 모든 샘플에 의존하므로 이제는 정확히 불편이 아니다. 더 큰 효과는 <strong>프롬프트별 재가중</strong>이다. 정답률 $\\hat p_x$가 0이나 1에 가까운 문제일수록 $1/\\sigma_x$가 커져 가중치가 커진다.' },
+          { tex: String.raw`\hat A_i = \begin{cases} \hl{(1-\hat p_x)/\sigma_x} = \sqrt{\tfrac{1-\hat p_x}{\hat p_x}} & \text{정답} \\ \hl{-\hat p_x/\sigma_x} = -\sqrt{\tfrac{\hat p_x}{1-\hat p_x}} & \text{오답}\end{cases}\qquad \hat p_x\in\{0,1\}\Rightarrow \hat A_i = 0`, easy: '맞힌 비율만 알면 점수가 정해진다. 8개 중 1개만 맞히면 그 풀이는 큰 칭찬을 받고, 8개 모두 맞히면 아무도 칭찬받지 못한다.', why: '이진 보상이면 advantage는 그룹 정답률 $\\hat p_x$로만 정해진다. 어려운 문제에서 드물게 맞힌 풀이는 큰 양의 advantage를 받는다. 전부 맞히거나 전부 틀리면 신호가 0이다. Dr. GRPO는 표준편차 정규화를 빼서 이 난이도 재가중을 없앤다.' },
         ],
       }),
       'try-grader': mountGrader,
       'step-grpo': (el) => ui.walkthrough(el, {
         title: '풀이 4개의 advantage를 손으로',
-        caption: '"다음 단계"를 누르며 빈칸을 채워 보라. 표준편차는 여기서 개수 n으로 나누는 방식을 쓴다(구현에 따라 n−1로 나누기도 한다).',
+        caption: '"다음 단계"를 누르면 한 줄씩 열리고, 빈칸에 계산값을 넣으면 바로 확인해 준다. 표준편차는 개수 n으로 나누는 방식을 쓴다(구현에 따라 n−1로 나누기도 한다).',
         steps: [
           { say: '같은 문제를 네 번 풀었고 첫 번째 풀이만 맞았다. 점수는 1, 0, 0, 0이다. 평균은?', ask: { answer: 0.25, tol: 0.005 }, calc: String.raw`\bar r = \frac{1 + 0 + 0 + 0}{4} = 0.25` },
-          { say: '평균을 빼면 맞힌 풀이는 얼마가 되나?', ask: { answer: 0.75, tol: 0.005 }, calc: String.raw`1 - 0.25 = 0.75`, note: '틀린 풀이 세 개는 각각 $0 - 0.25 = -0.25$다. 더하면 $0.75 - 3\\times0.25 = 0$. 평균을 빼면 늘 합이 0이 된다.' },
-          { say: '표준편차는 "평균과의 차이를 제곱해 평균 낸 뒤 제곱근"이다. $(0.75^2 + 3\\times0.25^2)/4 = 0.1875$. 제곱근은?', ask: { answer: 0.433, tol: 0.005 }, calc: String.raw`\sigma = \sqrt{0.1875} \approx 0.433` },
+          { say: '평균을 빼면 맞힌 풀이는 얼마가 되나?', ask: { answer: 0.75, tol: 0.005 }, calc: String.raw`1 - 0.25 = 0.75`, note: '틀린 풀이 세 개는 각각 $0 - 0.25 = -0.25$다. 모두 더하면 $0.75 - 3\\times0.25 = 0$이다. 평균을 빼면 합은 항상 0이 된다.' },
+          { say: '표준편차는 평균과의 차이를 제곱해 평균을 낸 뒤 제곱근을 취한 값이다. $(0.75^2 + 3\\times0.25^2)/4 = 0.1875$다. 제곱근은?', ask: { answer: 0.433, tol: 0.005 }, calc: String.raw`\sigma = \sqrt{0.1875} \approx 0.433` },
           { say: '표준편차로 나누면 맞힌 풀이의 advantage는?', ask: { answer: 1.732, tol: 0.01 }, calc: String.raw`\hat A_1 = \frac{0.75}{0.433} \approx 1.73,\qquad \hat A_{2,3,4} = \frac{-0.25}{0.433} \approx -0.58`, note: '넷 중 하나만 맞힌 어려운 문제라서, 맞힌 풀이 하나가 큰 칭찬(+1.73)을 받는다.' },
-          { say: '이번에는 네 풀이가 모두 맞았다고 하자. 점수 1, 1, 1, 1. 평균은 1이고 모든 풀이가 평균과 같다. 맞힌 풀이 하나의 advantage는?', ask: { answer: 0, tol: 0.001 }, calc: String.raw`r_i - \bar r = 1 - 1 = 0`, note: '모두 같은 점수면 아무 풀이도 칭찬받지 않는다. 이 문제를 푸는 데 쓴 계산은 학습에 아무 영향을 주지 않는다. DAPO는 이런 문제를 버리고 다른 문제를 다시 뽑는다.' },
+          { say: '이번에는 네 풀이가 모두 맞았다. 점수는 1, 1, 1, 1이고 평균은 1이라 모든 풀이가 평균과 같다. 맞힌 풀이 하나의 advantage는?', ask: { answer: 0, tol: 0.001 }, calc: String.raw`r_i - \bar r = 1 - 1 = 0`, note: '모두 같은 점수면 아무 풀이도 칭찬받지 않는다. 이 문제를 푸는 데 쓴 계산은 학습에 아무 영향을 주지 않는다. DAPO는 이런 문제를 버리고 다른 문제를 다시 뽑는다.' },
         ],
       }),
       'grpo-calc': mountGRPOCalc,
@@ -182,27 +182,27 @@ $$r(x, y) = \mathbb{1}\big[\,\mathrm{verify}(x, y) = \text{정답}\,\big] \in \{
     },
     tacit: [
       { tag: 'math', t: 'KL이 있는 RLVR의 최적해는 "정답으로 조건화한 기준 모델"이다',
-        d: '<p>T5의 닫힌 해에 이진 보상을 넣으면 $\\pi^*(y|x) \\propto \\pi_{\\text{ref}}(y|x)\\,e^{\\mathbb{1}[\\text{정답}]/\\beta}$다. $\\beta\\to0$이면 $\\pi^* = \\pi_{\\text{ref}}(y\\mid x, \\text{정답})$, 즉 기준 모델의 사후분포다. 이 해는 기준 모델이 낼 수 있는 정답들 사이의 상대 비율을 그대로 보존한다. 그래서 정규화된 RLVR은 원리적으로 <strong>거절 샘플링(STaR, ReST)과 같은 목표</strong>를 갖고(T9, <a href="#memory">23장</a>), 기준 모델이 한 번도 못 푸는 문제는 풀 수 없다. 능력 경계 논쟁의 수학적 핵심이 여기 있다.</p>' },
+        d: '<p>T5의 닫힌 해에 이진 보상을 넣으면 $\\pi^*(y|x) \\propto \\pi_{\\text{ref}}(y|x)\\,e^{\\mathbb{1}[\\text{정답}]/\\beta}$다. $\\beta\\to0$이면 $\\pi^* = \\pi_{\\text{ref}}(y\\mid x, \\text{정답})$, 즉 기준 모델의 사후분포다. 이 해는 기준 모델이 낼 수 있는 정답들 사이의 상대 비율을 그대로 유지한다. 그래서 정규화된 RLVR은 원리상 <strong>거절 샘플링(STaR, ReST)과 목표가 같고</strong>(T9, <a href="#memory">23장</a>), 기준 모델이 한 번도 못 푸는 문제는 풀 수 없다. 능력 경계 논쟁도 수학적으로는 이 성질에서 출발한다.</p>' },
       { tag: 'algo', t: '가장 잘 배우는 문제는 정답률 50% 근처다',
-        d: '<p>이진 보상에서 한 프롬프트가 주는 기울기 신호의 크기는 보상 분산 $p(1-p)$에 비례한다(std 정규화를 하지 않을 때). $p\\approx0$이나 $p\\approx1$인 문제는 그룹 대부분이 같은 결과라 정보가 없다. 그래서 RLVR 데이터 구성의 실전 규칙은 "현재 모델이 가끔 맞히는 문제"를 고르는 것이고, 학습이 진행되면 이 집합이 이동하므로 커리큘럼이나 동적 샘플링이 필요하다. 시뮬레이터의 "신호 없는 그룹 비율" 곡선이 이 압력을 보여 준다.</p>' },
-      { tag: 'math', t: '엔트로피 붕괴는 공분산의 문제다',
-        d: '<p>softmax 정책에 자연 경사 형태의 갱신을 하면 엔트로피 변화는 대략 $-\\mathrm{Cov}_{a\\sim\\pi}\\big(\\log\\pi(a), A(a)\\big)$에 비례한다(Cui et al. 2025의 분석). 이미 확률이 높은 행동이 양의 advantage를 받으면 엔트로피가 줄고, 확률이 낮은 행동이 양의 advantage를 받으면 늘어난다. 검증 가능한 보상에서는 대개 전자가 지배하므로 엔트로피가 단조 감소하기 쉽다. clip-higher, 엔트로피 보너스, 높은 공분산 토큰만 골라 업데이트를 제한하는 방법들이 모두 이 항을 겨냥한다.</p>' },
+        d: '<p>이진 보상에서 한 프롬프트가 주는 기울기 신호의 크기는 보상 분산 $p(1-p)$에 비례한다(표준편차로 나누지 않을 때). $p\\approx0$이나 $p\\approx1$인 문제는 그룹 대부분이 같은 결과라 얻을 정보가 없다. 그래서 RLVR 데이터를 구성할 때는 현재 모델이 가끔 맞히는 문제를 고른다. 학습이 진행되면 그런 문제의 집합도 바뀌므로 커리큘럼이나 동적 샘플링이 필요하다. 시뮬레이터의 "신호 없는 그룹 비율" 곡선이 이 변화를 보여 준다.</p>' },
+      { tag: 'math', t: '엔트로피 붕괴는 공분산으로 설명된다',
+        d: '<p>softmax 정책을 자연 경사 형태로 갱신하면 엔트로피 변화는 대략 $-\\mathrm{Cov}_{a\\sim\\pi}\\big(\\log\\pi(a), A(a)\\big)$에 비례한다(Cui et al. 2025의 분석). 이미 확률이 높은 행동이 양의 advantage를 받으면 엔트로피가 줄고, 확률이 낮은 행동이 양의 advantage를 받으면 엔트로피가 늘어난다. 검증 가능한 보상에서는 대개 앞의 경우가 많아 엔트로피가 계속 줄어들기 쉽다. clip-higher, 엔트로피 보너스, 공분산이 큰 토큰만 골라 업데이트를 제한하는 방법이 모두 이 항을 겨냥한다.</p>' },
       { tag: 'algo', t: '결과 보상에서는 모든 토큰이 같은 advantage를 받는다',
-        d: '<p>$\\gamma=1$, 결정적 전이, 끝 보상 하나인 토큰 MDP에서 GRPO는 응답의 모든 토큰에 같은 $\\hat A_i$를 준다. "어느 토큰이 결정적이었는가"는 오직 여러 샘플을 비교하는 통계로만 드러난다. 같은 토큰이 정답 풀이와 오답 풀이에 모두 나오면 신호가 상쇄되고, 정답 풀이에만 나오는 토큰이 살아남는다. 토큰 수준 신용 할당이 필요하면 접두어의 가치를 추정해야 하고, 그것이 PRM과 VinePPO의 MC rollout이다.</p>' },
+        d: '<p>$\\gamma=1$이고 전이가 결정적이며 보상이 끝에 하나뿐인 토큰 MDP에서, GRPO는 응답의 모든 토큰에 같은 $\\hat A_i$를 준다. 어느 토큰이 결과를 갈랐는지는 여러 샘플을 비교한 통계로만 드러난다. 같은 토큰이 정답 풀이와 오답 풀이에 모두 나오면 신호가 상쇄되고, 정답 풀이에만 나오는 토큰의 신호가 남는다. 토큰 수준 신용 할당이 필요하면 접두어의 가치를 추정해야 하고, PRM과 VinePPO의 몬테카를로 롤아웃이 그 역할을 한다.</p>' },
       { tag: 'practice', t: '길이 증가가 곧 추론 능력의 증가는 아니다',
-        d: '<p>R1-Zero 이후 "학습 중 응답 길이가 늘어난다"가 성공의 신호처럼 쓰였다. 하지만 GRPO의 $1/|o_i|$ 정규화는 긴 오답을 덜 벌주는 편향을 갖고, Liu et al.(2025)은 이 편향이 특히 오답의 길이를 부풀릴 수 있다고 지적했다. 길이 곡선은 정답·오답을 나눠서, 그리고 정규화 방식을 확인하고 읽어야 한다.</p>' },
-      { tag: 'research', t: '기반 모델이 이미 가진 것을 먼저 의심하라',
-        d: '<p>RL 후 나타난 "자기 검토" 행동이 기반 모델의 샘플에도 이미 일정 빈도로 존재한다는 관찰(Liu et al. 2025)과, 특정 모델 계열에서는 무작위에 가까운 보상으로도 수학 점수가 오른다는 보고(Shao et al. 2025, <em>Spurious Rewards</em>)가 있다. 둘 다 RLVR의 효과 상당 부분이 기반 모델의 기존 분포를 재가중하는 데서 온다는 해석과 맞는다. 새 RLVR 결과를 볼 때는 (1) 기반 모델의 pass@k, (2) 다른 모델 계열에서의 재현 여부를 먼저 확인하는 것이 좋다.</p>' },
-      { tag: 'algo', t: 'GRPO는 PPO에서 critic을 뺀 것이 아니라 "밴딧으로 다시 본 것"이다',
-        d: '<p>advantage가 토큰마다 다르지 않으므로 GRPO는 사실상 응답 전체를 행동 하나로 보는 문맥 밴딧(contextual bandit)의 정책 경사다. 클립과 중요도비는 같은 배치를 여러 번 재사용하기 위한 장치로만 남는다. 실제로 많은 설정에서 on-policy 한 번만 갱신하면 $\\rho=1$이라 클립이 작동하지 않고, GRPO는 그룹 baseline을 쓴 REINFORCE가 된다. RLOO 논문의 주장도 같은 맥락이다.</p>' },
+        d: '<p>R1-Zero 이후 학습 중 응답 길이가 늘어나는 것이 성공의 신호처럼 여겨졌다. 하지만 GRPO의 $1/|o_i|$ 정규화에는 긴 오답을 덜 벌주는 편향이 있고, Liu et al.(2025)은 이 편향이 특히 오답의 길이를 부풀릴 수 있다고 지적했다. 길이 곡선은 정답과 오답을 나눠서 보고, 어떤 정규화를 썼는지 확인한 뒤 해석해야 한다.</p>' },
+      { tag: 'research', t: '기반 모델이 원래 가진 능력부터 확인한다',
+        d: '<p>RL 뒤에 나타난 자기 검토 행동이 기반 모델의 샘플에도 이미 일정한 빈도로 있다는 관찰이 있다(Liu et al. 2025). 특정 모델 계열에서는 무작위에 가까운 보상으로도 수학 점수가 오른다는 보고도 있다(Shao et al. 2025, <em>Spurious Rewards</em>). 두 결과 모두 RLVR 효과의 상당 부분이 기반 모델의 기존 분포를 재가중하는 데서 온다는 해석과 맞는다. 새 RLVR 결과를 볼 때는 (1) 기반 모델의 pass@k와 (2) 다른 모델 계열에서도 재현되는지를 먼저 확인하는 것이 좋다.</p>' },
+      { tag: 'algo', t: 'GRPO는 사실상 LLM 생성을 밴딧 문제로 다시 본 방법이다',
+        d: '<p>advantage가 토큰마다 다르지 않으므로 GRPO는 응답 전체를 행동 하나로 보는 문맥 밴딧(contextual bandit)의 정책 경사와 같다. 클립과 중요도비는 같은 배치를 여러 번 다시 쓰기 위한 장치로만 남는다. 많은 설정에서 on-policy로 한 번만 갱신하면 $\\rho=1$이라 클립이 작동하지 않고, GRPO는 그룹 baseline을 쓴 REINFORCE가 된다. RLOO 논문의 주장도 같은 맥락이다.</p>' },
     ],
     quiz: [
       { q: '정답/오답 이진 보상에서 그룹 8개가 모두 정답이면 GRPO advantage는?', options: ['모두 +1', '모두 0', '길이에 비례', '표준편차가 0이라 정의되지 않으므로 무한대'], answer: 1,
-        explain: '$r_i - \\bar r = 0$이므로 분자가 0이다. 구현은 분모에 작은 $\\epsilon$을 더해 0으로 처리한다. 이런 그룹은 계산 비용만 쓰고 신호가 없어서 DAPO는 버리고 다시 샘플링한다.' },
+        explain: '$r_i - \\bar r = 0$이므로 분자가 0이다. 구현은 분모에 작은 $\\epsilon$을 더해 0으로 처리한다. 이런 그룹은 계산 비용만 들고 신호가 없으므로 DAPO는 버리고 다시 샘플링한다.' },
       { q: '자기 자신을 포함한 그룹 평균을 baseline으로 빼도 경사 추정이 불편인 이유는?', options: ['그룹 평균이 0이기 때문', 'leave-one-out baseline에 상수 $\\frac{G-1}{G}$를 곱한 것과 같기 때문', '표준편차로 나누기 때문', '클립이 편향을 상쇄하기 때문'], answer: 1,
         explain: '$r_i - \\bar r = \\frac{G-1}{G}(r_i - \\bar r_{-i})$. 자기 자신을 뺀 평균은 $o_i$와 독립이라 불편이고, 상수배는 학습률에 흡수된다.' },
       { q: 'GRPO의 응답별 길이 정규화 $1/|o_i|$가 만드는 편향은?', options: ['짧은 오답을 덜 벌준다', '긴 오답의 토큰당 벌점을 줄여 긴 오답을 상대적으로 덜 억제한다', '긴 정답의 토큰당 보상을 키운다', '편향이 없다'], answer: 1,
-        explain: '오답의 advantage는 음수인데 토큰당 가중치가 $\\hat A_i/|o_i|$라 길수록 벌점이 희석된다. 계산기에서 오답 길이를 늘려 확인해 보라.' },
+        explain: '오답의 advantage는 음수인데 토큰당 가중치가 $\\hat A_i/|o_i|$라 길수록 벌점이 희석된다. 계산기에서 오답 길이를 늘리면 확인할 수 있다.' },
       { q: 'KL 정규화된 RLVR의 최적 정책에서 $\\beta \\to 0$이면?', options: ['균등분포', '보상이 가장 큰 응답 하나에 확률 1', '정답으로 조건화한 기준 모델 분포 $\\pi_{\\text{ref}}(y|x,\\text{정답})$', '기준 모델 그대로'], answer: 2,
         explain: '$\\pi^* \\propto \\pi_{\\text{ref}}e^{r/\\beta}$에서 정답의 가중치만 무한히 커지므로 오답의 질량이 0이 되고, 정답들 사이의 상대 비율은 $\\pi_{\\text{ref}}$ 그대로 남는다. 거절 샘플링과 같은 분포다.' },
     ],
@@ -219,7 +219,7 @@ $$r(x, y) = \mathbb{1}\big[\,\mathrm{verify}(x, y) = \text{정답}\,\big] \in \{
       { t: '답: 10개.', ok: 1 },
     ];
     const N = sols.length, eta = 2;
-    const p = ui.panel(el, { kind: 'TRY', title: '내가 채점 프로그램: 풀이 6개 채점하기', caption: '각 풀이 아래에서 "맞음" 또는 "틀림"을 눌러라. 6개를 다 채점하면 각 풀이가 다음에 더 자주 쓰일지(초록) 덜 쓰일지(빨강)가 막대로 보인다. "모두 맞음"도 눌러 보라.' });
+    const p = ui.panel(el, { kind: 'TRY', title: '내가 채점 프로그램: 풀이 6개 채점하기', caption: '각 풀이 아래의 "맞음" 또는 "틀림"을 누른다. 6개를 모두 채점하면 각 풀이가 다음에 더 자주 쓰일지(초록) 덜 쓰일지(빨강)가 막대로 나타난다. "모두 맞음"을 누르면 신호가 모두 0이 되는 경우를 볼 수 있다.' });
     const prob = document.createElement('div');
     prob.className = 'fx-detail';
     prob.innerHTML = '<strong>문제</strong>: 사과가 3개씩 든 봉지가 4개 있다. 그중 사과 2개를 먹었다. 남은 사과는 몇 개인가?';
@@ -279,8 +279,8 @@ $$r(x, y) = \mathbb{1}\big[\,\mathrm{verify}(x, y) = \text{정답}\,\big] \in \{
       const k = sim.sum(grades);
       const wrongKey = sim.range(N).filter((i) => grades[i] !== sols[i].ok).map((i) => i + 1);
       let t;
-      if (sd < 1e-9) t = '6개가 모두 ' + (k ? '맞음' : '틀림') + '이다. 모두 평균과 같은 점수라 <strong>어떤 풀이도 신호를 받지 않는다</strong>. 이 문제에 쓴 계산은 학습에 아무 영향이 없다. DAPO 같은 방법은 이런 문제를 버리고 다른 문제를 다시 뽑는다.';
-      else t = '6개 중 ' + k + '개가 맞았다. 평균은 ' + m.toFixed(2) + '. 맞힌 풀이는 <span class="col-good">' + ((1 - m) / sd).toFixed(2) + '</span>, 틀린 풀이는 <span class="col-bad">' + ((0 - m) / sd).toFixed(2) + '</span>를 받는다. 맞힌 풀이가 적을수록 하나가 받는 칭찬이 커진다.';
+      if (sd < 1e-9) t = '6개 모두 ' + (k ? '맞음' : '틀림') + '으로 채점했다. 모든 풀이의 점수가 평균과 같아서 <strong>어떤 풀이도 신호를 받지 않는다</strong>. 이 문제에 쓴 계산은 학습에 아무 영향이 없다. DAPO 같은 방법은 이런 문제를 버리고 다른 문제를 다시 뽑는다.';
+      else t = '6개 중 ' + k + '개가 맞았다. 평균은 ' + m.toFixed(2) + '이다. 맞힌 풀이는 <span class="col-good">' + ((1 - m) / sd).toFixed(2) + '</span>, 틀린 풀이는 <span class="col-bad">' + ((0 - m) / sd).toFixed(2) + '</span>만큼의 신호를 받는다. 맞힌 풀이가 적을수록 맞힌 풀이 하나가 받는 칭찬이 커진다.';
       if (wrongKey.length) t += ' <strong>정답표와 다르게 채점한 풀이: ' + wrongKey.join(', ') + '번.</strong> 채점기가 틀리면 틀린 풀이를 칭찬하게 되고, 모델은 그 실수를 그대로 배운다.';
       msg.innerHTML = t;
       ab.update({ series: [{ name: '신호', values: A, colors: A.map((a) => (a > 1e-9 ? 'good' : a < -1e-9 ? 'bad' : 'c6')) }] });
@@ -294,7 +294,7 @@ $$r(x, y) = \mathbb{1}\big[\,\mathrm{verify}(x, y) = \text{정답}\,\big] \in \{
 
   /* ---------- GRPO 그룹 계산기 ---------- */
   function mountGRPOCalc(el) {
-    const p = ui.panel(el, { kind: 'CALC', title: '한 그룹의 advantage와 토큰 가중치', caption: '"정답/오답" 버튼과 길이 칸을 바꿔 보라. 아래 막대는 각 풀이의 토큰 하나가 받는 신호다(초록은 올리기, 빨강은 내리기). GRPO에서 오답의 길이를 늘리면 빨간 막대가 짧아진다. 손실 정규화를 Dr. GRPO로 바꾸면 길이와 무관해진다.' });
+    const p = ui.panel(el, { kind: 'CALC', title: '한 그룹의 advantage와 토큰 가중치', caption: '"정답/오답" 버튼과 길이 칸을 바꾸면 결과가 바로 바뀐다. 아래 막대는 각 응답의 토큰 하나가 받는 신호다(초록은 올리기, 빨강은 내리기). GRPO에서 오답의 길이를 늘리면 빨간 막대가 짧아지고, 손실 정규화를 Dr. GRPO로 바꾸면 막대 길이가 응답 길이와 무관해진다.' });
     const ctr = ui.row(p.body);
     let G = 8;
     let correct = [1, 0, 1, 0, 0, 1, 0, 1];
@@ -392,7 +392,7 @@ $$r(x, y) = \mathbb{1}\big[\,\mathrm{verify}(x, y) = \text{정답}\,\big] \in \{
   /* ---------- 그룹 학습 동역학 장난감 ---------- */
   function mountGRPOSim(el) {
     const P = 200, K = 6, B = 64, ITERS = 300;
-    const p = ui.panel(el, { kind: 'SIM', title: '전략 6개 · 문제 200개 세계의 GRPO 학습', caption: '"다시 학습"이나 "애니메이션으로 보기"를 눌러 보라. 위 그래프에서 파란선(한 번에 맞힐 확률)은 오르는데 주황선(16번 중 한 번이라도 맞힐 확률)은 내려간다. KL 계수를 올리면 그 하락이 줄어든다.' });
+    const p = ui.panel(el, { kind: 'SIM', title: '전략 6개 · 문제 200개 세계의 GRPO 학습', caption: '"다시 학습"이나 "애니메이션으로 보기"를 누르면, 위 그래프에서 파란 선(한 번에 맞힐 확률)은 오르는데 주황 선(16번 중 한 번이라도 맞힐 확률)은 내려간다. KL 계수를 올리면 그 하락 폭이 줄어든다.' });
     const ctr = ui.row(p.body);
     const gS = ui.slider(ctr, { label: '그룹 크기 $G$', min: 2, max: 16, step: 1, value: 8, format: ui.fmt.int, onInput: () => run(false) });
     const lrS = ui.slider(ctr, { label: '학습률', min: 0.1, max: 2, step: 0.05, value: 0.6, format: ui.fmt.f(2), onInput: () => run(false) });
