@@ -76,7 +76,7 @@ $$L^{\text{KLPEN}}(\theta) = \mathbb{E}_t\Big[r_t(\theta)\hat A_t - \beta\,\math
 
 <h2>LLM에서의 PPO</h2>
 <p>InstructGPT(Ouyang et al. 2022)의 RLHF는 PPO를 토큰 단위로 돌린다. 응답 끝에 보상 모델 점수를 주고, 매 토큰에 기준 모델과의 로그비율 페널티를 더한다. value head가 토큰별 가치를 예측하고, GAE($\gamma=1$)로 advantage를 만든다(<a href="#rlhf">19장</a>).</p>
-$$r_t = -\beta\log\frac{\pi_\theta(y_t|x,y_{<t})}{\pi_{\text{ref}}(y_t|x,y_{<t})} + \mathbb{1}[t = T]\cdot r_\phi(x, y)$$
+$$r_t = -\beta\log\frac{\pi_\theta(y_t|x,y_{\lt t})}{\pi_{\text{ref}}(y_t|x,y_{\lt t})} + \mathbb{1}[t = T]\cdot r_\phi(x, y)$$
 <p>GRPO(Shao et al. 2024)는 여기서 critic을 지우고 같은 프롬프트의 응답 $G$개로 정규화한 상대 보상을 모든 토큰의 advantage로 쓴다. clip 목적함수는 그대로 유지한다. 즉 GRPO는 "critic 없는 PPO"다(<a href="#reasoning">21장</a>).</p>
 
 <h2>파생 알고리즘: 무엇이 바뀌었나</h2>

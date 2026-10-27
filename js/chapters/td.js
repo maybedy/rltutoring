@@ -85,7 +85,7 @@ $$G_t^{(n)} = r_{t+1} + \gamma r_{t+2} + \cdots + \gamma^{n-1}r_{t+n} + \gamma^n
 <tr><td>SARSA, Q-learning <a href="#qlearning">07</a></td><td>$r + \gamma Q(s',a')$, $r + \gamma\max Q$</td><td>V → Q, 예측 → 제어</td></tr>
 <tr><td>GAE <a href="#ac">12</a></td><td>$\sum_k(\gamma\lambda)^k\delta_{t+k}$</td><td>가치 타깃 → advantage 추정 (같은 식)</td></tr>
 <tr><td>Retrace, V-trace (IMPALA)</td><td>절단된 중요도 가중 trace</td><td>on-policy → off-policy, 중요도 비율을 1에서 자름</td></tr>
-<tr><td>DQN n-step, R2D2</td><td>$\sum_{k<n}\gamma^k r + \gamma^n\max Q_{\bar\theta}$</td><td>표 → 신경망, 리플레이와 결합 <a href="#dqn">10</a></td></tr>
+<tr><td>DQN n-step, R2D2</td><td>$\sum_{k\lt n}\gamma^k r + \gamma^n\max Q_{\bar\theta}$</td><td>표 → 신경망, 리플레이와 결합 <a href="#dqn">10</a></td></tr>
 </tbody></table></div>
 `,
     mount: {

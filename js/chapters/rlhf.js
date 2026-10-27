@@ -85,7 +85,7 @@ $$\pi^*(y\mid x) = \frac{1}{Z(x)}\,\pi_{\text{ref}}(y\mid x)\,\exp\!\Big(\frac{r
 
 <h2>LLM을 위한 PPO</h2>
 <p>LLM 생성은 <a href="#llm-mdp">18장</a>의 토큰 MDP다. 상태는 프롬프트와 지금까지의 토큰, 행동은 다음 토큰, 전이는 결정적이고, $\gamma = 1$이 보통이다. InstructGPT 계열 구현은 KL을 <strong>토큰마다 보상에 섞고</strong>, RM 점수는 마지막 토큰에만 준다.</p>
-$$r_t = -\beta \log\frac{\pi_\theta(y_t\mid x, y_{<t})}{\pi_{\text{ref}}(y_t\mid x, y_{<t})} \;+\; \mathbb{1}[t = T]\; r_\phi(x, y)$$
+$$r_t = -\beta \log\frac{\pi_\theta(y_t\mid x, y_{\lt t})}{\pi_{\text{ref}}(y_t\mid x, y_{\lt t})} \;+\; \mathbb{1}[t = T]\; r_\phi(x, y)$$
 <p>토큰별 로그비를 다 더하면 $\log\frac{\pi_\theta(y|x)}{\pi_{\text{ref}}(y|x)}$, 즉 시퀀스 KL의 단일 샘플 추정량이 된다. 그 위에 가치 헤드(critic) $V_\psi(s_t)$를 두고 <a href="#ac">12장</a>의 GAE로 토큰별 advantage를 만든 뒤 <a href="#ppo">13장</a>의 클립 목적을 그대로 적용한다. 아래 계산기로 희소한 끝 보상이 GAE의 $\lambda$에 따라 앞쪽 토큰으로 어떻게 흘러가는지 보자.</p>
 <div data-w="token-calc"></div>
 <div class="grid2">

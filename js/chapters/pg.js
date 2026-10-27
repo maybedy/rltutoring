@@ -323,7 +323,7 @@ $$\underbrace{\nabla_\theta\,\mathbb{E}_{(s,a)\sim\mathcal{D}}\big[\log\pi_\thet
       st.set('true', dJc(pp).toFixed(3));
       bc.update({ series: [{ name: '표준편차', color: 'c1', colors: ['c4', 'c1', 'c3', 'c2'], values: stds }] });
       tbl.innerHTML = '<table class="t"><thead><tr><th>추정량</th><th>평균 (N개)</th><th>평균의 표준오차</th><th>표준편차 (1개)</th></tr></thead><tbody>' +
-        names.map((nm, k) => '<tr><td>' + nm + '</td><td class="num">' + means[k].toFixed(3) + '</td><td class="num">± ' + (stds[k] / Math.sqrt(N)).toFixed(3) + '</td><td class="num">' + stds[k].toFixed(2) + '</td></tr>').join('') +
+        names.map((nm, k) => '<tr><td>' + nm + '</td><td class="num" style="white-space:nowrap">' + means[k].toFixed(3) + '</td><td class="num" style="white-space:nowrap">± ' + (stds[k] / Math.sqrt(N)).toFixed(3) + '</td><td class="num" style="white-space:nowrap">' + stds[k].toFixed(2) + '</td></tr>').join('') +
         '</tbody></table>';
     }
     run();

@@ -48,7 +48,7 @@ $$\hat A_t^{(n)} = r_{t+1} + \gamma r_{t+2} + \cdots + \gamma^{n-1}r_{t+n} + \ga
 <h2>A3C와 A2C: 병렬 actor</h2>
 <p>DQN은 리플레이 버퍼로 연속된 샘플 간 상관을 깬다(<a href="#dqn">10장</a>). 하지만 on-policy 정책 경사는 예전 정책의 데이터를 쓸 수 없다. Mnih et al.(2016)의 <strong>A3C</strong>는 여러 환경 사본에서 actor들을 동시에 돌려 서로 다른 경험을 섞음으로써 같은 효과를 얻었다.</p>
 <div class="w wide" style="box-shadow:none"><div class="w-body">
-<svg viewBox="0 0 640 210" role="img" aria-label="A3C 구조">
+<svg viewBox="0 0 640 210" role="img" aria-label="A3C 구조" style="width:100%;max-width:680px">
   <defs><marker id="ac-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" style="fill:var(--muted)"/></marker></defs>
   <rect x="210" y="12" width="220" height="48" rx="8" style="fill:var(--accent-soft);stroke:var(--accent)"/>
   <text x="320" y="33" text-anchor="middle" style="fill:var(--ink);font-size:14px;font-weight:600">전역 파라미터 θ, w</text>
@@ -65,8 +65,8 @@ $$\hat A_t^{(n)} = r_{t+1} + \gamma r_{t+2} + \cdots + \gamma^{n-1}r_{t+n} + \ga
   <g style="stroke:var(--accent);stroke-width:1.2;fill:none;stroke-dasharray:4 3">
     <path d="M240 62 L96 128" marker-end="url(#ac-ar)"/><path d="M400 62 L566 128" marker-end="url(#ac-ar)"/>
   </g>
-  <text x="140" y="96" style="fill:var(--signal);font-size:11px">경사 ∇ 전송</text>
-  <text x="470" y="96" style="fill:var(--accent);font-size:11px">파라미터 복사</text>
+  <text x="8" y="104" style="fill:var(--signal);font-size:11px">경사 ∇ 전송</text>
+  <text x="632" y="104" text-anchor="end" style="fill:var(--accent);font-size:11px">파라미터 복사</text>
 </svg></div></div>
 <p>각 worker의 손실은 세 항의 합이다. $n$-step(보통 5~20) advantage를 쓰고, 정책이 너무 빨리 결정적으로 굳지 않도록 엔트로피 보너스를 더한다.</p>
 $$\mathcal{L}(\theta, w) = -\sum_t \log\pi_\theta(a_t|s_t)\,\sg\!\big[\hat A_t\big] \;+\; c_v\sum_t\big(\hat R_t - V_w(s_t)\big)^2 \;-\; c_H\sum_t \mathcal{H}\big(\pi_\theta(\cdot|s_t)\big)$$

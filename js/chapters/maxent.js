@@ -169,7 +169,7 @@ $$J(\alpha) = \mathbb{E}_{a\sim\pi}\big[-\alpha\,(\log\pi(a|s) + \bar{\mathcal{H
 
   /* ---------- 볼츠만 vs 가우시안 적합 ---------- */
   function mountBoltz(el) {
-    const p = ui.panel(el, { kind: 'CALC', title: '$\\pi^*\\propto e^{Q/\\alpha}$와 가우시안 actor (역방향 KL vs 정방향 KL)' });
+    const p = ui.panel(el, { kind: 'CALC', title: '$\\pi^*\\propto e^{Q/\\alpha}$와 가우시안 actor (역방향 KL vs 정방향 KL)', caption: '행동 구간 $[-4,4]$의 균등분포를 기준 측도로 쓴다. 그래서 위젯의 soft 가치는 $V = \\alpha\\log\\mathbb{E}_{a\\sim U}[e^{Q/\\alpha}] = \\mathbb{E}_{\\pi^*}[Q] - \\alpha\\,\\mathrm{KL}(\\pi^*\\|U)$이고, 유도의 $\\alpha\\log\\int e^{Q/\\alpha}da$와는 상수 $\\alpha\\log 8$만큼 다르다.' });
     const ctr = ui.row(p.body);
     const aS = ui.slider(ctr, { label: '온도 $\\alpha$', min: 0.02, max: 2, step: 0.01, value: 0.15, format: ui.fmt.f(2), onInput: draw });
     const h1 = ui.slider(ctr, { label: '봉우리 1 높이', min: 0, max: 1.5, step: 0.05, value: 0.8, format: ui.fmt.f(2), onInput: draw });
@@ -179,9 +179,9 @@ $$J(\alpha) = \mathbb{E}_{a\sim\pi}\big[-\alpha\,(\log\pi(a|s) + \bar{\mathcal{H
     const wS = ui.slider(ctr, { label: '봉우리 폭', min: 0.2, max: 1.2, step: 0.05, value: 0.45, format: ui.fmt.f(2), onInput: draw });
     const st = ui.stats(p.body, [
       { key: 'max', label: '$\\max_a Q$' },
-      { key: 'v', label: 'soft 가치 $V$', tone: 'accent' },
+      { key: 'v', label: 'soft 가치 $V$ (균등 기준)', tone: 'accent' },
       { key: 'eq', label: '$\\mathbb{E}_{\\pi^*}[Q]$' },
-      { key: 'h', label: '$\\mathcal{H}(\\pi^*)$ (nats)' },
+      { key: 'h', label: '$\\mathcal{H}(\\pi^*)$ (미분 엔트로피)' },
       { key: 'rev', label: '역방향 KL 가우시안 $\\mu,\\sigma$', tone: 'accent' },
       { key: 'fwd', label: '정방향 KL 가우시안 $\\mu,\\sigma$', tone: 'signal' },
     ]);
@@ -301,7 +301,7 @@ $$J(\alpha) = \mathbb{E}_{a\sim\pi}\big[-\alpha\,(\log\pi(a|s) + \bar{\mathcal{H
       bc.update({ series: [{ name: '표준편차', color: 'c1', colors: ['c4', 'c2', 'c3'], values: stds }] });
       const nm = ['점수함수 $Q(a)\\,\\epsilon/\\sigma$', '점수함수 + baseline (leave-one-out 보정)', '재매개화 $Q\'(\\mu+\\sigma\\epsilon)$'];
       tbl.innerHTML = '<table class="t"><thead><tr><th>추정량</th><th>평균</th><th>표준편차</th></tr></thead><tbody>' +
-        nm.map((x, k) => '<tr><td>' + x + '</td><td class="num">' + means[k].toFixed(4) + '</td><td class="num">' + stds[k].toFixed(4) + '</td></tr>').join('') + '</tbody></table>';
+        nm.map((x, k) => '<tr><td>' + x + '</td><td class="num" style="white-space:nowrap">' + means[k].toFixed(4) + '</td><td class="num" style="white-space:nowrap">' + stds[k].toFixed(4) + '</td></tr>').join('') + '</tbody></table>';
       RL.renderMath(tbl);
     }
     run();

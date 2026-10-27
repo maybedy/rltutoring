@@ -70,7 +70,7 @@ $$\nabla_\theta\mathcal{L}_{\text{DPO}} = -\beta\,\mathbb{E}\Big[\underbrace{\si
 
 <h2>토큰 단위로 보면: DPO는 Q-함수를 배운다</h2>
 <p>응답 전체의 로그비는 토큰별 로그비의 합이다.</p>
-$$\beta\log\frac{\pi_\theta(y|x)}{\pi_{\text{ref}}(y|x)} = \sum_{t=1}^{T}\beta\log\frac{\pi_\theta(y_t\mid x, y_{<t})}{\pi_{\text{ref}}(y_t\mid x, y_{<t})}$$
+$$\beta\log\frac{\pi_\theta(y|x)}{\pi_{\text{ref}}(y|x)} = \sum_{t=1}^{T}\beta\log\frac{\pi_\theta(y_t\mid x, y_{\lt t})}{\pi_{\text{ref}}(y_t\mid x, y_{\lt t})}$$
 <p>Rafailov et al.(2024, <em>From r to Q*</em>)은 결정적 전이를 갖는 토큰 MDP에서 최대 엔트로피 RL의 최적 해가 $\beta\log\frac{\pi^*}{\pi_{\text{ref}}}(y_t|s_t) = Q^*(s_t,y_t) - V^*(s_t)$, 즉 <strong>soft advantage</strong>를 만족한다는 점을 이용해, DPO로 학습한 정책의 토큰별 로그비가 토큰 단위 신용 할당 신호로 해석될 수 있음을 보였다. <a href="#qviews">08장</a>의 soft Q, <a href="#llm-mdp">18장</a>의 토큰 MDP와 같은 이야기다. 시퀀스 수준의 선호 학습이 토큰 수준의 가치 함수를 암묵적으로 학습한다.</p>
 `,
     mount: {
