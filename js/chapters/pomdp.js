@@ -10,6 +10,17 @@
     level: '중급',
     prereq: ['mdp', 'bellman'],
     theses: ['T1', 'T7'],
+    easy: {
+      hook: '눈을 가리고 있다면, 들은 소리로 "어느 쪽일 것 같은가"를 확률로 들고 다니면 된다.',
+      intro: '<p>두 문 중 하나 뒤에 호랑이가 있다. 문 너머는 보이지 않지만 소리는 들을 수 있다. 소리는 100번 중 85번은 호랑이가 있는 쪽에서 들린다. 처음엔 반반이다. "왼쪽에서 소리"를 들으면 왼쪽일 확률이 올라가고, 한 번 더 들으면 더 올라간다.</p><p>이렇게 지금까지 들은 것을 "어느 쪽일 확률"이라는 숫자 하나로 정리한 것을 <strong>믿음</strong>이라 부른다. 믿음만 있으면 들은 소리를 하나하나 기억하지 않아도 된다. 그리고 믿음이 애매할수록(50%에 가까울수록) 문을 열기 전에 한 번 더 들어 보는 것이 이득이다.</p>',
+      analogy: '일기예보와 같다. "내일 비 올 확률 70%"라는 숫자 하나가 지금까지 본 구름, 바람, 기압을 모두 요약한다. 우산을 챙길지는 그 숫자만 보고 정한다. 확률이 50%에 가까워 가장 애매할 때 창밖을 한 번 더 내다보는 일, 즉 정보를 더 얻는 일의 가치가 가장 크다.',
+      path: ['소리를 듣고 확률을 감으로 맞혀 본 뒤, 정확한 계산과 비교한다', '같은 계산을 숫자로 한 단계씩 손으로 해 본다', '호랑이 게임을 하며 언제 더 듣고 언제 문을 열지 정해 본다', 'LLM이 사용자의 속마음을 모르는 상황도 같은 구조임을 본다'],
+      recap: [
+        '진짜 상황이 안 보이면, 지금까지 본 단서로 "어느 상황일 확률"을 계산해 그 확률을 상황 대신 쓴다.',
+        '새 단서가 오면 "원래 확률 × 그 상황이라면 이 단서가 나올 확률"을 계산하고, 전부 더해 1이 되도록 나누면 새 확률이 된다.',
+        '확신할수록 점수가 높고 애매할수록 낮다. 그래서 애매할 때는 비용을 조금 내고라도 정보를 모으는 것이 이득이다.',
+      ],
+    },
     goals: [
       'POMDP 7-튜플과 관측 모델 $O(o\\mid s\',a)$의 역할을 설명할 수 있다.',
       '베이즈 필터로 믿음 갱신식 $b\' = \\tau(b,a,o)$를 유도할 수 있다.',
@@ -25,6 +36,9 @@
 
 <h2>믿음 상태: 역사의 충분통계량</h2>
 <p><strong>믿음(belief)</strong> $b_t(s) = \Pr(s_t = s \mid h_t)$는 지금 어느 상태에 있는지에 대한 사후확률이다. Åström(1965)이 보였듯 믿음은 최적 제어를 위한 <em>충분통계량</em>이다. 믿음만 알면 역사를 버려도 최적 행동을 고를 수 있다. 그리고 믿음은 재귀적으로 갱신된다.</p>
+<p>공식보다 감부터 잡아 보자. 아래에서 소리를 하나씩 듣고 "왼쪽일 확률"을 슬라이더로 맞혀 본 뒤, 정확한 계산과 비교한다. 이어서 같은 계산을 손으로 한 단계씩 해 본다.</p>
+<div data-w="try-belief"></div>
+<div data-w="step-belief"></div>
 <div data-w="dv-belief"></div>
 <div class="key"><span class="label">관점 전환</span>믿음을 상태로 보면 POMDP는 <strong>믿음 MDP</strong>라는 (연속 상태) MDP가 된다. 상태 공간은 확률 단체(simplex) $\Delta(\mathcal{S})$이고, 전이는 "관측을 샘플하고 베이즈 갱신"이며, 보상은 $\rho(b,a)=\sum_s b(s)R(s,a)$이다. 따라서 벨만 방정식, 축약 사상(T1), 가치 반복이 모두 그대로 성립한다. 어려움은 상태 공간이 연속이라는 점 하나다.</div>
 <div data-w="fx-bellman"></div>
@@ -38,6 +52,7 @@
 
 <h2>Tiger 문제</h2>
 <p>Kaelbling, Littman & Cassandra(1998)의 고전 예제다. 두 문 중 하나 뒤에 호랑이가 있다. 호랑이 문을 열면 −100, 반대 문을 열면 +10을 받고 문제는 초기화된다(호랑이 위치 재추첨). <em>듣기</em>는 −1의 비용이 들고, 정확도 $q$로 호랑이가 있는 쪽 소리를 들려준다. 믿음은 $b = \Pr(\text{호랑이가 왼쪽})$ 하나의 숫자다.</p>
+<div data-w="try-open"></div>
 <div data-w="tiger-play"></div>
 <p>아래 그래프는 같은 문제의 <strong>정확한</strong> 유한 지평 가치 함수다. 알파 벡터를 모두 열거해 백업하고, 어떤 믿음에서도 최대가 되지 않는 벡터는 가지치기했다. 얇은 선 하나하나가 알파 벡터(조건부 계획)이고, 색은 그 계획의 첫 행동이다. 굵은 선이 $V_t(b)$이고, 체크박스를 켜면 QMDP 근사(점선)가 겹쳐진다. 2상태 문제라 가지치기 후에는 벡터 수가 지평에 대해 거의 선형으로만 늘어난다.</p>
 <div data-w="tiger-alpha"></div>
@@ -73,17 +88,19 @@
     mount: {
       'fx-tuple': (el) => ui.formula(el, {
         title: 'POMDP 7-튜플',
+        say: '{S|보이지 않는 진짜 상황}은 {P|정해진 규칙대로 바뀌고}, 에이전트는 그 대신 {Om|센서가 내놓는 단서}만 받는다. 어떤 단서가 나올지는 {O|도착한 진짜 상황에 따라 정해진 확률}을 따른다. 그래서 에이전트는 {b|지금까지의 단서로 계산한 "어느 상황일 확률"}을 들고 다닌다.',
         tex: String.raw`\big(\tm{S}{\mathcal{S}},\ \mathcal{A},\ \tm{P}{P(s'\mid s,a)},\ R,\ \tm{Om}{\Omega},\ \tm{O}{O(o\mid s',a)},\ \gamma\big),\qquad \tm{b}{b_t(s) = \Pr(s_t = s\mid h_t)}`,
         terms: [
           { id: 'S', sym: '\\mathcal{S}', label: '숨은 상태 공간', desc: '세계의 진짜 상태. 에이전트는 보지 못한다.' },
           { id: 'P', sym: "P(s'\\mid s,a)", label: '전이', desc: 'MDP와 같다. 숨은 상태가 움직이는 규칙.' },
           { id: 'Om', sym: '\\Omega', label: '관측 공간', desc: '센서가 내놓을 수 있는 값들.', long: '카메라 픽셀, 잡음 섞인 거리 센서, "왼쪽에서 소리가 났다", 사용자의 문장. 관측이 상태와 일대일이면 MDP로 돌아간다.' },
-          { id: 'O', sym: "O(o\\mid s',a)", label: '관측 모델', desc: '도착한 상태에서 어떤 관측이 나올 확률.', long: '행동에 따라 관측의 질이 달라질 수 있다. Tiger에서는 "듣기"만 정보를 주고, 문을 열면 관측이 무의미하다. 정보 수집 행동은 $O$가 상태에 대해 날카로운 행동이다.' },
-          { id: 'b', sym: 'b_t(s)', label: '믿음', desc: '역사가 주어졌을 때 현재 상태의 사후확률.', long: '믿음은 역사의 충분통계량이다. 최적 정책은 믿음의 함수 $\\pi(b)$로 충분하며, 믿음 위에서는 결정적 정책이 최적이다.' },
+          { id: 'O', sym: "O(o\\mid s',a)", label: '관측 모델', desc: '도착한 상태에서 어떤 관측이 나올 확률.', easy: '예: 호랑이가 왼쪽이면 85% 확률로 왼쪽 소리.', long: '행동에 따라 관측의 질이 달라질 수 있다. Tiger에서는 "듣기"만 정보를 주고, 문을 열면 관측이 무의미하다. 정보 수집 행동은 $O$가 상태에 대해 날카로운 행동이다.' },
+          { id: 'b', sym: 'b_t(s)', label: '믿음', desc: '역사가 주어졌을 때 현재 상태의 사후확률.', easy: '"지금 이 상황일 확률"을 상황마다 적은 표.', long: '믿음은 역사의 충분통계량이다. 최적 정책은 믿음의 함수 $\\pi(b)$로 충분하며, 믿음 위에서는 결정적 정책이 최적이다.' },
         ],
       }),
       'dv-belief': (el) => ui.derivation(el, {
         title: '베이즈 필터: $b\' = \\tau(b, a, o)$',
+        easy: '새 확률은 "원래 그 상황일 확률"에 "그 상황이라면 이 단서가 나올 확률"을 곱한 뒤, 모든 경우의 합이 1이 되도록 나눈 것이다. 호랑이 문제에서는 같은 쪽 소리를 한 번 들을 때마다 확신이 일정한 만큼씩 커진다.',
         steps: [
           { tex: String.raw`b'(s') = \Pr(s' \mid b, a, o)`, why: '행동 $a$를 하고 관측 $o$를 받은 뒤의 새 믿음이 알고 싶다.' },
           { tex: String.raw`= \frac{\Pr(o \mid s', b, a)\,\Pr(s' \mid b, a)}{\Pr(o \mid b, a)}`, why: '베이즈 정리.' },
@@ -94,6 +111,7 @@
       }),
       'fx-bellman': (el) => ui.formula(el, {
         title: '믿음 MDP의 벨만 최적 방정식',
+        say: '{V|이 확률 상태에서 기대할 수 있는 최고 점수}는, 행동 하나를 골라 {rho|확률로 평균 낸 즉시 점수}를 받고, {po|어떤 단서가 들릴지 확률별로 평균 내어} {Vn|그 단서로 고친 새 확률 상태의 점수}를 할인해 더한 값 중 가장 큰 것이다.',
         tex: String.raw`\tm{V}{V^*(b)} = \max_a \Big[\, \tm{rho}{\textstyle\sum_s b(s)R(s,a)} + \gamma \tm{po}{\sum_{o} \Pr(o\mid b,a)}\; \tm{Vn}{V^*\big(\tau(b,a,o)\big)} \Big]`,
         terms: [
           { id: 'V', sym: 'V^*(b)', label: '믿음의 가치', desc: '이 확신 정도에서 출발할 때의 최적 기대 리턴.' },
@@ -104,6 +122,7 @@
       }),
       'dv-pwlc': (el) => ui.derivation(el, {
         title: '귀납법: $V_t(b) = \\max_{\\alpha\\in\\Gamma_t}\\alpha\\cdot b$',
+        easy: '남은 시간이 정해지면 세울 수 있는 "계획"은 유한 개이고, 계획 하나의 점수는 믿음에 대해 직선이다. 가치 함수는 그 직선들 중 가장 높은 것만 이은 선이라, 가운데가 움푹한 꺾인 V자(볼록) 모양이 된다.',
         steps: [
           { tex: String.raw`V_0(b) = 0 = \alpha_0 \cdot b,\qquad \alpha_0 = \mathbf{0}`, why: '지평 0에서는 자명하게 선형이다.' },
           { tex: String.raw`V_t(b) = \max_a\Big[\, b\cdot R_a + \gamma\sum_o \hl{\Pr(o\mid b,a)\, V_{t-1}(b^{a,o})}\Big]`, why: '귀납 가정 $V_{t-1}(b) = \\max_{\\alpha\\in\\Gamma_{t-1}} \\alpha\\cdot b$를 두고 벨만 백업을 쓴다.' },
@@ -114,6 +133,27 @@
       }),
       'tiger-play': mountTigerPlay,
       'tiger-alpha': mountTigerAlpha,
+      'try-belief': mountGuessBelief,
+      'step-belief': (el) => ui.walkthrough(el, {
+        title: '소리 세 번으로 믿음을 손계산하기',
+        caption: '칸에 답을 적고 "확인"을 누르면 계산식이 열린다. 소리 정확도는 0.85, 처음 믿음은 "왼쪽일 확률 0.5"다.',
+        steps: [
+          { say: '"왼쪽 소리"를 들었다. 먼저 <strong>호랑이가 왼쪽에 있었고, 그래서 왼쪽 소리가 났을</strong> 확률을 구한다. 왼쪽일 확률 0.5에 맞게 들릴 확률 0.85를 곱하면?', ask: { answer: 0.425, tol: 0.001 }, calc: String.raw`0.5 \times 0.85 = 0.425` },
+          { say: '<strong>호랑이가 오른쪽에 있었는데 잘못 들려 왼쪽 소리가 났을</strong> 확률은 $0.5 \\times 0.15 = 0.075$다. 왼쪽 소리가 난 경우는 이 두 가지뿐이고 합은 0.5다. 그중 첫 번째 경우가 차지하는 몫이 새 믿음이다. 왼쪽일 확률은?', ask: { answer: 0.85, tol: 0.005 }, calc: String.raw`b' = \frac{0.425}{0.425 + 0.075} = \frac{0.425}{0.5} = 0.85` },
+          { say: '왼쪽 소리를 한 번 더 들었다. 이번에는 시작 확률이 0.85다. 같은 방법으로 새 믿음은? (소수 둘째 자리까지)', ask: { answer: 0.97, tol: 0.006 }, calc: String.raw`b'' = \frac{0.85 \times 0.85}{0.85 \times 0.85 + 0.15 \times 0.15} = \frac{0.7225}{0.745} \approx 0.970` },
+          { say: '이번엔 <strong>오른쪽</strong> 소리다. 호랑이가 왼쪽이라면 오른쪽 소리가 날 확률은 0.15, 오른쪽이라면 0.85다. 새 믿음은?', ask: { answer: 0.85, tol: 0.01 }, calc: String.raw`b''' = \frac{0.970 \times 0.15}{0.970 \times 0.15 + 0.030 \times 0.85} = \frac{0.1455}{0.171} \approx 0.85`, note: '왼쪽 두 번, 오른쪽 한 번이면 "순서와 상관없이 왼쪽이 한 번 더 많다". 그래서 왼쪽 소리를 한 번만 들었을 때와 같은 0.85로 돌아온다. 이 문제에서는 두 소리 횟수의 차이 하나만 기억하면 충분하다.' },
+          { say: '방금 한 계산을 한 줄로 쓰면 이렇다. "새 확률 ∝ 원래 확률 × 이 단서가 나올 확률". 이것이 아래 유도의 결론이자 베이즈 필터다.', calc: String.raw`b'(s) = \frac{O(o\mid s)\, b(s)}{\sum_{x} O(o\mid x)\, b(x)}` },
+        ],
+      }),
+      'try-open': (el) => ui.predict(el, {
+        title: '문을 열기 전에 계산해 보기',
+        caption: '각 질문에 숫자를 적고 "확인"을 누르라. 호랑이 문을 열면 −100점, 반대 문을 열면 +10점이다.',
+        items: [
+          { q: '믿음이 반반(왼쪽일 확률 0.5)일 때 왼쪽 문을 바로 열면, 기대 점수는 몇 점일까?', answer: -45, tol: 0.5, hint: '0.5 확률로 −100, 0.5 확률로 +10이다.', explain: '$0.5\\times(-100) + 0.5\\times10 = -45$. 듣기 한 번의 비용(−1)과 비교하면 지금 여는 것은 매우 나쁜 선택이다.' },
+          { q: '왼쪽 소리를 두 번 들어 왼쪽일 확률이 0.97이 되었다. 이제 <strong>오른쪽</strong> 문을 열면 기대 점수는?', answer: 6.7, tol: 0.1, hint: '오른쪽 문 뒤에 호랑이가 있을 확률은 0.03이다.', explain: '$0.97\\times10 + 0.03\\times(-100) = 9.7 - 3 = 6.7$. 확신이 쌓이자 문을 여는 것이 듣기(−1)보다 나아졌다. 실제 최적 정책도 같은 쪽 소리가 순(net) 두 번이면 연다.' },
+          { q: '소리 정확도가 0.5(동전 던지기)라면, 듣기를 해도 될까?', choices: ['계속 들으면 언젠가 확신이 생긴다', '듣기는 믿음을 바꾸지 못하므로 비용만 든다'], correct: 1, hint: '정확도 0.5면 왼쪽이든 오른쪽이든 소리가 날 확률이 같다.', explain: '분자와 분모에 똑같이 0.5가 곱해져 믿음이 그대로다. 정보가 없는 관측에는 비용을 낼 이유가 없다. 정보의 가치는 관측이 상황에 따라 달라질 때만 생긴다.' },
+        ],
+      }),
     },
     tacit: [
       { tag: 'math', t: '"볼록하다"는 말에서 탐험의 정당성이 나온다',
@@ -138,6 +178,76 @@
         explain: 'QMDP는 다음 스텝부터 상태를 완전히 안다고 가정하므로, 불확실성을 줄이는 것의 가치를 0으로 본다. 동시에 가치 자체는 과대평가(상한)한다.' },
     ],
   });
+
+  /* ---------- 믿음 맞히기: 감으로 추측하고 베이즈 계산과 비교 ---------- */
+  function mountGuessBelief(el) {
+    const p = ui.panel(el, { kind: 'TRY', title: '감으로 믿음 맞히기', caption: '"소리 듣기"를 누르면 소리가 하나 들린다. 슬라이더로 "호랑이가 왼쪽일 확률"을 감으로 맞힌 뒤 "내 추측 확인"을 누르라. 정확한 계산값과 내 추측이 막대로 나란히 나온다. 소리 정확도는 0.85다.' });
+    const q = 0.85;
+    const r = sim.rng(21);
+    const btns = ui.row(p.body, 'btns');
+    const hearB = ui.button(btns, '소리 듣기', hear, { primary: true });
+    const guess = ui.slider(null, { label: '내 추측: 왼쪽일 확률', min: 0, max: 1, step: 0.01, value: 0.5, format: ui.fmt.f(2) });
+    const ctr = ui.row(p.body);
+    ctr.appendChild(guess.el);
+    const checkB = ui.button(btns, '내 추측 확인', check);
+    ui.button(btns, '호랑이 위치 공개하고 새 판', newGame);
+    p.body.insertBefore(ctr, btns);
+    const st = ui.stats(p.body, [
+      { key: 'hist', label: '들은 소리 (순서대로)' },
+      { key: 'net', label: '왼쪽 − 오른쪽 횟수' },
+      { key: 'exact', label: '정확한 믿음', tone: 'accent' },
+      { key: 'err', label: '평균 오차 (내 추측)', tone: 'signal' },
+    ]);
+    const split = document.createElement('div');
+    split.className = 'w-split';
+    const a = document.createElement('div');
+    const msg = document.createElement('div');
+    msg.className = 'fx-detail';
+    split.append(a, msg);
+    p.body.appendChild(split);
+    const chart = plot.bars(a, { categories: ['내 추측', '베이즈 계산'], series: [], height: 190, y: { min: 0, max: 1, label: '왼쪽일 확률' }, labels: true, labelFmt: (v) => v.toFixed(2), legend: false });
+    let tiger, b, hist, pending, errs;
+    function newGame() {
+      const prev = tiger;
+      tiger = r() < 0.5 ? 0 : 1;
+      b = 0.5; hist = []; pending = false; errs = errs || [];
+      guess.set(0.5, true);
+      draw(prev == null ? '처음엔 아무 정보가 없으니 왼쪽일 확률은 0.5다. "소리 듣기"를 눌러 보자.' : '방금 판의 호랑이는 <strong>' + (prev === 0 ? '왼쪽' : '오른쪽') + '</strong>에 있었다. 새 판을 시작했다. 믿음은 다시 0.5.', null);
+    }
+    function hear() {
+      const o = r() < q ? tiger : 1 - tiger;
+      const lo = o === 0 ? q : 1 - q, ro = o === 0 ? 1 - q : q;
+      const nb = (lo * b) / (lo * b + ro * (1 - b));
+      hist.push(o);
+      pending = { prev: b, next: nb, o };
+      b = nb;
+      draw('<strong>' + (o === 0 ? '왼쪽' : '오른쪽') + '</strong>에서 소리가 났다. 왼쪽일 확률은 이제 얼마일까? 슬라이더를 움직이고 "내 추측 확인"을 누르라.', null);
+    }
+    function check() {
+      if (!pending) { draw('먼저 "소리 듣기"를 눌러 소리를 하나 들어 보자.', null); return; }
+      const g = guess.get();
+      const pd = pending;
+      pending = false;
+      const e = Math.abs(g - pd.next);
+      errs.push(e);
+      const lo = pd.o === 0 ? q : 1 - q, ro = 1 - lo;
+      const grade = e < 0.03 ? '<strong class="col-good">거의 정확하다.</strong>' : e < 0.1 ? '<strong>가깝다.</strong>' : '<strong class="col-bad">차이가 크다.</strong>';
+      draw(grade + ' 정확한 값은 ' + pd.next.toFixed(3) + '이다. 계산: (' + lo.toFixed(2) + ' × ' + pd.prev.toFixed(3) + ') ÷ (' + lo.toFixed(2) + ' × ' + pd.prev.toFixed(3) + ' + ' + ro.toFixed(2) + ' × ' + (1 - pd.prev).toFixed(3) + ').' +
+        (hist.length >= 3 ? ' 눈치챘는가? 정확한 값은 "왼쪽 − 오른쪽 횟수"에만 달려 있다. 순서는 상관없다.' : ''), g);
+    }
+    function draw(text, g) {
+      msg.innerHTML = text;
+      const left = hist.filter((x) => x === 0).length;
+      st.set('hist', hist.length ? hist.map((x) => (x === 0 ? '왼' : '오')).join(' ') : '없음');
+      st.set('net', String(left - (hist.length - left)));
+      st.set('exact', pending ? '?' : b.toFixed(3));
+      st.set('err', errs.length ? (errs.reduce((x, y) => x + y, 0) / errs.length).toFixed(3) + ' (' + errs.length + '회)' : '–');
+      chart.update({ series: [{ name: '확률', color: 'c1', values: [g == null ? NaN : g, pending ? NaN : b], colors: ['signal', 'c1'] }] });
+      hearB.disabled = !!pending;
+      checkB.disabled = !pending;
+    }
+    newGame();
+  }
 
   /* ---------- Tiger 모델 ---------- */
   // 상태 0 = 호랑이 왼쪽(TL), 1 = 호랑이 오른쪽(TR); b = P(TL)
@@ -225,7 +335,7 @@
 
   /* ---------- Tiger 직접 플레이 ---------- */
   function mountTigerPlay(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: 'Tiger: 듣고, 믿음을 갱신하고, 문을 연다' });
+    const p = ui.panel(el, { kind: 'SIM', title: 'Tiger: 듣고, 믿음을 갱신하고, 문을 연다', caption: '"듣기"를 몇 번 누르며 믿음 숫자가 어떻게 바뀌는지 보고, 한쪽으로 충분히 기울었다 싶으면 반대쪽 문을 열어 보라. "정책으로 500스텝"을 누르면 최적에 가까운 정책의 스텝당 평균 점수가 나온다.' });
     const ctr = ui.row(p.body);
     ui.slider(ctr, { label: '듣기 정확도 $q$', min: 0.5, max: 0.99, step: 0.01, value: tigerShared.q, format: ui.fmt.f(2), onInput: (v) => { tigerShared.q = v; tnotify('param'); } });
     ui.slider(ctr, { label: '정책 지평 $H$ (자동 플레이용)', min: 1, max: 20, step: 1, value: tigerShared.H, format: ui.fmt.int, onInput: (v) => { tigerShared.H = v; tnotify('param'); } });
@@ -320,7 +430,7 @@
 
   /* ---------- 정확한 알파 벡터 가치 함수 ---------- */
   function mountTigerAlpha(el) {
-    const p = ui.panel(el, { kind: 'CALC', title: 'Tiger의 정확한 가치 함수 $V_t(b)=\\max_{\\alpha}\\alpha\\cdot b$' });
+    const p = ui.panel(el, { kind: 'CALC', title: 'Tiger의 정확한 가치 함수 $V_t(b)=\\max_{\\alpha}\\alpha\\cdot b$', caption: '지평 슬라이더를 1부터 천천히 올려 보라. 굵은 선이 가운데(가장 애매한 믿음)에서 움푹한 V자인 것과, "듣기 구간"이 어디서 멈추는지 보라.' });
     const ctr = ui.row(p.body);
     let t = 10;
     const tS = ui.slider(ctr, { label: '지평 $t$', min: 1, max: 20, step: 1, value: t, format: ui.fmt.int, onInput: (v) => { t = v; draw(); } });

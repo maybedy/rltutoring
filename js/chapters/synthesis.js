@@ -11,6 +11,17 @@
     level: '종합',
     prereq: ['bellman', 'ppo', 'offline', 'reasoning', 'memory'],
     theses: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9'],
+    easy: {
+      hook: '강화학습 알고리즘은 수십 개지만, 고르는 질문은 몇 개뿐이다. 무엇을 배우나, 데이터는 어디서 오나, 한 번에 얼마나 과감하게 바꾸나.',
+      intro: '<p>요리법이 수천 가지여도 결국 재료, 불 세기, 조리 시간의 조합인 것처럼, 강화학습 알고리즘도 몇 가지 선택의 조합이다. 이 장은 지금까지 본 알고리즘을 네 갈래의 흐름으로 정리하고, 그 갈래들이 사실 한 줄의 규칙에서 나왔다는 것을 숫자로 보인다.</p><p>마지막에는 일상적인 질문 몇 개에 답해 내 문제에 맞는 알고리즘을 찾아보는 도구가 있다.</p>',
+      analogy: '투자 비중을 조정하는 일과 같다. 종목별 예상 수익표(가치)를 보고 좋은 종목의 비중을 늘리되, 지금 비중(기준점)에서 한 번에 너무 많이 바꾸지는 않는다. 예상표를 완전히 믿으면 전부 1등 종목에 넣고(탐욕), 반쯤 믿으면 조금씩 옮긴다(정책 경사). 기준을 어제의 비중으로 두느냐, 처음 설계안으로 두느냐, 남이 운용한 기록으로 두느냐에 따라 PPO, RLHF, 오프라인 RL처럼 이름이 다른 알고리즘이 된다.',
+      path: ['네 갈래의 연구 흐름을 훑는다', '한 줄의 규칙에서 여러 알고리즘이 나오는 것을 숫자로 직접 계산한다', '같은 문제에 네 가지 개선 방법을 돌려 비교한다', '질문 몇 개에 답해 내 문제에 맞는 알고리즘을 찾는다'],
+      recap: [
+        '대부분의 알고리즘은 "얼마나 좋은지 재 보고, 더 나은 쪽으로 조금 옮기기"의 반복이다.',
+        '얼마나 과감하게 옮기는지, 무엇을 기준으로 삼는지, 좋은 정도를 어떻게 어림하는지에 따라 이름이 달라진다.',
+        '새 방법을 보면 무엇을 바꿨는지, 그 대가로 무엇을 잃었는지, 데이터와 채점은 어디서 오는지를 먼저 본다.',
+      ],
+    },
     goals: [
       '가치 · 정책 · 정규화 · 상각의 네 흐름을 대전제와 함께 설명할 수 있다.',
       'KL-정규화 정책 개선 한 줄에서 탐욕 개선, 자연 정책 경사, RLHF 최적해, AWR, 탐색-증류가 모두 나오는 것을 유도할 수 있다.',
@@ -48,6 +59,7 @@
 <h2>하나의 식에서 갈라지는 개선 연산자</h2>
 <p>네 흐름이 같은 뿌리라는 것은 수식으로 보일 수 있다. 출발점은 "추정한 가치를 높이되 기준 정책에서 멀어지지 말라"는 한 줄이다.</p>
 <div data-w="fx-unify"></div>
+<div data-w="step-unify"></div>
 <div data-w="dv-unify"></div>
 <div class="thesis-box"><span class="label">대전제 T5 · 통일된 개선 단계</span>
 <p>무엇을 기준점(anchor)으로 두는가: 직전 정책이면 신뢰영역 방법(T4), 고정 기준 모델이면 RLHF/DPO(T5), 데이터의 행동 정책이면 오프라인 RL(T7). $\beta$를 얼마로 두는가: 0이면 탐욕 개선(T2), 크면 작은 자연 경사 스텝(T3, T4). $\hat Q$를 어떻게 추정하는가: MC, TD, GAE, 그룹 평균(T6). 해를 어떻게 정책에 넣는가: 경사로 직접, 또는 샘플을 만들어 증류(T9). 알고리즘 계보의 대부분은 이 네 선택의 조합이다.</p>
@@ -64,6 +76,8 @@
 </ul>
 
 <h2>알고리즘 조합기</h2>
+<p>먼저 일상적인 질문 몇 개로 출발점을 찾고, 그 결과를 아래 조합기로 넘겨 세부 선택을 바꿔 보자.</p>
+<div data-w="try-pick"></div>
 <p>다섯 가지 설계 선택을 고르면, 그 조합에 가장 가까운 알려진 알고리즘과 그 조합에 따라오는 대전제, 그리고 알려진 위험을 보여 준다. 조합이 정확히 일치하는 알고리즘이 없으면, 그것은 아직 이름이 없는 설계일 수도 있다.</p>
 <div data-w="combiner"></div>
 
@@ -113,27 +127,41 @@
     mount: {
       'fx-unify': (el) => ui.formula(el, {
         title: '통일된 정책 개선 단계',
+        say: '{new|다음 정책}은, {Q|각 행동의 예상 점수}가 높은 쪽으로 옮기되 {anc|기준이 되는 정책}에서 멀어지는 만큼 {b|벌점 계수}를 곱해 빼서 가장 좋은 분포를 찾고, 그것을 {proj|실제로 쓸 신경망 정책에 옮겨 담은} 것이다.',
         tex: R`\tm{new}{\pi_{k+1}} = \tm{proj}{\Pi_{\Theta}}\Big[\,\arg\max_{\pi}\; \mathbb{E}_{a\sim\pi}\big[\tm{Q}{\hat Q(s,a)}\big] \;-\; \tm{b}{\beta}\,\mathrm{KL}\big(\pi\,\|\,\tm{anc}{\pi_{\text{anchor}}}\big)\Big]`,
         terms: [
           { id: 'new', sym: R`\pi_{k+1}`, label: '다음 정책', desc: '한 번의 개선 결과.' },
           { id: 'proj', sym: R`\Pi_\Theta`, label: '투영', desc: '파라미터화된 정책 집합으로 넣는 방법.', long: R`정확한 해 $\pi_{\text{anchor}}e^{\hat Q/\beta}/Z$는 보통 신경망으로 바로 표현되지 않는다. 경사 몇 스텝으로 역방향 KL을 줄이면 정책 경사 계열(PPO, GRPO), 해에서 샘플을 만들어 순방향 KL(SFT)로 맞추면 탐색-증류 계열(AlphaZero, ReST, AWR), 해의 형태를 이용해 보상을 지우면 DPO가 된다.` },
           { id: 'Q', sym: R`\hat Q(s,a)`, label: '추정한 가치 / 이득', desc: 'MC, TD, GAE, 그룹 평균 등. 편향-분산이 여기서 정해진다(T6).', long: R`상수를 빼도 해가 같으므로(정규화 $Z$가 흡수) $\hat Q$ 대신 advantage $\hat A$를 써도 된다. baseline이 편향 없이 분산만 줄이는 이유를 이 식에서도 볼 수 있다. LLM에서는 보상모델 점수나 검증기 결과가 $\hat Q$ 자리에 들어간다.` },
           { id: 'b', sym: R`\beta`, label: '온도 = 스텝 크기의 역수', desc: '0이면 탐욕, 크면 기준점 근처의 작은 스텝.', long: R`$\beta\to0$: $\arg\max_a\hat Q$, 정책 반복(T2). $\beta$ 유한, 기준점이 직전 정책: 자연 정책 경사의 스텝 크기 $1/\beta$(T4). $\beta$는 "가치 추정을 얼마나 믿는가"의 표현이기도 하다. 추정이 불확실하면 크게 둔다.` },
-          { id: 'anc', sym: R`\pi_{\text{anchor}}`, label: '기준점', desc: '직전 정책 / 기준 모델 / 데이터 행동 정책.', long: R`직전 정책 $\pi_k$이면 신뢰영역(TRPO, PPO, MPO), 고정된 $\pi_{\text{ref}}$이면 RLHF·DPO·Best-of-N, 오프라인 데이터의 $\pi_\beta$이면 AWR·IQL·BRAC 같은 오프라인 RL. 같은 식이 기준점 하나로 세 분야를 가른다.` },
+          { id: 'anc', sym: R`\pi_{\text{anchor}}`, label: '기준점', desc: '직전 정책 / 기준 모델 / 데이터 행동 정책.', easy: '"여기서 너무 멀어지지 마라"의 여기. 어제의 나, 처음 받은 모델, 남이 남긴 기록 중 무엇을 고르느냐가 알고리즘 가족을 가른다.', long: R`직전 정책 $\pi_k$이면 신뢰영역(TRPO, PPO, MPO), 고정된 $\pi_{\text{ref}}$이면 RLHF·DPO·Best-of-N, 오프라인 데이터의 $\pi_\beta$이면 AWR·IQL·BRAC 같은 오프라인 RL. 같은 식이 기준점 하나로 세 분야를 가른다.` },
         ],
       }),
       'dv-unify': (el) => ui.derivation(el, {
         title: '한 줄에서 갈라지는 다섯 계열',
+        easy: '"예상 점수가 높은 쪽으로, 단 기준에서 너무 멀지 않게"를 풀면 "기준 확률 × exp(예상 점수 ÷ 온도)"가 나온다. 온도를 0으로 보내면 1등만 고르는 탐욕, 기준을 어제의 정책으로 두면 PPO류, 원래 모델로 두면 RLHF와 DPO, 남이 모은 데이터로 두면 오프라인 RL, 이 답에서 샘플을 만들어 따라 하면 탐색-증류가 된다.',
         steps: [
           { tex: R`\pi_{k+1}(\cdot|s) = \arg\max_{\pi}\;\mathbb{E}_{a\sim\pi}\big[\hat Q(s,a)\big] - \beta\,\mathrm{KL}\big(\pi\,\|\,\pi_{\text{anchor}}\big)`, why: R`상태마다 독립인 볼록 문제다(엔트로피 항 때문에 엄격 오목).` },
           { tex: R`\pi_{k+1}(a|s) = \frac{\pi_{\text{anchor}}(a|s)\,\exp\big(\hat Q(s,a)/\beta\big)}{Z(s)}`, why: R`라그랑주 승수로 정규화 제약을 넣어 미분하면 나오는 볼츠만 재가중(T5). 이후 단계는 이 해의 특수한 경우들이다.` },
           { tex: R`\beta\to0:\quad \pi_{k+1}(a|s) = \hl{\mathbb{1}\big[a = \arg\max_{a'}\hat Q(s,a')\big]}`, why: R`<strong>탐욕 개선</strong>. $\hat Q=Q^{\pi_k}$이면 정책 반복(T2), $\hat Q$가 $Q^*$의 TD 추정이면 Q-learning·DQN 계열.` },
-          { tex: R`\pi_{\text{anchor}}=\pi_k=\mathrm{softmax}(\theta_k):\quad \hl{\theta_{k+1} = \theta_k + \hat Q/\beta}`, why: R`표 형태 softmax 정책에서는 해가 로짓 덧셈과 정확히 같다. 이것은 스텝 크기 $1/\beta$의 <strong>자연 정책 경사</strong>다(Kakade 2001; 표 형태 softmax에서의 정확한 대응은 Agarwal et al. 2021). TRPO와 PPO는 함수근사에서 이 스텝을 KL 제약과 clipping으로 근사한다(T4).` },
+          { tex: R`\pi_{\text{anchor}}=\pi_k=\mathrm{softmax}(\theta_k):\quad \hl{\theta_{k+1} = \theta_k + \hat Q/\beta}`, why: R`표 형태 softmax 정책에서는 해가 로짓 덧셈과 정확히 같다. 이것은 스텝 크기 $1/\beta$의 <strong>자연 정책 경사</strong>다(Kakade 2001; 표 형태 softmax에서의 정확한 대응은 Agarwal et al. 2021). TRPO와 PPO는 함수근사에서 이 스텝을 KL 제약과 clipping으로 근사한다(T4).`, easy: '확률을 직접 곱하는 대신 "점수표"(로짓)에 예상 점수를 더하는 것과 같다. 정책 경사를 가장 잘 정리한 형태가 바로 이것이다.' },
           { tex: R`\pi_{\text{anchor}}=\pi_{\text{ref}},\ \hat Q = r(x,y):\quad \pi^*(y|x) \propto \pi_{\text{ref}}(y|x)\,e^{\hl{r(x,y)/\beta}}`, why: R`기준점을 고정하고 시퀀스 보상을 쓰면 <strong>RLHF 목표의 최적해</strong>. 이 식을 $r$에 대해 풀면 $r=\beta\log\frac{\pi^*}{\pi_{\text{ref}}}+\beta\log Z$이고, 이를 Bradley-Terry 우도에 넣으면 DPO다(<a href="#dpo">20장</a>). 샘플로 근사하면 Best-of-N(<a href="#test-time">22장</a>).` },
           { tex: R`\pi_{\text{anchor}}=\pi_\beta\ (\text{데이터}):\quad \pi_{k+1}(a|s)\propto\pi_\beta(a|s)\,e^{\hl{\hat A(s,a)/\beta}}`, why: R`데이터의 행동 정책을 기준점으로 두면 <strong>advantage 가중 회귀</strong>(AWR, AWAC, IQL의 정책 추출). 데이터 밖으로 나가지 않는 것 자체가 비관적 정규화다(T7, <a href="#offline">15장</a>).` },
           { tex: R`\theta_{k+1} = \arg\min_\theta\;\mathbb{E}_{s}\Big[\mathrm{KL}\big(\hl{\pi_{k+1}(\cdot|s)}\,\|\,\pi_\theta(\cdot|s)\big)\Big]`, why: R`해를 정확히 표현할 수 없을 때, 해에서 샘플(MCTS 방문, Best-of-N 최고, 정답 필터)을 만들어 SFT로 맞추면 <strong>탐색-증류</strong>(T9). 해의 샘플을 얻는 비용이 바로 "탐색 비용"이고, 학습은 그것을 상각한다.` },
         ],
       }),
+      'step-unify': (el) => ui.walkthrough(el, {
+        title: '숫자로 한 번: 기준 확률 × exp(점수 ÷ 온도)',
+        caption: R`"다음 단계"를 눌러 계산한다. 행동 A, B, C의 기준 확률이 0.5, 0.3, 0.2이고 예상 점수가 1, 2, 0, 온도는 $\beta=1$이다. $e\approx2.718$, $e^2\approx7.389$를 쓴다.`,
+        steps: [
+          { say: R`A의 새 가중치는 기준 확률 × $e^{\text{점수}/\beta}$ $= 0.5\times e^{1}$이다. 얼마인가?`, ask: { answer: 1.359, tol: 0.005 }, calc: R`0.5\times2.718 = 1.359` },
+          { say: R`B의 가중치 $0.3\times e^{2}$는?`, ask: { answer: 2.217, tol: 0.005 }, calc: R`0.3\times7.389 = 2.217` },
+          { say: R`C의 가중치 $0.2\times e^{0}$은? ($e^0 = 1$)`, ask: { answer: 0.2, tol: 0.001 }, calc: R`0.2\times1 = 0.2` },
+          { say: '가중치를 모두 더한 값으로 나누면 확률이 된다. B의 새 확률은?', ask: { answer: 0.587, tol: 0.005 }, calc: R`\frac{2.217}{1.359+2.217+0.2} = \frac{2.217}{3.776} \approx 0.587\qquad(A\approx0.360,\ C\approx0.053)` },
+          { say: '기준 확률이 0.3이던 B가 점수가 가장 높아 0.587로 올랐다. 온도를 0.1로 낮추면 B가 거의 1이 되고(1등만 고르는 탐욕), 10으로 높이면 기준 확률과 거의 같다(아주 조금만 바꿈). 온도 하나가 "예상 점수를 얼마나 믿고 과감하게 바꿀지"를 정한다.', calc: R`\beta=0.1:\ (0.000,\ 1.000,\ 0.000)\qquad \beta=10:\ (0.494,\ 0.327,\ 0.179)` },
+        ],
+      }),
+      'try-pick': mountPick,
       'ops-sim': mountOps,
       combiner: mountCombiner,
     },
@@ -176,7 +204,7 @@
   function mountOps(el) {
     const K = 12;
     const p = ui.panel(el, { kind: 'SIM', title: '탐욕 · 정책 경사 · KL 미러 하강 · Best-of-N 증류',
-      caption: R`관측 보상 = 실제 보상 + $\mathcal N(0,\sigma^2)$. 탐욕: 본 응답의 평균 보상 $\hat Q$에 대해 90% argmax + 10% 기본 정책. 정책 경사: $\theta \mathrel{+}= \eta\,\frac1N\sum_i (r_i-\bar r)(e_{a_i}-\pi)$. KL 미러 하강: 이번 배치에 나온 응답마다 $\theta_a \mathrel{+}= (\bar r_a-\bar r)/\beta$. BoN 증류: 배치 최고 응답에 SFT 3스텝.` });
+      caption: R`"새 문제"를 눌러 보상 배치를 바꿔 가며, 왼쪽 그래프에서 어느 방법이 최고 보상 점선에 가장 빨리 닿는지, 오른쪽 그래프에서 어느 쪽 엔트로피(다양성)가 가장 빨리 떨어지는지 보라. 관측 보상 = 실제 보상 + $\mathcal N(0,\sigma^2)$. 탐욕: 본 응답의 평균 보상 $\hat Q$에 대해 90% argmax + 10% 기본 정책. 정책 경사: $\theta \mathrel{+}= \eta\,\frac1N\sum_i (r_i-\bar r)(e_{a_i}-\pi)$. KL 미러 하강: 이번 배치에 나온 응답마다 $\theta_a \mathrel{+}= (\bar r_a-\bar r)/\beta$. BoN 증류: 배치 최고 응답에 SFT 3스텝.` });
     const ctr = ui.row(p.body);
     const nS = ui.slider(ctr, { label: R`반복당 샘플 $N$`, min: 2, max: 32, step: 1, value: 8, format: ui.fmt.int, onInput: run });
     const tS = ui.slider(ctr, { label: '반복 수', min: 10, max: 80, step: 5, value: 40, format: ui.fmt.int, onInput: run });
@@ -267,6 +295,78 @@
     run();
   }
 
+  /* ---------- TRY: 질문으로 알고리즘 찾기 ---------- */
+  let combinerApi = null;
+  const FLOW = {
+    q1: { q: '새로 시도해 보는 것이 싸고 쉬운가요? 원하는 만큼 다시 해 볼 수 있다면 "예".', yes: 'q2', no: 'q2b' },
+    q2: { q: '시도할 때마다 몇 점인지 자동으로 매길 수 있나요? 정답 확인, 게임 점수, 테스트 통과처럼.', yes: 'q3', no: 'q3b' },
+    q3: { q: '행동하기 전에 결과를 미리 따져 볼 수 있는 규칙이 있나요? 바둑 규칙이나 정확한 시뮬레이터처럼.', yes: 'L_search', no: 'q4' },
+    q4: { q: '만들어 내는 것이 LLM이 쓰는 글(답변)인가요?', yes: 'L_grpo', no: 'L_ppo' },
+    q3b: { q: '결과 두 개를 보여 주면 어느 쪽이 나은지는 사람이나 AI가 고를 수 있나요?', yes: 'L_rlhf', no: 'L_reward' },
+    q2b: { q: '이미 모아 둔 기록(로그)이 있나요?', yes: 'q3c', no: 'L_infer' },
+    q3c: { q: '기록마다 얼마나 잘했는지 점수가 붙어 있나요?', yes: 'L_offline', no: 'q4c' },
+    q4c: { q: '기록이 "두 답 중 이쪽이 낫다"는 비교 형태인가요?', yes: 'L_dpo', no: 'L_bc' },
+  };
+  const LEAF = {
+    L_search: { name: '탐색 + 증류 (MCTS, AlphaZero)', ch: 'modelbased', why: '규칙을 알면 실제로 해 보기 전에 여러 수를 미리 읽어 볼 수 있다. 읽어서 찾은 좋은 수를 정책에 외우게 하면 다음엔 빨리 둔다.', warn: '규칙(시뮬레이터)이 실제와 다르면 미리 읽은 수가 엉뚱해진다.', cfg: { learn: 'pi', data: 'model', est: 'mc', reg: 'any', imp: 'search' }, more: [['memory', '경험의 기억과 상각']] },
+    L_grpo: { name: 'GRPO · RLOO (자동 채점 + 정책 경사)', ch: 'reasoning', why: '같은 질문에 답을 여러 개 써 보고, 평균보다 잘한 답은 더 자주, 못한 답은 덜 쓰게 한다. 점수를 자동으로 매기니 사람 손이 거의 들지 않는다.', warn: '정답률이 0%이거나 100%인 질문에서는 배울 것이 없다. 원래 모델에서 너무 멀어지지 않게 KL을 둔다.', cfg: { learn: 'pi', data: 'on', est: 'group', reg: 'kl', imp: 'pg' }, more: [['test-time', '추론 시점 탐색']] },
+    L_ppo: { name: 'PPO (안정적) · SAC나 DQN (경험 재사용)', ch: 'ppo', why: '많이 시도해 볼 수 있고 점수도 있으면 표준 온라인 RL이 맞다. PPO는 비교적 다루기 쉽고, 시도가 비싸면 지난 경험을 다시 쓰는 SAC(연속적인 조작)나 DQN(몇 개 중 선택)이 효율적이다.', warn: '지난 경험을 재사용하는 방법은 학습이 흔들릴 수 있다(deadly triad).', cfg: { learn: 'pi', data: 'on', est: 'nstep', reg: 'trust', imp: 'pg' }, more: [['maxent', 'SAC'], ['dqn', 'DQN']] },
+    L_rlhf: { name: 'RLHF (비교로 채점기 학습 + PPO)', ch: 'rlhf', why: '점수를 직접 매기기 어려워도 둘 중 나은 쪽은 고를 수 있다. 그 비교로 채점기를 만들고, 채점기 점수를 올리도록 학습한다.', warn: '채점기는 사람의 판단을 흉내 낸 것이라, 너무 세게 밀어붙이면 채점기의 허점을 파고든다.', cfg: { learn: 'pi', data: 'pref', est: 'nstep', reg: 'kl', imp: 'pg' }, more: [['dpo', 'DPO']] },
+    L_reward: { name: '먼저 점수(보상)부터 정하기', ch: 'mdp', why: '좋고 나쁨을 숫자로도, 비교로도 말할 수 없다면 강화학습이 높일 대상이 없다. 목표를 점수로 바꾸는 일이 첫 단계다.', warn: '대충 만든 점수는 의도와 다른 행동을 낳는다(보상 해킹).', cfg: null, more: [['rlhf', '보상모델']] },
+    L_infer: { name: '학습 없이 추론 시점에 계산 쓰기 (Best-of-N, 다수결, 외부 기억)', ch: 'test-time', why: '새로 시도하기도 어렵고 기록도 없다면, 지금 모델을 그대로 두고 답을 여러 번 뽑아 고르거나 과거 실수를 메모로 참고하는 편이 현실적이다.', warn: '고르는 기준(채점기, 다수결)이 틀리면 결과도 같은 방향으로 틀린다.', cfg: { learn: 'none', data: 'on', est: 'any', reg: 'any', imp: 'search' }, more: [['memory', '외부 기억']] },
+    L_offline: { name: '오프라인 RL (CQL, IQL)', ch: 'offline', why: '점수가 붙은 기록만으로 더 나은 방식을 찾는다. 기록에 없는 행동은 모르는 것이니 비관적으로 다룬다.', warn: '기록에 없는 행동을 좋다고 착각하면 실제로 써 볼 때 크게 실패한다.', cfg: { learn: 'val', data: 'offline', est: 'td', reg: 'pess', imp: 'greedy' }, more: [['sequence', 'Decision Transformer']] },
+    L_dpo: { name: 'DPO 계열 (비교 기록으로 바로 학습)', ch: 'dpo', why: '"이쪽이 낫다"는 비교 기록만 있으면 채점기와 RL 반복 없이 분류 문제처럼 바로 학습할 수 있다.', warn: '기록 밖의 답에 대해서는 배우지 못하고, 길이 같은 겉모습 차이를 배울 수도 있다.', cfg: { learn: 'pi', data: 'pref', est: 'none', reg: 'kl', imp: 'closed' }, more: [['rlhf', 'RLHF']] },
+    L_bc: { name: '행동 복제 (잘한 기록만 골라 따라 하기) · Decision Transformer', ch: 'sequence', why: '점수도 비교도 없다면 믿을 만한 기록을 골라 그대로 따라 하는 것이 가장 안전한 출발점이다.', warn: '기록을 남긴 사람보다 잘하기는 어렵고, 기록에 없는 상황에서 실수가 쌓인다.', cfg: { learn: 'pi', data: 'offline', est: 'none', reg: 'none', imp: 'wsft' }, more: [['offline', '오프라인 RL']] },
+  };
+
+  function mountPick(el) {
+    const p = ui.panel(el, { kind: 'TRY', title: '내 문제에는 어떤 알고리즘이 맞을까',
+      caption: '질문에 "예" 또는 "아니오"를 눌러 답하라. 많아야 네 번이면 추천이 나오고, "조합기에서 보기"를 누르면 아래 조합기가 그 설정으로 바뀐다.' });
+    const trail = div(p.body);
+    const box = div(p.body);
+    const nav = ui.row(p.body, 'btns');
+    let path = [];
+    ui.button(nav, '한 단계 뒤로', () => { path.pop(); draw(); });
+    ui.button(nav, '처음부터', () => { path = []; draw(); });
+    function node() {
+      let k = 'q1';
+      path.forEach((a) => { k = FLOW[k][a ? 'yes' : 'no']; });
+      return k;
+    }
+    function draw() {
+      const k = node();
+      let cur = 'q1';
+      trail.innerHTML = path.length ? '<ol style="margin:0;padding-left:1.4em;font-size:var(--fs-sm);color:var(--muted)">' + path.map((a) => {
+        const li = '<li>' + FLOW[cur].q + ' <strong style="color:var(--ink)">' + (a ? '예' : '아니오') + '</strong></li>';
+        cur = FLOW[cur][a ? 'yes' : 'no'];
+        return li;
+      }).join('') + '</ol>' : '';
+      box.innerHTML = '';
+      if (FLOW[k]) {
+        const q = document.createElement('p');
+        q.className = 'pr-q';
+        q.textContent = '질문 ' + (path.length + 1) + '. ' + FLOW[k].q;
+        box.appendChild(q);
+        const row = ui.row(box, 'btns');
+        ui.button(row, '예', () => { path.push(true); draw(); }, { primary: true });
+        ui.button(row, '아니오', () => { path.push(false); draw(); });
+        return;
+      }
+      const L = LEAF[k];
+      const card = document.createElement('div');
+      card.className = 'key';
+      card.innerHTML = '<span class="label">추천</span><p style="margin:0 0 6px;font-weight:600"><a href="#' + L.ch + '">' + L.name + '</a> <span class="mono" style="font-size:var(--fs-xs)">' + RL.meta[L.ch].no + '장</span></p>' +
+        '<p style="margin:4px 0">' + L.why + '</p><p style="margin:4px 0;color:var(--muted)"><strong>조심할 점:</strong> ' + L.warn + '</p>' +
+        '<p style="margin:4px 0;font-size:var(--fs-sm)">함께 볼 장: ' + L.more.map((m) => '<a href="#' + m[0] + '">' + RL.meta[m[0]].no + ' ' + m[1] + '</a>').join(', ') + '</p>';
+      box.appendChild(card);
+      if (L.cfg) {
+        const row = ui.row(box, 'btns');
+        ui.button(row, '조합기에서 보기', () => { if (combinerApi) combinerApi.set(L.cfg); }, { primary: true });
+      }
+    }
+    draw();
+  }
+
   /* ---------- 알고리즘 조합기 ---------- */
   const DIMS = [
     { key: 'learn', label: '무엇을 학습하나', opts: [['any', '상관없음'], ['val', '가치 V/Q'], ['pi', '정책 π'], ['model', '환경 모델'], ['none', '학습 없음 (추론 시점 · 외부 기억)']] },
@@ -314,7 +414,8 @@
   ];
 
   function mountCombiner(el) {
-    const p = ui.panel(el, { kind: 'MAP', title: '알고리즘 조합기: 다섯 설계 선택 → 가장 가까운 알고리즘' });
+    const p = ui.panel(el, { kind: 'MAP', title: '알고리즘 조합기: 다섯 설계 선택 → 가장 가까운 알고리즘',
+      caption: '다섯 칸의 선택을 바꾸거나 예시 조합 버튼을 눌러, 목록 맨 위에 어떤 알고리즘이 오는지와 오른쪽의 주의 문구가 어떻게 바뀌는지 보라. 초록 칩은 몇 개가 맞았는지, 빨간 칩은 그 알고리즘이 실제로 고른 값이다.' });
     const ctr = ui.row(p.body);
     const sel = { learn: 'pi', data: 'on', est: 'group', reg: 'kl', imp: 'pg' };
     DIMS.forEach((d) => ui.select(ctr, { label: d.label, value: sel[d.key], options: d.opts.map((o) => ({ value: o[0], label: o[1] })), onChange: (v) => { sel[d.key] = v; draw(); } }));
@@ -328,6 +429,14 @@
     ];
     const selects = ctr.querySelectorAll('select');
     selects.forEach((s) => { s.style.width = '100%'; s.style.minWidth = '0'; });
+    combinerApi = {
+      set(cfg) {
+        Object.assign(sel, cfg);
+        DIMS.forEach((d, i) => { selects[i].value = sel[d.key]; });
+        draw();
+        el.scrollIntoView({ block: 'start' });
+      },
+    };
     PRE.forEach(([lab, cfg]) => ui.button(presets, lab, () => {
       Object.assign(sel, cfg);
       DIMS.forEach((d, i) => { selects[i].value = sel[d.key]; });

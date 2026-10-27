@@ -11,6 +11,17 @@
     level: '심화 · LLM',
     prereq: ['llm-mdp', 'modelbased'],
     theses: ['T5', 'T9', 'T7'],
+    easy: {
+      hook: '답을 여러 번 뽑아 보고 가장 좋아 보이는 것을 고르면, 모델을 다시 학습시키지 않아도 더 좋은 답이 나온다. 다만 "좋아 보이는 것"과 "실제로 좋은 것"은 다르다.',
+      intro: '<p>시험 문제를 한 번만 풀지 않고 다섯 번 풀어 본 뒤 가장 자신 있는 풀이를 낸다고 해 보자. 실력은 그대로인데 점수가 오른다. "추론 시점에 계산을 더 쓴다"는 말이 바로 이것이다.</p><p>방법은 네 가지다. 여러 개 뽑아 고르기, 여러 개 뽑아 다수결, 한 단계씩 채점하며 가지치기, 쓴 답을 고쳐 쓰기. 어느 방법이든 효과는 <strong>채점하는 쪽이 얼마나 믿을 만한가</strong>에 달려 있다.</p>',
+      analogy: '내비게이션을 떠올리면 된다. 갈림길마다 "이 길로 가면 도착까지 몇 분"이라는 예상 시간(가치)을 보고, 평소 다니던 길(원래 모델)에서 크게 벗어나지 않는 선에서 빠른 쪽으로 조금 더 기운다. 예상 시간이 정확할수록 더 과감하게 따라가도 되고, 예상이 엉터리면 평소 길에 붙어 있는 편이 안전하다. 이것이 가치 유도 디코딩이다.',
+      path: ['카드를 한 장씩 뽑아 가장 좋아 보이는 답을 내는 게임을 직접 해 본다', '"하나라도 맞을 확률"과 "다수결이 맞을 확률"을 손으로 계산한다', '답을 쓰는 도중에 예상 점수로 방향을 트는 법(가치 유도)을 본다', '문제 난이도에 따라 계산을 어디에 쓸지 정한다'],
+      recap: [
+        '많이 뽑아 고르면 대체로 좋아지지만, 채점기가 일관되게 틀리는 방향이 있으면 너무 많이 뽑을수록 오히려 나빠진다.',
+        '다수결은 모델이 가장 자주 내는 답을 확정할 뿐이라, 모델이 자주 틀리는 문제는 고치지 못한다.',
+        '계산은 너무 쉽지도 너무 어렵지도 않은 문제에 쓸 때 효과가 가장 크다.',
+      ],
+    },
     goals: [
       'Best-of-N의 출력 분포와 KL 상한 $\\log N - (N-1)/N$을 유도하고, 보상모델 과최적화가 생기는 조건을 시뮬레이션으로 확인한다.',
       '다수결(self-consistency)과 pass@k의 차이, 그리고 검증기가 test-time scaling의 병목인 이유를 설명할 수 있다.',
@@ -38,7 +49,8 @@
 <p>$N=1000$이어도 KL은 약 5.9 nats에 불과하다. Best-of-N은 기준 분포의 지지집합 밖으로 나가지 못하고(응답은 언제나 $\pi_{\text{ref}}$의 샘플), 이탈 정도가 로그로만 자라는 <strong>보수적인 개선</strong>이다. 동시에 Best-of-N은 KL-정규화 목표의 최적해에 매우 가깝다는 분석이 있다(Yang et al. 2024의 점근 분석, Gui et al. 2024의 BoNBoN). 그래서 RLHF 연구에서 Best-of-N은 "같은 KL을 쓰면 RL이 얼마나 더 잘하나"를 재는 기준선으로 쓰인다(<a href="#rlhf">19장</a>).</p>
 
 <h3>보상모델은 프록시다: 과최적화</h3>
-<p>Best-of-N이 고르는 것은 <em>보상모델이 높게 본</em> 응답이지 실제로 좋은 응답이 아니다. 보상모델이 실제 선호와 어긋나는 방향(예: 길이)이 있으면, $N$을 키울수록 그 방향의 극단값이 뽑힌다. Gao et al.(2022)은 실제 보상모델 실험에서 프록시 점수는 계속 오르지만 "정답" 보상은 어느 KL에서 꺾여 내려가는 현상을 보고했다. 아래 예시 모형에서 그 메커니즘을 직접 만들어 본다.</p>
+<p>Best-of-N이 고르는 것은 <em>보상모델이 높게 본</em> 응답이지 실제로 좋은 응답이 아니다. 보상모델이 실제 선호와 어긋나는 방향(예: 길이)이 있으면, $N$을 키울수록 그 방향의 극단값이 뽑힌다. Gao et al.(2022)은 실제 보상모델 실험에서 프록시 점수는 계속 오르지만 "정답" 보상은 어느 KL에서 꺾여 내려가는 현상을 보고했다. 아래 예시 모형에서 그 메커니즘을 직접 만들어 본다. 먼저 카드 게임으로 손에 익힌 뒤 시뮬레이터로 평균을 본다.</p>
+<div data-w="try-cards"></div>
 <div data-w="bon-sim"></div>
 <ul>
   <li>$\kappa=0$(편향 없음)이면 $\sigma$가 커도 실제 품질은 단조 증가한다. 잡음은 이득을 줄일 뿐 뒤집지 않는다.</li>
@@ -49,6 +61,7 @@
 <h2>다수결(self-consistency)과 pass@k</h2>
 <p>보상모델이 없어도 쓸 수 있는 방법이 있다. 정답이 짧은 값(숫자, 선택지)이면 여러 추론 경로를 샘플링하고 <strong>가장 많이 나온 답</strong>을 고른다(Wang et al. 2022). 반면 pass@k는 "$k$개 중 하나라도 맞으면 성공"이다. 이것은 완벽한 검증기가 있을 때의 상한이다.</p>
 $$\text{pass@}k = 1-(1-p)^k, \qquad \text{maj@}k = \Pr\big[\text{정답이 } k\text{개 표본의 최빈값}\big]$$
+<div data-w="step-pass"></div>
 <div data-w="vote-calc"></div>
 <div class="warn"><span class="label">핵심 관찰</span>다수결은 <strong>최빈값 추정기</strong>다. 정답 확률 $p$가 가장 흔한 오답 확률 $q$보다 크면 $k\to\infty$에서 정확도가 1로 가고, 작으면 0으로 간다. 표본을 늘리는 것은 모델의 "가장 그럴듯한 답"을 확정할 뿐, 모델이 자신 있게 틀린 문제를 고치지 못한다. pass@k와 maj@k의 간격은 검증기가 있어야만 회수할 수 있다.</div>
 
@@ -108,17 +121,19 @@ $$s_{\text{seq}}(t) = (1-m)\Big[1-(1-p)\big(1-\min(1,gp)\big)^{t-1}\Big] + m\,p,
     mount: {
       'fx-bon': (el) => ui.formula(el, {
         title: 'Best-of-N의 출력 분포',
+        say: '어떤 답이 {bon|N개 중 최고점으로 뽑힐 확률}은, {ref|원래 모델이 그 답을 낼 확률}에 {F|나머지 N−1개가 모두 그 답보다 점수가 낮을 확률}을 곱하고, 그 답이 {N|N개 중 어느 순서로든 나올 수 있으니 N}을 곱한 것이다. 여기서 {cdf|"점수가 이 값 이하일 확률"}은 원래 모델의 답들로 잰다.',
         tex: R`\tm{bon}{\pi_{\text{BoN}}(y)} = \tm{N}{N}\;\cdot\;\tm{F}{F\big(\hat r(y)\big)^{N-1}}\;\cdot\;\tm{ref}{\pi_{\text{ref}}(y)}, \qquad \tm{cdf}{F(t) = \Pr_{y'\sim\pi_{\text{ref}}}\big[\hat r(y')\le t\big]}`,
         terms: [
           { id: 'bon', sym: R`\pi_{\text{BoN}}(y)`, label: 'BoN 정책', desc: 'N개 중 최고점 응답이 y일 확률.', long: R`가중치는 그대로인데 출력 분포가 바뀐다. 즉 Best-of-N은 "학습 없이 정의되는 새 정책"이고, 그래서 KL과 기대 보상으로 RL 정책과 직접 비교할 수 있다.` },
           { id: 'N', sym: 'N', label: '어느 자리든 y가 될 수 있음', desc: 'N개 표본 중 y가 뽑힌 위치의 경우의 수.' },
-          { id: 'F', sym: R`F^{N-1}`, label: '나머지가 모두 더 낮을 확률', desc: '다른 N−1개가 y보다 점수가 낮아야 y가 선택된다.', long: R`이 항이 재가중이다. 점수 분위 $u=F(\hat r(y))$가 높을수록 $u^{N-1}$로 가중된다. $N$이 커지면 분위 1 근처로 질량이 몰린다. 원래 보상값 자체가 아니라 <strong>순위(분위)</strong>만 쓰인다는 점에 주목: 보상모델의 단조 변환에 불변이다.` },
+          { id: 'F', sym: R`F^{N-1}`, label: '나머지가 모두 더 낮을 확률', desc: '다른 N−1개가 y보다 점수가 낮아야 y가 선택된다.', easy: '상위 10% 점수인 답이라면, 다른 답 하나가 그보다 낮을 확률은 0.9다. 나머지 N−1개가 모두 낮아야 하니 0.9를 N−1번 곱한다.', long: R`이 항이 재가중이다. 점수 분위 $u=F(\hat r(y))$가 높을수록 $u^{N-1}$로 가중된다. $N$이 커지면 분위 1 근처로 질량이 몰린다. 원래 보상값 자체가 아니라 <strong>순위(분위)</strong>만 쓰인다는 점에 주목: 보상모델의 단조 변환에 불변이다.` },
           { id: 'ref', sym: R`\pi_{\text{ref}}(y)`, label: '기준 정책', desc: '지지집합을 결정한다. 기준 정책이 못 내는 응답은 영원히 못 낸다.' },
           { id: 'cdf', sym: 'F(t)', label: '점수의 누적분포', desc: '기준 정책 아래 보상모델 점수의 CDF.' },
         ],
       }),
       'dv-bonkl': (el) => ui.derivation(el, {
         title: R`$\mathrm{KL}(\pi_{\text{BoN}}\|\pi_{\text{ref}}) = \log N - \frac{N-1}{N}$`,
+        easy: 'N개 중 최고를 고르는 것은 원래 모델의 답 중 상위권에 가중치를 더 주는 것과 같다. 원래 모델에서 얼마나 멀어졌는지(KL)는 N만으로 정해지고 아주 천천히 커진다. N이 16이면 약 1.8, 1000이어도 약 5.9다.',
         steps: [
           { tex: R`\frac{\pi_{\text{BoN}}(y)}{\pi_{\text{ref}}(y)} = N\,F\big(\hat r(y)\big)^{N-1}`, why: R`위 분포식에서 바로 나온다. KL은 이 비율의 로그를 $\pi_{\text{BoN}}$ 아래에서 평균낸 값이다.` },
           { tex: R`u := F\big(\hat r(y)\big),\quad y\sim\pi_{\text{ref}} \;\Rightarrow\; \hl{u\sim\mathrm{Uniform}(0,1)}`, why: R`확률 적분 변환: 연속 확률변수를 자기 CDF에 넣으면 균등분포가 된다. 동점이 없다는 가정이 여기서 쓰인다.` },
@@ -130,11 +145,12 @@ $$s_{\text{seq}}(t) = (1-m)\Big[1-(1-p)\big(1-\min(1,gp)\big)^{t-1}\Big] + m\,p,
       }),
       'dv-guided': (el) => ui.derivation(el, {
         title: '시퀀스 최적해에서 토큰 단위 가치 유도로',
+        easy: '"점수는 높이되 원래 모델에서 너무 멀어지지 마라"의 정답 분포를 한 단어씩 나눠 쓰면, 매 단어마다 "원래 확률 × exp(그 단어로 갔을 때의 예상 점수 / 온도)"가 된다. 그래서 예상 점수를 알려 주는 가치 함수만 있으면, 다시 학습하지 않고 디코딩만으로 같은 효과를 낼 수 있다.',
         caption: R`상태 $s_t=(x,a_1,\dots,a_t)$, 행동은 다음 토큰, 전이는 이어 붙이기($s_{t+1}=s_t\oplus a$), 보상은 응답 끝에서 한 번, $\gamma=1$.`,
         steps: [
           { tex: R`\pi^*(y|x) = \frac{1}{Z(x)}\,\pi_{\text{ref}}(y|x)\,e^{r(x,y)/\beta}`, why: R`$\max_\pi \mathbb{E}_\pi[r]-\beta\,\mathrm{KL}(\pi\|\pi_{\text{ref}})$의 해(T5, <a href="#llm-mdp">18장</a>).` },
           { tex: R`V(s_t) := \beta\log\,\mathbb{E}_{y\sim\pi_{\text{ref}}(\cdot|s_t)}\big[e^{r(x,y)/\beta}\big],\qquad V(s_T)=r(x,y)`, why: R`접두사 $s_t$에서 기준 정책으로 끝까지 생성했을 때의 "soft 가치"를 정의한다.` },
-          { tex: R`\pi^*(s_t) = \sum_{y \supseteq s_t}\pi^*(y|x) = \frac{\pi_{\text{ref}}(s_t)\,\hl{e^{V(s_t)/\beta}}}{Z(x)}`, why: R`접두사 $s_t$로 시작하는 모든 완성에 대해 합하면, 완성 부분의 합이 정확히 $e^{V(s_t)/\beta}$가 된다. 여기서 $\pi_{\text{ref}}(s_t)$는 접두사 확률.` },
+          { tex: R`\pi^*(s_t) = \sum_{y \supseteq s_t}\pi^*(y|x) = \frac{\pi_{\text{ref}}(s_t)\,\hl{e^{V(s_t)/\beta}}}{Z(x)}`, why: R`접두사 $s_t$로 시작하는 모든 완성에 대해 합하면, 완성 부분의 합이 정확히 $e^{V(s_t)/\beta}$가 된다. 여기서 $\pi_{\text{ref}}(s_t)$는 접두사 확률.`, easy: '같은 앞부분으로 시작하는 모든 완성 답의 확률을 더하면, "앞부분이 나올 원래 확률"에 "그 앞부분에서 기대되는 점수"만큼의 가중치가 붙는다.' },
           { tex: R`\pi^*(a|s_t) = \frac{\pi^*(s_t\oplus a)}{\pi^*(s_t)} = \pi_{\text{ref}}(a|s_t)\,\exp\!\Big(\frac{\hl{V(s_t\oplus a) - V(s_t)}}{\beta}\Big)`, why: R`조건부 확률의 정의. $Z(x)$는 약분된다. 지수 안의 차이가 토큰 단위 advantage다.` },
           { tex: R`e^{V(s)/\beta} = \sum_a \pi_{\text{ref}}(a|s)\,e^{Q(s,a)/\beta},\qquad Q(s,a) := V(s\oplus a)`, why: R`정규화 조건이 곧 <strong>soft 벨만 방정식</strong>이다. $\max$ 대신 $\beta\log\sum\pi_{\text{ref}}e^{(\cdot)/\beta}$를 쓰는 벨만 백업이며 여전히 축약이다(T1, <a href="#maxent">14장</a>).` },
           { tex: R`\hat V(s) = \mathbb{E}_{\pi_{\text{ref}}}[r\mid s] \;\le\; V(s) \qquad(\text{젠슨 부등식, } \beta\to\infty \text{에서 등호})`, why: R`soft 가치는 학습이 어렵다. Controlled decoding류는 이를 기준 정책 아래 <em>평균 보상</em>으로 근사한다. KL이 작은(β가 큰) 영역에서는 정확하고, β가 작아질수록 최적에서 벗어난다. 아래 시뮬레이터의 주황 곡선이 이 차이다.` },
@@ -142,13 +158,26 @@ $$s_{\text{seq}}(t) = (1-m)\Big[1-(1-p)\big(1-\min(1,gp)\big)^{t-1}\Big] + m\,p,
       }),
       'fx-guided': (el) => ui.formula(el, {
         title: '가치 유도 디코딩',
+        say: '{pg|안내를 받은 다음 단어 확률}은, {ref|원래 모델의 다음 단어 확률}에 {Q|그 단어를 골랐을 때 예상되는 최종 점수}를 {b|온도}로 나눈 만큼 지수 가중치를 곱하고, 전체 합이 1이 되도록 {Z|모든 단어의 가중치 합}으로 나눈 것이다.',
         tex: R`\tm{pg}{\pi_{\text{guided}}(a\mid s)} = \frac{\tm{ref}{\pi_{\text{ref}}(a\mid s)}\;\exp\!\big(\tm{Q}{\hat Q(s,a)}\,/\,\tm{b}{\beta}\big)}{\tm{Z}{\sum_{a'}\pi_{\text{ref}}(a'\mid s)\exp\!\big(\hat Q(s,a')/\beta\big)}}`,
         terms: [
           { id: 'pg', sym: R`\pi_{\text{guided}}`, label: '유도된 정책', desc: '가중치를 바꾸지 않고 디코딩 시점에 만든 정책.' },
           { id: 'ref', sym: R`\pi_{\text{ref}}`, label: '기준 LM', desc: '언어적 자연스러움과 지지집합을 제공한다.', long: R`$\pi_{\text{ref}}$가 0인 토큰은 아무리 $Q$가 커도 선택되지 않는다. 실전에서는 계산량 때문에 $\pi_{\text{ref}}$의 상위 $k$개 토큰에만 $\hat Q$를 평가한다.` },
           { id: 'Q', sym: R`\hat Q(s,a)`, label: '접두사 가치', desc: '토큰 a를 붙였을 때의 예상 최종 보상.', long: R`DQN의 $Q$와 같은 역할이지만 $\gamma=1$, 결정적 전이라서 $Q(s,a)=V(s\oplus a)$이다. 그래서 "토큰별 Q-헤드" 대신 "접두사 가치 함수 하나"로 충분하다. 학습 방법: $\pi_{\text{ref}}$ 롤아웃의 최종 보상을 회귀(MC), 또는 soft 벨만 잔차를 최소화(TD).` },
-          { id: 'b', sym: R`\beta`, label: '온도 (KL 가격)', desc: '작을수록 가치를 강하게 따른다(KL 증가).', long: R`$\beta\to\infty$이면 $\pi_{\text{ref}}$ 그대로, $\beta\to0$이면 $\arg\max_a\hat Q$ (DQN식 탐욕 디코딩). 탐욕으로 갈수록 $\hat Q$의 오차를 그대로 착취하므로, 가치 추정이 불확실하면 β를 크게 두는 것이 안전하다(T7의 비관과 같은 이유).` },
+          { id: 'b', sym: R`\beta`, label: '온도 (KL 가격)', desc: '작을수록 가치를 강하게 따른다(KL 증가).', easy: '온도가 낮으면 예상 점수 1등 단어로 거의 확정, 높으면 원래 모델 그대로. 예상 점수를 얼마나 믿을지 정하는 손잡이다.', long: R`$\beta\to\infty$이면 $\pi_{\text{ref}}$ 그대로, $\beta\to0$이면 $\arg\max_a\hat Q$ (DQN식 탐욕 디코딩). 탐욕으로 갈수록 $\hat Q$의 오차를 그대로 착취하므로, 가치 추정이 불확실하면 β를 크게 두는 것이 안전하다(T7의 비관과 같은 이유).` },
           { id: 'Z', sym: 'Z(s)', label: '정규화', desc: 'soft 벨만식에서는 e^{V(s)/β}와 같다.' },
+        ],
+      }),
+      'try-cards': mountCards,
+      'step-pass': (el) => ui.walkthrough(el, {
+        title: '손으로 계산: 여러 번 풀면 맞을 확률',
+        caption: '"다음 단계"를 눌러 한 줄씩 연다. 빈칸에 답을 적고 "확인"을 누르면 풀이가 열린다.',
+        steps: [
+          { say: R`한 번 풀면 맞을 확률이 0.3인 문제가 있다. 한 번 풀어서 <strong>틀릴</strong> 확률은?`, ask: { answer: 0.7, tol: 0.001 }, calc: R`1 - 0.3 = 0.7` },
+          { say: R`세 번 풀었는데 세 번 모두 틀릴 확률은? 세 번이 서로 영향을 주지 않으면 곱하면 된다.`, ask: { answer: 0.343, tol: 0.001 }, calc: R`0.7 \times 0.7 \times 0.7 = 0.343` },
+          { say: R`그러면 세 번 중 <strong>하나라도</strong> 맞을 확률은? 이것이 pass@3이다. 맞은 풀이를 알아보는 채점기가 있으면 이만큼 맞힐 수 있다.`, ask: { answer: 0.657, tol: 0.001 }, calc: R`1 - 0.343 = 0.657 \qquad \text{일반형: } 1-(1-p)^N` },
+          { say: R`이번엔 채점기 없이 다수결로 고른다. 한 번 풀면 정답이 나올 확률 0.6, 늘 같은 오답 X가 나올 확률 0.4라 하자. 세 번 풀어 정답이 두 번 이상 나오면 다수결이 맞다. 그 확률은?`, ask: { answer: 0.648, tol: 0.002 }, calc: R`\underbrace{3\times0.6^2\times0.4}_{\text{정답 2번}} + \underbrace{0.6^3}_{\text{정답 3번}} = 0.432 + 0.216 = 0.648` },
+          { say: R`한 번 풀 때(0.6)보다 다수결 셋(0.648)이 낫다. 그런데 정답 확률이 0.4이고 오답 X가 0.6이면, 같은 계산으로 0.352가 되어 한 번 풀 때(0.4)보다 <strong>나빠진다</strong>. 다수결은 원래 더 자주 나오던 답을 굳힐 뿐이다.`, calc: R`3\times0.4^2\times0.6 + 0.4^3 = 0.288 + 0.064 = 0.352` },
         ],
       }),
       'bon-sim': mountBonSim,
@@ -193,10 +222,102 @@ $$s_{\text{seq}}(t) = (1-m)\Big[1-(1-p)\big(1-\min(1,gp)\big)^{t-1}\Big] + m\,p,
     return d;
   }
 
+  /* ---------- TRY: 카드 뽑기 ---------- */
+  function mountCards(el) {
+    const p = ui.panel(el, { kind: 'TRY', title: '카드 뽑기: 점수가 가장 좋아 보이는 답을 내라',
+      caption: '"한 장 뽑기"를 눌러 답 카드를 한 장씩 뽑고, 이만하면 됐다 싶을 때 "제출"을 눌러라. 카드에는 채점기 점수와 답의 길이만 보이고, 제출하면 채점기 점수가 가장 높은 카드가 나가며 숨겨진 실제 품질이 공개된다. 여러 판 해 보며 많이 뽑을수록 정말 좋아지는지 아래 그래프에서 확인하라.' });
+    const btns = ui.row(p.body, 'btns');
+    const drawB = ui.button(btns, '한 장 뽑기', () => drawOne(true), { primary: true });
+    const draw5 = ui.button(btns, '5장 더', () => { for (let i = 0; i < 5; i++) drawOne(false); render(); });
+    const subB = ui.button(btns, '제출 (채점기 최고점 카드)', submit);
+    ui.button(btns, '새 판', newRound);
+    const tg = ui.row(p.body);
+    const bias = ui.checkbox(tg, { label: '채점기가 긴 답을 좋아한다 (편향 있음)', value: true, onChange: () => { history = []; curve(); newRound(); } });
+    const deck = div(p.body);
+    deck.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;min-height:58px';
+    const msg = div(p.body, 'fx-detail');
+    const st = ui.stats(p.body, [
+      { key: 'n', label: '이번 판에 뽑은 장 수' },
+      { key: 'avg', label: '지금까지 제출한 카드의 평균 실제 품질', tone: 'accent' },
+      { key: 'rounds', label: '한 판 수' },
+    ]);
+    const chart = plot.line(div(p.body), { height: 240, x: { label: '뽑은 장 수 N', min: 1, max: 30 }, y: { label: '제출한 카드의 실제 품질' }, series: [], hoverXDigits: 0, hoverDigits: 1 });
+    const MAXN = 30;
+    const r = sim.rng(777);
+    let cards = [], done = false, history = [], exp = null;
+    const sc = (v) => Math.round(50 + 15 * v);
+    // 예시 모형: 실제 품질 = 내용 q + 길이 효과(적당하면 좋고 지나치면 나쁨), 채점기 = 내용 + 길이 선호 + 잡음
+    function sample(rr) {
+      const q = rr.normal(), h = rr.normal(), e = rr.normal();
+      const k = bias.get() ? 1.5 : 0;
+      return { vis: q + k * h + 0.3 * e, gold: q + h - h * h, len: Math.max(30, Math.round(160 + 70 * h)) };
+    }
+    function curve() {
+      const rr = sim.rng(31337);
+      const TR = 1500;
+      const best = new Array(MAXN).fill(0), orc = new Array(MAXN).fill(0);
+      for (let t = 0; t < TR; t++) {
+        let bv = -Infinity, bg = 0, og = -Infinity;
+        for (let n = 0; n < MAXN; n++) {
+          const c = sample(rr);
+          if (c.vis > bv) { bv = c.vis; bg = c.gold; }
+          if (c.gold > og) og = c.gold;
+          best[n] += bg; orc[n] += og;
+        }
+      }
+      exp = { best: best.map((v) => sc(v / TR)), orc: orc.map((v) => sc(v / TR)) };
+    }
+    function bestIdx(key) { let bi = -1; cards.forEach((c, i) => { if (bi < 0 || c[key] > cards[bi][key]) bi = i; }); return bi; }
+    function drawOne(redraw) {
+      if (done || cards.length >= MAXN) return;
+      cards.push(sample(r));
+      if (redraw) render();
+    }
+    function submit() {
+      if (!cards.length || done) return;
+      done = true;
+      const bi = bestIdx('vis');
+      history.push([cards.length, sc(cards[bi].gold)]);
+      render();
+    }
+    function newRound() { cards = []; done = false; render(); }
+    function render() {
+      const bv = bestIdx('vis'), bg = bestIdx('gold');
+      deck.innerHTML = cards.map((c, i) => {
+        const pick = i === bv, top = done && i === bg;
+        const border = top ? 'var(--good)' : pick ? 'var(--signal)' : 'var(--line)';
+        return '<div style="border:2px solid ' + border + ';border-radius:8px;padding:4px 8px;min-width:78px;background:var(--surface);font-size:var(--fs-xs);line-height:1.5">' +
+          '<div class="mono" style="background:none;padding:0;font-size:var(--fs-sm)">점수 ' + sc(c.vis) + '</div>' +
+          '<div style="color:var(--muted)">' + c.len + '단어</div>' +
+          (done ? '<div style="color:' + (top ? 'var(--good)' : 'var(--ink)') + '">실제 ' + sc(c.gold) + '</div>' : '') + '</div>';
+      }).join('') || '<span class="w-caption">아직 뽑은 카드가 없다.</span>';
+      if (!cards.length) msg.innerHTML = '"한 장 뽑기"로 시작하자. 주황 테두리는 지금 채점기 점수가 가장 높은 카드, 즉 제출하면 나갈 카드다.';
+      else if (!done) msg.innerHTML = cards.length + '장 뽑았다. 지금 제출하면 점수 <strong>' + sc(cards[bv].vis) + '</strong>(' + cards[bv].len + '단어) 카드가 나간다.' + (cards.length >= MAXN ? ' 최대 장 수에 닿았다. 제출하라.' : '');
+      else {
+        const g = sc(cards[bv].gold), og = sc(cards[bg].gold);
+        msg.innerHTML = '제출한 카드: 채점기 점수 ' + sc(cards[bv].vis) + ', 길이 ' + cards[bv].len + '단어, <strong>실제 품질 ' + g + '</strong>. 뽑은 카드 중 실제로 가장 좋은 것은 초록 테두리(실제 ' + og + ', ' + cards[bg].len + '단어)였다.' +
+          (bias.get() && cards[bv].len > 260 ? ' 채점기가 긴 답을 좋아해서, 많이 뽑을수록 지나치게 긴 답이 1등이 되기 쉽다.' : '') + ' "새 판"으로 다시 해 보자.';
+      }
+      drawB.disabled = draw5.disabled = done || cards.length >= MAXN;
+      subB.disabled = done || !cards.length;
+      st.set('n', cards.length);
+      st.set('avg', history.length ? (sim.mean(history.map((x) => x[1]))).toFixed(1) : '–');
+      st.set('rounds', history.length);
+      const xs = sim.range(MAXN).map((i) => i + 1);
+      chart.update({ series: [
+        { name: '평균: 채점기 최고점 카드의 실제 품질', color: 'c1', data: xs.map((x, i) => [x, exp.best[i]]) },
+        { name: '평균: 실제 품질로 골랐다면', color: 'c3', dash: '5 4', data: xs.map((x, i) => [x, exp.orc[i]]) },
+        { name: '내가 제출한 카드', color: 'signal', type: 'scatter', r: 5, data: history.length ? history : [[NaN, NaN]] },
+      ] });
+    }
+    curve();
+    render();
+  }
+
   /* ---------- Best-of-N 과최적화 ---------- */
   function mountBonSim(el) {
     const p = ui.panel(el, { kind: 'SIM', title: 'Best-of-N: 보상모델 점수 vs 실제 품질',
-      caption: R`예시 모형. 응답을 (내용 품질 $q$, 장황함 $h$) 두 특징으로 단순화하고 둘 다 표준정규로 둔다. 실제 선호는 $g=q+0.5h-0.5h^2$(적당한 길이가 최선), 보상모델은 $\hat r=q+\kappa h+\sigma\varepsilon$(길수록 좋다는 편향 $\kappa$와 잡음 $\sigma$). $N$개 중 $\hat r$ 최고를 고르는 실험을 300회 반복해 평균낸다.` });
+      caption: R`$N$ 슬라이더를 오른쪽으로 밀면서, 파란 선(실제 품질)이 어디서 꺾여 내려오는지 보라. 예시 모형이다. 응답을 (내용 품질 $q$, 장황함 $h$) 두 특징으로 단순화하고 둘 다 표준정규로 둔다. 실제 선호는 $g=q+0.5h-0.5h^2$(적당한 길이가 최선), 보상모델은 $\hat r=q+\kappa h+\sigma\varepsilon$(길수록 좋다는 편향 $\kappa$와 잡음 $\sigma$). $N$개 중 $\hat r$ 최고를 고르는 실험을 300회 반복해 평균낸다.` });
     const ctr = ui.row(p.body);
     const nS = ui.slider(ctr, { label: R`현재 $N$`, min: 0, max: 10, step: 1, value: 5, format: (v) => String(Math.pow(2, v)), onInput: show });
     const kS = ui.slider(ctr, { label: R`보상모델 편향 $\kappa$`, min: 0, max: 1.5, step: 0.05, value: 1.0, format: ui.fmt.f(2), onInput: recompute });
@@ -253,7 +374,7 @@ $$s_{\text{seq}}(t) = (1-m)\Big[1-(1-p)\big(1-\min(1,gp)\big)^{t-1}\Big] + m\,p,
   /* ---------- 다수결 vs pass@k ---------- */
   function mountVote(el) {
     const p = ui.panel(el, { kind: 'CALC', title: '다수결(maj@k)과 pass@k의 정확한 계산',
-      caption: R`한 문제에서 샘플 하나가 정답일 확률 $p$, 가장 흔한 오답일 확률 $q$, 나머지 $1-p-q$는 매번 서로 다른 오답이라고 두고, 다항분포를 정확히 합산한다(동점은 무작위로 깸).` });
+      caption: R`두 슬라이더 $p$와 $q$를 바꿔 가며, 파란 선(다수결)이 1로 올라가는지 0으로 내려가는지 보라. 한 문제에서 샘플 하나가 정답일 확률 $p$, 가장 흔한 오답일 확률 $q$, 나머지 $1-p-q$는 매번 서로 다른 오답이라고 두고, 다항분포를 정확히 합산한다(동점은 무작위로 깸).` });
     const ctr = ui.row(p.body);
     const pS = ui.slider(ctr, { label: R`정답 확률 $p$`, min: 0.02, max: 0.95, step: 0.01, value: 0.35, format: ui.fmt.f(2), onInput: draw });
     const qS = ui.slider(ctr, { label: R`가장 흔한 오답 확률 $q$`, min: 0, max: 0.9, step: 0.01, value: 0.25, format: ui.fmt.f(2), onInput: draw });
@@ -310,7 +431,7 @@ $$s_{\text{seq}}(t) = (1-m)\Big[1-(1-p)\big(1-\min(1,gp)\big)^{t-1}\Big] + m\,p,
   /* ---------- 가치 유도 디코딩: 토큰 트리 ---------- */
   function mountGuided(el) {
     const p = ui.panel(el, { kind: 'SIM', title: '토큰 트리에서 세 연산자의 보상-KL 경계',
-      caption: R`깊이 3, 분기 3인 트리(응답 27개). 각 노드의 $\pi_{\text{ref}}$와 잎의 보상은 시드로 생성한다. 파랑: 정확한 soft 가치로 유도(T5 최적해), 주황: $\pi_{\text{ref}}$ 아래 평균 보상으로 유도(controlled decoding식 근사), 초록 점: Best-of-N($N=1,2,4,\dots,512$, 이산 분포에서 정확 계산), 보라 점: $\pi_{\text{ref}}$의 탐욕 디코딩. 모든 값은 표본 없이 정확히 계산한다. 주황 곡선이 β가 작아질 때 되돌아 내려오는 것은, 평균 가치에 탐욕적으로 따라가면 좋은 잎이 섞인 서브트리를 지나쳐 버리기 때문이다.` });
+      caption: R`온도 $\beta$ 슬라이더를 움직이며 파란 점과 주황 점이 곡선을 따라 어떻게 움직이는지 보고, "새 트리"로 다른 문제에서도 확인하라. 깊이 3, 분기 3인 트리(응답 27개). 각 노드의 $\pi_{\text{ref}}$와 잎의 보상은 시드로 생성한다. 파랑: 정확한 soft 가치로 유도(T5 최적해), 주황: $\pi_{\text{ref}}$ 아래 평균 보상으로 유도(controlled decoding식 근사), 초록 점: Best-of-N($N=1,2,4,\dots,512$, 이산 분포에서 정확 계산), 보라 점: $\pi_{\text{ref}}$의 탐욕 디코딩. 모든 값은 표본 없이 정확히 계산한다. 주황 곡선이 β가 작아질 때 되돌아 내려오는 것은, 평균 가치에 탐욕적으로 따라가면 좋은 잎이 섞인 서브트리를 지나쳐 버리기 때문이다.` });
     const ctr = ui.row(p.body);
     const bS = ui.slider(ctr, { label: R`온도 $\beta$ ($\log_{10}$ 눈금)`, min: -1.6, max: 1.2, step: 0.05, value: -0.3, format: (v) => Math.pow(10, v).toFixed(3), onInput: show });
     const btns = ui.row(p.body, 'btns');
@@ -426,7 +547,7 @@ $$s_{\text{seq}}(t) = (1-m)\Big[1-(1-p)\big(1-\min(1,gp)\big)^{t-1}\Big] + m\,p,
   /* ---------- 단계 탐색: BoN+ORM vs PRM beam ---------- */
   function mountSearch(el) {
     const p = ui.panel(el, { kind: 'SIM', title: '같은 예산에서 Best-of-N(ORM) vs PRM beam search',
-      caption: R`예산 $B$ = 생성한 단계 수. Best-of-N은 $N=\lfloor B/D\rfloor$개 완성 풀이를 만들고 결과 점수로 고른다. Beam은 폭 $w$, 빔당 후보 $k\le4$개로 $D\cdot w\cdot k\le B$. 검증기 점수 = (맞으면 +1, 틀리면 −1) + $\mathcal N(0,\sigma^2)$. 예산마다 300회 몬테카를로.` });
+      caption: R`단계 수 $D$와 검증기 잡음 $\sigma$를 바꿔 가며, 파란 선(PRM beam)과 주황 선(Best-of-N)의 순서가 언제 뒤집히는지 보라. 예산 $B$ = 생성한 단계 수. Best-of-N은 $N=\lfloor B/D\rfloor$개 완성 풀이를 만들고 결과 점수로 고른다. Beam은 폭 $w$, 빔당 후보 $k\le4$개로 $D\cdot w\cdot k\le B$. 검증기 점수 = (맞으면 +1, 틀리면 −1) + $\mathcal N(0,\sigma^2)$. 예산마다 300회 몬테카를로.` });
     const ctr = ui.row(p.body);
     const dS = ui.slider(ctr, { label: R`풀이 단계 수 $D$`, min: 2, max: 12, step: 1, value: 8, format: ui.fmt.int, onInput: run });
     const pS = ui.slider(ctr, { label: R`단계 정답 확률 $p$`, min: 0.5, max: 0.98, step: 0.01, value: 0.75, format: ui.fmt.f(2), onInput: run });
@@ -497,7 +618,7 @@ $$s_{\text{seq}}(t) = (1-m)\Big[1-(1-p)\big(1-\min(1,gp)\big)^{t-1}\Big] + m\,p,
   /* ---------- 계산 배분 ---------- */
   function mountAlloc(el) {
     const p = ui.panel(el, { kind: 'CALC', title: '난이도별 병렬·순차 분할과 예산 재배분 (예시 모형)',
-      caption: R`문제는 네 난이도로 같은 수만큼 있다고 둔다. 정답은 검증기가 알아본다고 가정한다. (c)는 난이도마다 $n\times t$ 분할을 최적화하고, (d)는 전체 예산을 난이도 사이에 동적계획법으로 재배분한 뒤 분할도 최적화한다. 난이도는 정확히 안다고 가정한 상한이며, 실제 방법은 난이도를 예측해야 한다.` });
+      caption: R`예산 $B$ 슬라이더를 움직이며, 오른쪽 막대와 아래 기록에서 어느 난이도에 예산이 몰리는지 보라. 문제는 네 난이도로 같은 수만큼 있다고 둔다. 정답은 검증기가 알아본다고 가정한다. (c)는 난이도마다 $n\times t$ 분할을 최적화하고, (d)는 전체 예산을 난이도 사이에 동적계획법으로 재배분한 뒤 분할도 최적화한다. 난이도는 정확히 안다고 가정한 상한이며, 실제 방법은 난이도를 예측해야 한다.` });
     const BINS = [
       { name: '쉬움', p: 0.5, m: 0.1 },
       { name: '보통', p: 0.15, m: 0.3 },

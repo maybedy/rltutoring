@@ -10,6 +10,17 @@
     level: '중급 · 핵심',
     prereq: ['mdp', 'bandit'],
     theses: ['T3', 'T6'],
+    easy: {
+      hook: '잘된 선택은 더 자주, 안 된 선택은 덜 하도록 선택 확률을 직접 조금씩 옮긴다.',
+      intro: '<p><a href="#home">홈 화면</a>에서 강아지에게 "앉아"를 가르쳐 봤다면, 이 장의 알고리즘을 이미 한 번 돌려 본 것이다. 강아지는 네 가지 행동을 확률대로 했고, 간식을 받은 행동의 확률이 올라갔다.</p><p>이 장의 규칙은 하나다. <strong>해 본 행동의 확률을, 받은 점수만큼 올리거나 내린다.</strong> 여기에 요령 하나를 더한다. 점수를 그대로 쓰지 않고 <strong>평소보다 얼마나 잘했는지</strong>를 쓰면 훨씬 덜 흔들린다.</p>',
+      analogy: '시험에서 70점을 받았다고 하자. 칭찬할지 꾸중할지는 평소 점수에 달려 있다. 평소 50점이던 학생에게는 칭찬이고, 평소 90점이던 학생에게는 꾸중이다. 점수에서 "평소 점수"를 빼고 보는 것이 baseline이다. 빼는 값이 어떤 행동을 했는지와 상관없으면, 평균적으로 고치는 방향은 그대로이고 쓸데없는 흔들림만 줄어든다.',
+      path: ['점수를 받은 행동의 확률이 얼마나 오르는지 손으로 계산한다', '점수를 나눠 주며 평균을 뺄 때와 안 뺄 때를 비교한다', '같은 규칙을 수식으로 적고 짧은 복도에서 돌려 본다', 'LLM 학습에서 이 규칙이 어떻게 쓰이는지 본다'],
+      recap: [
+        '정책 경사는 해 본 행동의 확률을 받은 점수만큼 올리고 내리는 방법이다.',
+        '점수 대신 "평소보다 얼마나 잘했나"를 쓰면 평균적인 방향은 같고 흔들림만 줄어든다.',
+        '세상이 어떻게 움직이는지 몰라도 되기 때문에, 답 하나에 점수 하나만 주어지는 LLM 학습에도 그대로 쓰인다.',
+      ],
+    },
     goals: [
       '궤적 분포에 로그-미분 트릭을 적용해 REINFORCE 추정량을 유도하고, 환경 동역학 항이 왜 사라지는지 설명할 수 있다.',
       'reward-to-go와 baseline이 기댓값을 바꾸지 않으면서 분산만 줄인다는 것을 증명하고 시뮬레이션으로 확인한다.',
@@ -29,6 +40,9 @@ $$J(\theta) = \mathbb{E}_{\tau\sim p_\theta}\big[R(\tau)\big], \qquad p_\theta(\
 <p>문제는 $R(\tau)$가 $\theta$에 대해 미분 불가능하고(환경이 블랙박스), 기댓값을 취하는 분포 자체가 $\theta$에 의존한다는 점이다.</p>
 
 <h2>로그-미분 트릭: REINFORCE의 유도</h2>
+<p>수식 전에 숫자로 먼저 해 보자. 행동이 둘뿐인 정책에서 보상을 한 번 받았을 때 확률이 얼마나 움직이는지 계산한다.</p>
+<div data-w="step-softmax"></div>
+<p>방금 한 계산을 일반적으로 적으면 아래와 같다.</p>
 <div data-w="dv-reinforce"></div>
 <div class="thesis-box"><span class="label">대전제 T3 · 점수함수 경사</span>
 <p>$\nabla_\theta\mathbb{E}_{x\sim p_\theta}[f(x)] = \mathbb{E}_{x\sim p_\theta}[f(x)\nabla_\theta\log p_\theta(x)]$. $f$를 미분할 필요가 없고, 샘플을 뽑아 <strong>로그확률의 경사에 점수를 곱해 평균</strong>내기만 하면 된다. 궤적에 적용하면 모르는 동역학 $P$가 로그 안에서 덧셈 항으로 분리되어 $\theta$-미분에서 사라진다. 이 성질 덕분에 같은 식이 바둑, 로봇, 그리고 "응답 전체에 점수 하나"만 주어지는 LLM에 그대로 쓰인다(<a href="#rlhf">19장</a>, <a href="#reasoning">21장</a>).</p>
@@ -39,6 +53,8 @@ $$\mathbb{E}_{a\sim\pi_\theta}\big[\nabla_\theta\log\pi_\theta(a\mid s)\big] = \
 
 <h2>인과성과 baseline: 기댓값은 그대로, 분산만 줄이기</h2>
 <p>시점 $t$의 행동은 그 이전에 이미 받은 보상에 영향을 줄 수 없다. 위 성질을 쓰면 $t'\le t$인 보상 $r_{t'}$과 $\nabla\log\pi(a_t\mid s_t)$의 곱은 기댓값이 0이므로, 전체 리턴 $R(\tau)$ 대신 <strong>그 이후 보상의 합(reward-to-go)</strong> $G_t$만 곱해도 된다. 같은 논리로 행동에 의존하지 않는 임의의 함수 $b(s_t)$를 빼도 기댓값은 바뀌지 않는다.</p>
+<p>baseline의 효과는 직접 점수를 줘 보면 바로 보인다. 특히 모든 점수가 양수인 상황에서, 평균을 빼지 않으면 나쁜 행동도 뽑히기만 하면 확률이 오른다.</p>
+<div data-w="try-score"></div>
 <div data-w="dv-baseline"></div>
 <div data-w="fx-reinforce"></div>
 <div class="key"><span class="label">해석</span>baseline은 통계학의 <strong>제어 변량(control variate)</strong>이다. "이 행동이 평소보다 나았나?"를 묻도록 점수의 영점을 옮긴다. $b(s) = V^\pi(s)$를 쓰면 곱해지는 양이 advantage $A^\pi(s,a) = Q^\pi(s,a) - V^\pi(s)$의 추정치가 되고, 그 $V$를 학습하는 것이 바로 Actor-Critic이다(<a href="#ac">12장</a>).</div>
@@ -95,9 +111,10 @@ $$\underbrace{\nabla_\theta\,\mathbb{E}_{(s,a)\sim\mathcal{D}}\big[\log\pi_\thet
     mount: {
       'dv-reinforce': (el) => ui.derivation(el, {
         title: '$\\nabla_\\theta J$를 샘플로 계산 가능한 형태로',
+        easy: '보상을 미분할 수 없어도 괜찮다. "확률의 변화 = 확률 × 로그확률의 변화"라는 항등식 덕분에, 해 본 행동의 로그확률 기울기에 점수를 곱해 평균 내면 된다. 세상이 움직이는 규칙(전이 확률)은 정책과 무관해서 계산에서 빠진다.',
         steps: [
           { tex: String.raw`\nabla_\theta J(\theta) = \nabla_\theta \int p_\theta(\tau)\,R(\tau)\,d\tau = \int \hl{\nabla_\theta p_\theta(\tau)}\,R(\tau)\,d\tau`, why: '기댓값을 적분으로 쓰고 미분을 안으로 넣는다. $R(\\tau)$는 $\\theta$에 의존하지 않는다(궤적이 주어지면 보상은 정해진다).' },
-          { tex: String.raw`\nabla_\theta p_\theta(\tau) = p_\theta(\tau)\,\hl{\nabla_\theta\log p_\theta(\tau)}`, why: '로그-미분 항등식 $\\nabla p = p\\,\\nabla\\log p$. 이것이 트릭의 전부다.' },
+          { tex: String.raw`\nabla_\theta p_\theta(\tau) = p_\theta(\tau)\,\hl{\nabla_\theta\log p_\theta(\tau)}`, why: '로그-미분 항등식 $\\nabla p = p\\,\\nabla\\log p$. 이것이 트릭의 전부다.', easy: '숫자로 보면: 확률이 0.2이고 그 기울기가 0.1이면, 로그확률의 기울기는 0.1 ÷ 0.2 = 0.5다. 여기에 다시 확률 0.2를 곱하면 원래 기울기 0.1로 돌아온다.' },
           { tex: String.raw`\nabla_\theta J(\theta) = \int p_\theta(\tau)\,\nabla_\theta\log p_\theta(\tau)\,R(\tau)\,d\tau = \hl{\mathbb{E}_{\tau\sim p_\theta}}\big[\nabla_\theta\log p_\theta(\tau)\,R(\tau)\big]`, why: '다시 기댓값으로 돌아왔다. 이제 $p_\\theta$에서 궤적을 샘플링해 평균내면 된다.' },
           { tex: String.raw`\log p_\theta(\tau) = \log\rho_0(s_0) + \sum_t \log\pi_\theta(a_t|s_t) + \sum_t \log P(s_{t+1}|s_t,a_t)`, why: '궤적 확률의 곱이 로그에서 합으로 분리된다.' },
           { tex: String.raw`\nabla_\theta\log p_\theta(\tau) = \sum_t \nabla_\theta\log\pi_\theta(a_t|s_t) + \hl{\nabla_\theta\Big[\log\rho_0 + \sum_t\log P\Big]} = \sum_t \nabla_\theta\log\pi_\theta(a_t|s_t) + \hl{0}`, why: '시작 분포와 전이 확률은 $\\theta$와 무관하므로 미분하면 0. <strong>환경 모델을 몰라도 된다.</strong>' },
@@ -106,6 +123,7 @@ $$\underbrace{\nabla_\theta\,\mathbb{E}_{(s,a)\sim\mathcal{D}}\big[\log\pi_\thet
       }),
       'dv-baseline': (el) => ui.derivation(el, {
         title: 'baseline은 기댓값을 바꾸지 않는다',
+        easy: '어떤 행동을 하든 똑같은 값을 빼면, 평균적으로 고치는 방향은 하나도 바뀌지 않는다. "확률을 올리는 방향"을 모든 행동에 대해 확률만큼 평균 내면 0이기 때문이다. 바뀌는 것은 한 번 한 번의 흔들림 크기뿐이다.',
         steps: [
           { tex: String.raw`\mathbb{E}_{\tau}\big[\nabla_\theta\log\pi_\theta(a_t|s_t)\,b(s_t)\big] = \mathbb{E}_{s_t}\Big[b(s_t)\,\hl{\mathbb{E}_{a_t\sim\pi_\theta(\cdot|s_t)}\big[\nabla_\theta\log\pi_\theta(a_t|s_t)\big]}\Big]`, why: '반복 기댓값. $b(s_t)$는 $a_t$에 의존하지 않으므로 안쪽 기댓값 밖으로 나온다.' },
           { tex: String.raw`= \mathbb{E}_{s_t}\big[b(s_t)\cdot \hl{0}\big] = 0`, why: '점수함수의 기댓값은 0.' },
@@ -116,6 +134,7 @@ $$\underbrace{\nabla_\theta\,\mathbb{E}_{(s,a)\sim\mathcal{D}}\big[\log\pi_\thet
       }),
       'fx-reinforce': (el) => ui.formula(el, {
         title: 'REINFORCE + baseline 추정량 해부',
+        say: '{g|이번에 정책을 고칠 방향}은, {N|여러 판을 해 보고 평균 낸} 것으로, 판마다 각 선택에 대해 {score|그 선택을 더 자주 하게 만드는 방향}에 {G|그 뒤로 받은 점수의 합}에서 {b|평소 점수}를 뺀 만큼을 곱해 더한 것이다.',
         tex: String.raw`\tm{g}{\hat g} = \tm{N}{\frac{1}{N}\sum_{i=1}^{N}} \sum_{t} \tm{score}{\nabla_\theta\log\pi_\theta(a^i_t\mid s^i_t)}\,\big(\tm{G}{G^i_t} - \tm{b}{b(s^i_t)}\big)`,
         terms: [
           { id: 'g', sym: '\\hat g', label: '경사 추정치', desc: '$\\nabla_\\theta J$의 불편 추정. 확률변수.', long: '평균은 참 경사와 같지만 분산이 매우 클 수 있다. 학습률을 작게 잡아야 하는 이유. 아래 실험에서 이 분산을 직접 측정한다.' },
@@ -127,7 +146,8 @@ $$\underbrace{\nabla_\theta\,\mathbb{E}_{(s,a)\sim\mathcal{D}}\big[\log\pi_\thet
       }),
       'dv-pgt': (el) => ui.derivation(el, {
         title: '정책 경사 정리 (Sutton et al. 2000)',
-        caption: '$V^\\pi(s) = \\sum_a\\pi(a|s)Q^\\pi(s,a)$를 미분하고 전개를 반복한다.',
+        caption: '"다음 단계"를 누르며 한 줄씩 따라가 보라. $V^\\pi(s) = \\sum_a\\pi(a|s)Q^\\pi(s,a)$를 미분하고 전개를 반복한다.',
+        easy: '한 판 전체 대신 "어느 상황에 얼마나 자주 가는지 × 그 상황에서 그 행동의 가치 × 그 행동 확률을 올리는 방향"으로 쓸 수 있다. 정책이 상황 방문 빈도를 바꾸는 효과는 행동의 가치 안에 이미 들어 있어서 따로 계산하지 않아도 된다.',
         steps: [
           { tex: String.raw`\nabla V^\pi(s) = \sum_a\Big[\hl{\nabla\pi(a|s)}\,Q^\pi(s,a) + \pi(a|s)\,\hl{\nabla Q^\pi(s,a)}\Big]`, why: '곱의 미분.' },
           { tex: String.raw`\nabla Q^\pi(s,a) = \nabla\Big[R(s,a) + \gamma\sum_{s'}P(s'|s,a)V^\pi(s')\Big] = \gamma\sum_{s'}P(s'|s,a)\,\hl{\nabla V^\pi(s')}`, why: '보상과 전이는 $\\theta$와 무관하다.' },
@@ -136,6 +156,18 @@ $$\underbrace{\nabla_\theta\,\mathbb{E}_{(s,a)\sim\mathcal{D}}\big[\log\pi_\thet
           { tex: String.raw`\boxed{\;\nabla_\theta J(\theta) = \frac{1}{1-\gamma}\,\mathbb{E}_{s\sim d^{\pi_\theta},\,a\sim\pi_\theta}\big[Q^{\pi_\theta}(s,a)\,\nabla_\theta\log\pi_\theta(a|s)\big]\;}`, why: '할인 방문 횟수를 $(1-\\gamma)$로 정규화하면 $d^\\pi$이고, $\\nabla\\pi = \\pi\\nabla\\log\\pi$. <strong>방문 분포 $d^\\pi$의 경사가 식에 없다</strong>는 것이 정리의 핵심이다. 정책이 상태 분포를 바꾸는 효과는 $Q^\\pi$ 안에 이미 들어 있다.' },
         ],
       }),
+      'step-softmax': (el) => ui.walkthrough(el, {
+        title: '보상 한 번에 확률이 얼마나 움직이나',
+        caption: '각 단계의 빈칸에 계산한 값을 넣고 "확인"을 누르라. 막히면 "바로 보기"를 눌러도 된다.',
+        steps: [
+          { say: '행동은 왼쪽, 오른쪽 둘이다. 정책은 행동마다 "선호 점수"를 두고, 소프트맥스로 확률을 만든다. 지금 선호 점수는 둘 다 0이다. 오른쪽 확률은?', ask: { answer: 0.5, tol: 0.01 }, calc: String.raw`\pi(\text{오른쪽}) = \frac{e^{0}}{e^{0} + e^{0}} = \frac{1}{2} = 0.5` },
+          { say: '오른쪽을 했더니 보상 +1을 받았다. "이 행동을 더 자주 하게 만드는 방향"(점수함수)은 고른 행동의 선호 점수에 대해 <strong>1 − 확률</strong>, 안 고른 행동에 대해 <strong>0 − 확률</strong>이다. 오른쪽 선호 점수 쪽의 값은?', ask: { answer: 0.5, tol: 0.01 }, calc: String.raw`\frac{\partial\log\pi(\text{오른쪽})}{\partial h_{\text{오른쪽}}} = 1 - 0.5 = 0.5,\qquad \frac{\partial\log\pi(\text{오른쪽})}{\partial h_{\text{왼쪽}}} = 0 - 0.5 = -0.5` },
+          { say: '학습률 1로 "선호 점수 += 학습률 × 보상 × 점수함수"를 한다. 오른쪽 선호 점수는 얼마가 될까?', ask: { answer: 0.5, tol: 0.01 }, calc: String.raw`h_{\text{오른쪽}} = 0 + 1\times1\times0.5 = 0.5,\qquad h_{\text{왼쪽}} = 0 + 1\times1\times(-0.5) = -0.5` },
+          { say: '새 오른쪽 확률은? ($e^{0.5}\\approx1.649$, $e^{-0.5}\\approx0.607$)', ask: { answer: 0.731, rtol: 0.01 }, calc: String.raw`\pi(\text{오른쪽}) = \frac{e^{0.5}}{e^{0.5} + e^{-0.5}} = \frac{1.649}{2.256} \approx 0.731` },
+          { say: '이번에는 평소 점수(baseline) 0.6을 빼고 같은 계산을 한다. 보상 1 대신 1 − 0.6 = 0.4를 곱하니, 오른쪽 선호 점수는 0.2만 오르고 확률은 약 0.60이 된다. 평소보다 조금 잘한 만큼만 조금 올라간다.', calc: String.raw`h_{\text{오른쪽}} = 0 + 1\times(1 - 0.6)\times0.5 = 0.2,\qquad \pi(\text{오른쪽}) = \frac{1}{1 + e^{-0.4}} \approx 0.599`, note: '이 다섯 줄이 REINFORCE의 전부다. 아래 유도는 같은 계산이 여러 걸음짜리 문제에서도 성립함을 보여 준다.' },
+        ],
+      }),
+      'try-score': mountScoreGame,
       corridor: mountCorridor,
       'grad-var': mountGradVar,
     },
@@ -185,7 +217,7 @@ $$\underbrace{\nabla_\theta\,\mathbb{E}_{(s,a)\sim\mathcal{D}}\big[\log\pi_\thet
   }
 
   function mountCorridor(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: '짧은 복도: REINFORCE vs REINFORCE + baseline' });
+    const p = ui.panel(el, { kind: 'SIM', title: '짧은 복도: REINFORCE vs REINFORCE + baseline', caption: '"학습 실행"을 누르면 20번의 독립 학습을 평균 낸 곡선이 그려진다. 위 그래프에서 두 곡선이 최적선(−11.66)에 다가가는 속도를, 오른쪽 아래 그래프에서 최종 점들이 얼마나 흩어져 있는지를 보라.' });
     p.body.insertAdjacentHTML('beforeend', String.raw`<svg viewBox="0 0 560 74" role="img" aria-label="짧은 복도" style="width:100%;max-width:560px">
   <g style="font-size:12px">
     <rect x="20" y="16" width="100" height="40" rx="6" style="fill:var(--accent-soft);stroke:var(--accent)"/><text x="70" y="41" text-anchor="middle" style="fill:var(--ink)">s₁ 시작</text>
@@ -286,7 +318,7 @@ $$\underbrace{\nabla_\theta\,\mathbb{E}_{(s,a)\sim\mathcal{D}}\big[\log\pi_\thet
 
   /* ---------- 경사 추정량 분산 ---------- */
   function mountGradVar(el) {
-    const p = ui.panel(el, { kind: 'CALC', title: '같은 평균, 다른 분산: 네 가지 경사 추정량', caption: '정책 $p$를 고정하고 에피소드 1개당 경사 추정치 $\\hat g$를 만든다. 막대는 표준편차(에피소드 1개 기준), 표의 평균은 모두 참 경사 $dJ/d\\theta$ 근처여야 한다.' });
+    const p = ui.panel(el, { kind: 'CALC', title: '같은 평균, 다른 분산: 네 가지 경사 추정량', caption: '슬라이더로 정책 $p$를 고르고 "다시 샘플링"을 눌러 보라. 막대 높이는 네 가지 방법으로 만든 경사 추정치 $\\hat g$가 한 판마다 얼마나 흩어지는지다. 막대는 표준편차(에피소드 1개 기준), 표의 평균은 모두 참 경사 $dJ/d\\theta$ 근처여야 한다.' });
     const ctr = ui.row(p.body);
     const pS = ui.slider(ctr, { label: '고정 정책 $p$', min: 0.1, max: 0.9, step: 0.02, value: 0.3, format: ui.fmt.f(2), onInput: () => run() });
     const nS = ui.slider(ctr, { label: '샘플 에피소드 수', min: 200, max: 4000, step: 200, value: 2000, format: ui.fmt.int, onInput: () => run() });
@@ -327,5 +359,105 @@ $$\underbrace{\nabla_\theta\,\mathbb{E}_{(s,a)\sim\mathcal{D}}\big[\log\pi_\thet
         '</tbody></table>';
     }
     run();
+  }
+  /* ---------- 점수 나눠 주기 ---------- */
+  function pickIdx(pr, u) {
+    let c = 0;
+    for (let i = 0; i < pr.length; i++) { c += pr[i]; if (u < c) return i; }
+    return pr.length - 1;
+  }
+  function mountScoreGame(el) {
+    const p = ui.panel(el, { kind: 'TRY', title: '점수 나눠 주기: 평균을 빼면 무엇이 달라질까', caption: '"한 번 해 보기"를 누르면 행동 하나가 막대의 확률대로 뽑힌다. 그 행동에 점수 버튼으로 점수를 주고, 막대가 어떻게 움직이는지 보라. "평균 빼기"를 켜면 점수 대신 "점수 − 지금까지의 평균 점수"로 고친다.' });
+    const acts = ['A', 'B', 'C'];
+    const lr = 0.5;
+    const r = sim.rng(9);
+    let h = [0, 0, 0], last = null, avg = 0, seen = 0, prev = null;
+    const ctr = ui.row(p.body);
+    const base = ui.checkbox(ctr, { label: '평균 빼기 (baseline)', value: false });
+    const btns = ui.row(p.body, 'btns');
+    const tryB = ui.button(btns, '한 번 해 보기', pick, { primary: true });
+    const give = [3, 1, -1].map((v) => ui.button(btns, (v > 0 ? '+' : '−') + Math.abs(v) + '점 주기', () => reward(v)));
+    ui.button(btns, '처음부터', reset);
+    const msg = document.createElement('div');
+    msg.className = 'fx-detail';
+    const barsEl = document.createElement('div');
+    p.body.append(msg, barsEl);
+    const st = ui.stats(p.body, [
+      { key: 'n', label: '준 점수 횟수' },
+      { key: 'avg', label: '지금까지 평균 점수' },
+      { key: 'mult', label: '마지막에 곱한 값', tone: 'accent' },
+    ]);
+    const bars = plot.bars(barsEl, { categories: acts, series: [], height: 190, y: { min: 0, max: 1, label: '확률' }, labels: true, labelFmt: (v) => Math.round(v * 100) + '%' });
+    const autoHead = document.createElement('p');
+    autoHead.className = 'w-caption';
+    autoHead.innerHTML = '<strong>자동 실험.</strong> 점수가 늘 양수인 경우(A는 2점, B는 4점, C는 3점)를 30판씩 두 방식으로 돌린다. 두 방식은 같은 난수로 행동을 뽑는다.';
+    const autoBtns = ui.row(null, 'btns');
+    ui.button(autoBtns, '자동 실험 30판', () => auto(), { primary: true });
+    const autoOut = document.createElement('div');
+    autoOut.className = 'table-wrap';
+    p.body.append(autoHead, autoBtns, autoOut);
+    let autoSeed = 1;
+    function draw(text) {
+      const pr = sim.softmax(h);
+      const series = [];
+      if (prev) series.push({ name: '고치기 전', color: 'muted', values: prev, opacity: 0.45 });
+      series.push({ name: '지금', color: 'c1', values: pr });
+      bars.update({ series });
+      msg.innerHTML = text;
+      st.set('n', seen);
+      st.set('avg', seen ? avg.toFixed(2) : '–');
+      tryB.disabled = last != null;
+      give.forEach((b) => (b.disabled = last == null));
+    }
+    function pick() {
+      last = pickIdx(sim.softmax(h), r());
+      draw('행동 <strong>' + acts[last] + '</strong>가 뽑혔다. 점수를 주자.');
+    }
+    function reward(v) {
+      if (last == null) return;
+      const pr = sim.softmax(h);
+      const useBase = base.get();
+      const mult = useBase ? v - avg : v;
+      for (let i = 0; i < 3; i++) h[i] += lr * mult * ((i === last ? 1 : 0) - pr[i]);
+      prev = pr;
+      const now = sim.softmax(h);
+      const idx = last, a = acts[idx];
+      const how = useBase ? (v + ' − 평균 ' + avg.toFixed(2) + ' = ' + (mult >= 0 ? '+' : '') + mult.toFixed(2)) : ('점수 그대로 ' + (v > 0 ? '+' : '') + v);
+      const dir = now[idx] > pr[idx] ? '올랐다' : '내렸다';
+      st.set('mult', (mult >= 0 ? '+' : '') + mult.toFixed(2));
+      seen++;
+      avg += (v - avg) / seen;
+      last = null;
+      draw(a + '에 ' + (v > 0 ? '+' : '') + v + '점. 곱한 값 = ' + how + '. ' + a + ' 확률이 ' + Math.round(pr[idx] * 100) + '%에서 ' + Math.round(now[idx] * 100) + '%로 ' + dir + '.');
+    }
+    function reset() { h = [0, 0, 0]; last = null; avg = 0; seen = 0; prev = null; st.set('mult', '–'); draw('세 행동이 모두 33%다. "한 번 해 보기"를 눌러 시작하자.'); }
+    function runPair(seed) {
+      const R = [2, 4, 3];
+      const rr = sim.rng(seed);
+      const hs = [[0, 0, 0], [0, 0, 0]], av = [0, 0], n = [0, 0], up = [0, 0], cnt = [0, 0];
+      for (let t = 0; t < 30; t++) {
+        const u = rr();
+        for (let k = 0; k < 2; k++) {
+          const pr = sim.softmax(hs[k]);
+          const a = pickIdx(pr, u);
+          const m = k ? R[a] - av[k] : R[a];
+          for (let i = 0; i < 3; i++) hs[k][i] += lr * m * ((i === a ? 1 : 0) - pr[i]);
+          if (a === 0) { cnt[k]++; if (sim.softmax(hs[k])[0] > pr[0]) up[k]++; }
+          n[k]++; av[k] += (R[a] - av[k]) / n[k];
+        }
+      }
+      return { pr: hs.map((x) => sim.softmax(x)), up, cnt };
+    }
+    function auto() {
+      const one = runPair(autoSeed++);
+      let mB = [0, 0];
+      for (let i = 0; i < 300; i++) { const o = runPair(1000 + i); mB[0] += o.pr[0][1] / 300; mB[1] += o.pr[1][1] / 300; }
+      const pc = (x) => Math.round(x * 100) + '%';
+      autoOut.innerHTML = '<table class="t"><thead><tr><th>방식</th><th>30판 뒤 A / B / C 확률</th><th>나쁜 행동 A가 뽑혔을 때 A 확률이 오른 횟수</th><th>300번 반복한 평균 B 확률</th></tr></thead><tbody>' +
+        ['점수 그대로', '평균 빼기'].map((nm, k) => '<tr><td>' + nm + '</td><td class="num" style="white-space:nowrap">' + one.pr[k].map(pc).join(' / ') + '</td><td class="num">' + one.up[k] + ' / ' + one.cnt[k] + '</td><td class="num">' + pc(mB[k]) + '</td></tr>').join('') +
+        '</tbody></table><p class="w-caption" style="padding:8px 12px;margin:0">점수 그대로 쓰면 A(2점)도 뽑히기만 하면 확률이 오른다. 결국 "먼저 많이 뽑힌 행동"이 이기기 쉽다. 평균을 빼면 A의 곱한 값이 음수가 되어 내려간다. 버튼을 다시 누르면 다른 난수로 한 번 더 돌린다.</p>';
+    }
+    reset();
+    auto();
   }
 })();

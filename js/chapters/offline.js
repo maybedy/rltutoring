@@ -10,6 +10,17 @@
     level: '중급',
     prereq: ['dqn', 'ppo'],
     theses: ['T7', 'T8', 'T5'],
+    easy: {
+      hook: '다시 시도해 볼 수 없고 기록만 있을 때는, 기록에 거의 없는 선택을 아무리 좋아 보여도 의심해야 한다.',
+      intro: '<p>어느 병원에 10년 치 진료 기록이 있다고 하자. 더 나은 치료 방침을 정하고 싶지만, 환자에게 이것저것 시험해 볼 수는 없다. 가진 것은 <strong>기록뿐</strong>이다.</p><p>기록에 자주 나온 치료는 결과를 꽤 정확히 안다. 기록에 거의 없는 치료는 결과를 <strong>짐작</strong>할 뿐이다. 그런데 "가장 좋아 보이는 것"을 고르면, 짐작이 우연히 크게 나온 쪽이 뽑히기 쉽다. 그래서 이 장의 규칙은 하나다. <strong>잘 모르는 선택은 점수를 깎아서 본다.</strong></p>',
+      analogy: '맛집 앱에 리뷰 300개, 평점 4.5인 식당과 리뷰 2개, 평점 5.0인 식당이 있다. 평점만 보면 뒤의 식당이 1등이지만, 리뷰 2개짜리 5.0은 운일 가능성이 크다. 리뷰가 적을수록 평점을 깎아서 보는 습관이 이 장의 "비관주의"다. 새 동네를 여행 중이라면 리뷰 2개짜리 식당도 한번 가 볼 만하다. 그것이 다시 시도할 수 있을 때의 "낙관"이다.',
+      path: ['기록만 보고 최고의 행동을 직접 골라 보며 함정을 체험한다', '"모르면 깎아서 본다"를 작은 숫자로 계산한다', '다른 사람의 기록으로 내 방식을 채점하는 법(중요도 가중치)과 그 한계를 본다', '이 원리를 구현한 알고리즘들(BCQ, CQL, IQL, AWR)과 LLM 정렬의 연결을 본다'],
+      recap: [
+        '다시 시도해 볼 수 없으면, 기록에 없는 선택에 대한 짐작은 영영 고쳐지지 않는다.',
+        '가장 높게 짐작된 선택을 고르면, 짐작이 우연히 부풀려진 곳이 뽑히기 쉽다.',
+        '그래서 잘 모르는 선택일수록 점수를 깎아서 보고, 기록이 충분한 곳 근처에서 고른다.',
+      ],
+    },
     goals: [
       '온라인 on-policy, 온라인 off-policy, 오프라인 세 체제의 차이를 "피드백 루프"로 설명할 수 있다.',
       '외삽 오차가 $\\max$ 연산과 부트스트랩을 통해 증폭되는 과정을 시뮬레이터로 확인한다.',
@@ -62,18 +73,23 @@
 $$y = r + \gamma \max_{a'} Q_\theta(s', a'), \qquad (s, a, r, s') \sim \mathcal{D}$$
 <p>$\max_{a'}$는 $s'$에서 <strong>데이터에 한 번도 나온 적 없는 행동</strong>까지 포함해 최댓값을 고른다. 그런 $(s', a')$에서 $Q_\theta$의 값은 함수근사기가 마음대로 외삽한 숫자다. 게다가 $\max$는 잡음 중 가장 큰 것을 골라내므로($\mathbb{E}[\max] \ge \max \mathbb{E}$, T8), 외삽 오차는 체계적으로 <em>위쪽</em>으로 쏠린다. 이 값이 부트스트랩으로 다른 상태에 퍼지고, 학습된 정책은 바로 그 근거 없는 행동들을 고른다. 훈련은 $d^{\pi_\beta}$에서 했는데 평가는 $d^{\pi}$에서 일어나는 <strong>분포 이동</strong>이다.</p>
 <p>아래 시뮬레이터는 한 상태에서의 1차원 연속 행동 공간이다. 행동 정책은 특정 구간 근처만 시도했다. 서로 다른 무작위 특징과 부트스트랩 표본으로 학습한 $K$개의 회귀기(앙상블)가 같은 데이터를 맞춘다. 데이터 안에서는 모두 비슷하지만 데이터 밖에서는 제각각 외삽한다.</p>
+<p>먼저 직접 해 보자. 아래에서 여러분은 기록(점)만 볼 수 있다. 진짜 점수 곡선은 숨겨져 있다.</p>
+<div data-w="try-pick"></div>
+<p>이제 같은 일을 학습 모델에게 시켜 보자.</p>
 <div data-w="ensemble-pess"></div>
 <ul>
   <li><strong>순진한 argmax</strong>는 평균 Q가 가장 높은 곳을 고르는데, 그곳은 흔히 데이터 밖에서 몇몇 멤버가 우연히 높게 외삽한 지점이다. 예측 Q는 높지만 실제 Q는 낮다.</li>
   <li><strong>비관적 argmax</strong> $\arg\max_a[\bar Q(a) - \alpha\,\sigma(a)]$는 앙상블이 동의하는 곳, 즉 데이터 근처에서 고른다. 데이터 범위 안 최선에 가까운 값을 안정적으로 얻는다.</li>
   <li><strong>대가:</strong> 진짜 최적 행동이 데이터 밖에 있으면 비관주의는 그것을 영원히 찾지 못한다. 데이터 폭을 넓혀 진짜 봉우리(오른쪽)를 덮으면 두 방법이 일치한다. $\alpha$를 음수로 두면 불확실한 곳을 골라 "가 보는" 낙관 탐험이 된다. 온라인이라면 그것이 옳다.</li>
 </ul>
+<div data-w="step-pess"></div>
 <div class="thesis-box"><span class="label">대전제 T7 · 낙관과 비관</span>
 <p>같은 불확실성 $\sigma(a)$를 놓고 온라인과 오프라인은 정반대로 행동한다. 데이터를 더 모을 수 있으면 $\hat Q + c\sigma$로 <strong>낙관</strong>해서 가 보고 틀리면 고친다(UCB, <a href="#bandit">05장</a>). 더 모을 수 없으면 $\hat Q - c\sigma$로 <strong>비관</strong>해서 틀릴 위험을 피한다. 이론적으로도 오프라인 RL에서 비관주의는 "최적 정책이 데이터에 충분히 덮여 있기만 하면" 준최적성을 보장하는 원리로 정립되었다(Jin, Yang, Wang 2021; Rashidinejad et al. 2021). 모든 정책이 아니라 비교 대상 정책 하나만 덮이면 된다는 점이 핵심이다.</p>
 </div>
 
 <h2>오프-폴리시 평가와 중요도 샘플링</h2>
 <p>정책을 학습하기 전에, 데이터만으로 새 정책 $\pi$의 성능을 <em>평가</em>할 수는 있을까(OPE)? 가장 직접적인 방법은 중요도 샘플링(IS)이다.</p>
+<div data-w="step-is"></div>
 <div data-w="dv-is"></div>
 <p>불편 추정량이지만 분산이 지평 $H$에 대해 지수적으로 커진다. 아래에서 행동 정책과 목표 정책의 차이와 지평을 바꿔 보자.</p>
 <div data-w="is-var"></div>
@@ -129,10 +145,33 @@ $$L_\tau(u) = |\tau - \mathbb{1}[u < 0]|\, u^2,\qquad V(s) \leftarrow \arg\min_v
 `,
     mount: {
       'ensemble-pess': mountEnsemble,
+      'try-pick': mountPick,
+      'step-pess': (el) => ui.walkthrough(el, {
+        title: '조심하는 점수를 손으로 계산하기',
+        caption: '두 행동이 있다. A는 기록이 300번이라 여러 모델의 예측이 거의 같다(평균 0.50, 흩어짐 0.05). B는 기록이 2번뿐이라 모델마다 예측이 제각각이다(평균 0.90, 흩어짐 0.40). 흩어짐은 앙상블 예측의 표준편차다. 칸에 답을 적고 "확인"을 누르자.',
+        steps: [
+          { say: '평균만 보면 B(0.90)가 A(0.50)보다 훨씬 좋아 보인다. 이제 "평균 − α × 흩어짐"으로 조심스럽게 매겨 보자. α = 1일 때 A의 점수는?', ask: { answer: 0.45, tol: 0.005 }, calc: String.raw`0.50 - 1 \times 0.05 = 0.45` },
+          { say: '같은 α = 1로 B의 점수는?', ask: { answer: 0.5, tol: 0.005 }, calc: String.raw`0.90 - 1 \times 0.40 = 0.50` },
+          { say: '아직 B가 근소하게 앞선다. 더 조심해서 α = 2로 두면 B의 점수는?', ask: { answer: 0.1, tol: 0.005 }, calc: String.raw`0.90 - 2 \times 0.40 = 0.10`, note: 'A는 $0.50 - 2\\times0.05 = 0.40$이다. 이제 기록이 많은 A가 이긴다.' },
+          { say: '반대로 다시 시도해 볼 수 있는 온라인 상황이라면 α를 음수로 두어 "모르는 쪽이 좋을지도 모른다"고 낙관한다. α = −1이면 B의 점수는?', ask: { answer: 1.3, tol: 0.005 }, calc: String.raw`0.90 - (-1) \times 0.40 = 1.30`, note: '같은 숫자에서 부호만 바꾸면 탐험(UCB, 05장)이 되고, 그대로 두면 오프라인 RL의 비관주의가 된다. 대전제 T7이 말하는 것이 이것이다.' },
+        ],
+      }),
+      'step-is': (el) => ui.walkthrough(el, {
+        title: '중요도 가중치를 두 걸음짜리 기록으로 계산하기',
+        caption: '기록을 모은 사람은 매 걸음 "왼쪽"과 "오른쪽"을 반반(0.5)씩 골랐다. 우리가 채점하고 싶은 새 방식은 오른쪽을 0.8, 왼쪽을 0.2의 확률로 고른다. 기록 속 두 걸음짜리 경로에 가중치를 매겨 보자.',
+        steps: [
+          { say: '한 걸음에서 "오른쪽"을 골랐다면, 이 선택의 가중치는 (새 방식이 고를 확률) ÷ (기록한 사람이 고른 확률)이다. 얼마일까?', ask: { answer: 1.6, tol: 0.005 }, calc: String.raw`\rho(\text{오른쪽}) = \frac{0.8}{0.5} = 1.6` },
+          { say: '"왼쪽"을 골랐다면 가중치는?', ask: { answer: 0.4, tol: 0.005 }, calc: String.raw`\rho(\text{왼쪽}) = \frac{0.2}{0.5} = 0.4` },
+          { say: '경로 전체의 가중치는 걸음마다의 가중치를 곱한 것이다. "오른쪽, 오른쪽" 경로의 가중치는?', ask: { answer: 2.56, tol: 0.005 }, calc: String.raw`W = 1.6 \times 1.6 = 2.56` },
+          { say: '"왼쪽, 왼쪽" 경로의 가중치는?', ask: { answer: 0.16, tol: 0.005 }, calc: String.raw`W = 0.4 \times 0.4 = 0.16` },
+          { say: '기록한 사람에게는 네 경로(오오, 오왼, 왼오, 왼왼)가 똑같이 1/4씩 나온다. 네 가중치의 평균을 내 보자.', calc: String.raw`\tfrac14\,(2.56 + 0.64 + 0.64 + 0.16) = 1`, note: '평균은 정확히 1이다. 그래서 가중 평균은 공정하다(불편 추정). 하지만 가중치는 0.16에서 2.56까지 16배나 차이 난다. 걸음이 10개면 가장 큰 것과 가장 작은 것의 차이가 $4^{10}$, 약 100만 배로 벌어진다. 아래 시뮬레이터에서 볼 분산 폭발이 이것이다.' },
+        ],
+      }),
       'is-var': mountIS,
       'expectile': mountExpectile,
       'dv-is': (el) => ui.derivation(el, {
         title: '중요도 샘플링 추정량과 그 분산',
+        easy: '다른 사람이 모은 기록으로 내 방식을 채점하려면, 선택마다 "내가 했을 확률 ÷ 그 사람이 한 확률"을 곱해 가중치를 준다. 평균은 정확히 맞지만, 걸음이 늘수록 이 곱이 폭발적으로 들쭉날쭉해진다.',
         steps: [
           { tex: String.raw`J(\pi) = \mathbb{E}_{\tau\sim p_\pi}\big[G(\tau)\big] = \sum_\tau p_\pi(\tau)\, G(\tau)`, why: '목표 정책 $\\pi$가 만든 궤적의 기대 리턴을 알고 싶다. 그러나 데이터는 $\\pi_\\beta$가 만들었다.' },
           { tex: String.raw`\frac{p_\pi(\tau)}{p_\beta(\tau)} = \frac{\rho_0(s_0)\prod_t \hl{\pi(a_t|s_t)}\,P(s_{t+1}|s_t,a_t)}{\rho_0(s_0)\prod_t \hl{\pi_\beta(a_t|s_t)}\,P(s_{t+1}|s_t,a_t)} = \prod_{t=0}^{H-1} \rho_t,\quad \rho_t = \frac{\pi(a_t|s_t)}{\pi_\beta(a_t|s_t)}`, why: '전이 확률 $P$가 분자와 분모에서 상쇄된다. 환경 모델을 몰라도 비율을 계산할 수 있다.' },
@@ -143,6 +182,7 @@ $$L_\tau(u) = |\tau - \mathbb{1}[u < 0]|\, u^2,\qquad V(s) \leftarrow \arg\min_v
       }),
       'dv-awr': (el) => ui.derivation(el, {
         title: 'KL 제약 정책 개선에서 가중 BC로 (AWR / AWAC)',
+        easy: '"점수를 올리되 기록 속 습관에서 멀어지지 말라"를 풀면, 기록 속 행동을 따라 하되 평균보다 좋았던 행동일수록 더 무겁게 따라 하는 방법이 된다. 기록에 없는 행동은 아예 고려하지 않는다.',
         steps: [
           { tex: String.raw`\max_{\pi}\; \mathbb{E}_{a\sim\pi(\cdot|s)}\big[A(s,a)\big] - \beta\,\mathrm{KL}\big(\pi(\cdot|s)\,\|\,\pi_\beta(\cdot|s)\big)`, why: 'advantage를 키우되 행동 정책에서 멀어지지 말라는 목표. 각 상태에서 따로 푼다.' },
           { tex: String.raw`\pi^*(a|s) = \frac{1}{Z(s)}\,\pi_\beta(a|s)\,\hl{\exp\!\big(A(s,a)/\beta\big)}`, why: '대전제 T5의 닫힌 해. 행동 정책을 $\\exp(A/\\beta)$로 재가중한 분포다. 데이터에 확률이 0인 행동은 여기서도 0이다.' },
@@ -153,6 +193,7 @@ $$L_\tau(u) = |\tau - \mathbb{1}[u < 0]|\, u^2,\qquad V(s) \leftarrow \arg\min_v
       }),
       'dv-cql': (el) => ui.derivation(el, {
         title: 'CQL 손실의 유도: 최악의 행동 분포에 대한 페널티에서 log-sum-exp로',
+        easy: '모든 선택의 점수를 그냥 믿는 대신, 높게 매겨진 선택은 눌러 주고 기록에 실제로 있는 선택은 올려 준다. 그러면 기록 밖에서 부풀려진 점수만 벌을 받는다.',
         steps: [
           { tex: String.raw`\min_Q\; \tfrac12\,\mathbb{E}_{(s,a,s')\sim\mathcal{D}}\Big[\big(Q(s,a) - \hat{\mathcal{T}}\bar Q(s,a)\big)^2\Big]`, why: '출발점: 데이터 위의 보통 TD 회귀 손실.' },
           { tex: String.raw`+\;\alpha\Big(\hl{\max_{\mu}\,\mathbb{E}_{s\sim\mathcal{D},\,a\sim\mu(\cdot|s)}[Q(s,a)]} - \mathbb{E}_{(s,a)\sim\mathcal{D}}[Q(s,a)]\Big)`, why: 'Q를 가장 높게 평가받는 행동 분포 $\\mu$에서의 Q는 누르고, 데이터 행동의 Q는 올린다. 데이터 안에서는 두 항이 비슷해 상쇄되고, 데이터 밖에서 부풀린 값만 벌을 받는다.' },
@@ -163,6 +204,7 @@ $$L_\tau(u) = |\tau - \mathbb{1}[u < 0]|\, u^2,\qquad V(s) \leftarrow \arg\min_v
       }),
       'fx-cql': (el) => ui.formula(el, {
         title: 'CQL 페널티 해부',
+        say: '{al|얼마나 조심할지 정하는 계수}만큼, {Es|기록에 나온 상황마다} {lse|가장 높게 매겨진 선택들의 점수}는 눌러 내리고 {dat|기록에 실제로 있는 선택의 점수}는 끌어올린다. 그리고 평소처럼 {td|점수 예측이 한 걸음 뒤의 예측과 맞도록} 고친다.',
         tex: String.raw`\tm{al}{\alpha}\;\tm{Es}{\mathbb{E}_{s\sim\mathcal{D}}}\Big[\;\tm{lse}{\log\textstyle\sum_a e^{Q(s,a)}}\;-\;\tm{dat}{\mathbb{E}_{a\sim\pi_\beta(\cdot|s)}\,Q(s,a)}\;\Big]\;+\;\tm{td}{\tfrac12\,\mathbb{E}_{\mathcal{D}}\big[(Q-\hat{\mathcal{T}}\bar Q)^2\big]}`,
         terms: [
           { id: 'al', sym: '\\alpha', label: '보수성 계수', desc: '클수록 Q를 더 눌러 하한에 가깝게.', long: '너무 작으면 외삽 오차를 막지 못하고, 너무 크면 모든 Q가 행동 정책 가치 쪽으로 눌려 BC와 비슷해진다. 라그랑주 승수로 두어 "페널티 차이가 임계값 이하"가 되도록 자동 조절하는 변형도 있다.' },
@@ -265,7 +307,7 @@ $$L_\tau(u) = |\tau - \mathbb{1}[u < 0]|\, u^2,\qquad V(s) \leftarrow \arg\min_v
   }
 
   function mountEnsemble(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: '외삽 오차와 비관주의: 1차원 행동 공간에서의 앙상블 Q', caption: '점선은 실제 $Q(a)$(학습자는 모름), 초록 점은 데이터, 옅은 선은 앙상블 멤버, 파란 선은 평균 $\\bar Q$, 주황 점선은 비관적 하한 $\\bar Q - \\alpha\\sigma$이다. 슬라이더를 움직일 때마다 앙상블을 실제로 다시 학습한다.' });
+    const p = ui.panel(el, { kind: 'SIM', title: '외삽 오차와 비관주의: 1차원 행동 공간에서의 앙상블 Q', caption: '슬라이더로 데이터의 위치와 폭을 바꾸고, 그래프의 파란 점(평균만 믿는 선택)과 주황 점(조심하는 선택)이 어디로 가는지 보라. 점선은 실제 $Q(a)$(학습자는 모름), 초록 점은 데이터, 옅은 선은 앙상블 멤버, 파란 선은 평균 $\\bar Q$, 주황 점선은 비관적 하한 $\\bar Q - \\alpha\\sigma$이다. 슬라이더를 움직일 때마다 앙상블을 실제로 다시 학습한다.' });
     const ctr = ui.row(p.body);
     let seed = 29;
     const cS = ui.slider(ctr, { label: '데이터 중심', min: -2.5, max: 2.5, step: 0.1, value: -0.8, format: ui.fmt.f(1), onInput: upd });
@@ -324,9 +366,95 @@ $$L_\tau(u) = |\tau - \mathbb{1}[u < 0]|\, u^2,\qquad V(s) \leftarrow \arg\min_v
     upd();
   }
 
+  /* ---------- TRY: 기록만 보고 고르기 ---------- */
+  function mountPick(el) {
+    const p = ui.panel(el, { kind: 'TRY', title: '기록만 보고 최고의 행동 고르기', caption: '그래프를 클릭해 "점수가 가장 높을 것 같은 행동 위치"를 고른 뒤 "정답 공개"를 누르자. 초록 점이 가진 기록의 전부이고, 진짜 점수 곡선은 숨겨져 있다.' });
+    const rr = sim.rng(77);
+    const narrow = sim.range(14).map(() => { const a = sim.clamp(-0.8 + 0.4 * rr.normal(), -3, 3); return [a, qTrue(a) + 0.04 * rr.normal()]; });
+    // 오른쪽 두 점: 두 번만 측정되어 운이 크게 섞인 기록
+    narrow.push([2.3, qTrue(2.3) + 0.85], [2.6, qTrue(2.6) + 0.95]);
+    const wide = sim.range(30).map((i) => { const a = -2.8 + (5.6 * i) / 29; return [a, qTrue(a) + 0.04 * rr.normal()]; });
+    const rounds = [
+      { name: '1판: 기록이 한쪽에 몰려 있고, 오른쪽에 점이 두 개뿐', data: narrow },
+      { name: '2판: 기록이 넓게 퍼져 있음', data: wide },
+    ];
+    let k = 0, pick = null, shown = false;
+    const head = document.createElement('p');
+    head.className = 'w-caption';
+    head.style.fontWeight = '600';
+    p.body.appendChild(head);
+    const chartEl = document.createElement('div');
+    chartEl.style.cursor = 'crosshair';
+    p.body.appendChild(chartEl);
+    const chart = plot.line(chartEl, { height: 280, x: { min: -3, max: 3, label: '행동 a (클릭해서 고르기)' }, y: { min: -1.2, max: 1.4, label: '점수' }, series: [], hover: false });
+    const btns = ui.row(p.body, 'btns');
+    const revealB = ui.button(btns, '정답 공개', () => { shown = true; draw(); }, { primary: true });
+    ui.button(btns, '다음 판', () => { k = (k + 1) % rounds.length; pick = null; shown = false; draw(); });
+    ui.button(btns, '이 판 다시', () => { pick = null; shown = false; draw(); });
+    const st = ui.stats(p.body, [
+      { key: 'me', label: '내 선택: 행동 · 실제 점수', tone: 'accent' },
+      { key: 'naive', label: '평균만 믿는 모델의 선택' },
+      { key: 'pess', label: '조심하는 모델의 선택 (α=1)', tone: 'signal' },
+      { key: 'best', label: '진짜 최고' },
+    ]);
+    const fb = document.createElement('div');
+    fb.className = 'fx-detail';
+    p.body.appendChild(fb);
+    const fits = [ensemble(501, narrow, 16), ensemble(510, wide, 16)];
+    const bestA = GRID[sim.argmax(GRID.map(qTrue))];
+
+    chartEl.addEventListener('click', (e) => {
+      if (shown) return;
+      const svg = chartEl.querySelector('svg');
+      if (!svg) return;
+      const rect = svg.getBoundingClientRect();
+      const W = svg.viewBox.baseVal.width;
+      const px = ((e.clientX - rect.left) / rect.width) * W;
+      pick = sim.clamp(-3 + ((px - 48) / (W - 64)) * 6, -3, 3);
+      draw();
+    });
+    function draw() {
+      const rd = rounds[k];
+      head.textContent = rd.name;
+      revealB.disabled = pick == null || shown;
+      const series = [{ name: '기록', type: 'scatter', color: 'c3', r: 3.5, data: rd.data }];
+      const vlines = [];
+      if (pick != null) vlines.push({ x: pick, label: '내 선택', color: 'accent' });
+      if (shown) {
+        const E = fits[k];
+        const { ni, pi } = picks(E, 1);
+        series.unshift({ name: '진짜 점수 곡선', color: 'muted', dash: '5 4', width: 2, endDot: false, data: GRID.map((a) => [a, qTrue(a)]) });
+        series.push({ name: '모델의 평균 예측', color: 'c1', width: 1.6, opacity: 0.7, endDot: false, data: GRID.map((a, i) => [a, E.mean[i]]) });
+        series.push({ name: '선택들의 실제 점수', type: 'scatter', color: 'signal', r: 5, data: [[pick, qTrue(pick)], [GRID[ni], qTrue(GRID[ni])], [GRID[pi], qTrue(GRID[pi])]] });
+        st.set('me', 'a=' + pick.toFixed(2) + ' · ' + qTrue(pick).toFixed(2));
+        st.set('naive', 'a=' + GRID[ni].toFixed(2) + ' · ' + qTrue(GRID[ni]).toFixed(2));
+        st.set('pess', 'a=' + GRID[pi].toFixed(2) + ' · ' + qTrue(GRID[pi]).toFixed(2));
+        st.set('best', 'a=' + bestA.toFixed(2) + ' · ' + qTrue(bestA).toFixed(2));
+        const lo = Math.min(...rd.data.map((d) => d[0])), hi = Math.max(...rd.data.map((d) => d[0]));
+        const near = rd.data.filter((d) => Math.abs(d[0] - pick) < 0.3).length;
+        let msg;
+        if (k === 0) {
+          msg = near >= 4 ? '기록이 많은 곳에서 골랐다. 실제 점수가 예측과 거의 같다. 진짜 최고(a≈1.6)는 기록이 없어 아무도 알 수 없었다.'
+            : '기록이 거의 없는 곳을 골랐다. 오른쪽 두 점은 두 번만 측정되어 운이 크게 섞인 값이었고, 실제 점수는 훨씬 낮다. 평균만 믿는 모델도 같은 함정에 빠지기 쉽다.';
+          msg += ' 조심하는 모델은 기록이 몰린 곳을 골라 안정적인 점수를 얻는다. 대신 기록 밖의 진짜 최고점은 영영 찾지 못한다.';
+        } else {
+          msg = '기록이 넓게 퍼져 있으면 기록만 보고도 진짜 최고점 근처를 찾을 수 있다. 평균만 믿는 선택과 조심하는 선택도 거의 일치한다. 문제는 알고리즘이 아니라 기록이 어디를 덮고 있느냐다.';
+        }
+        if (pick < lo - 0.2 || pick > hi + 0.2) msg = '기록이 하나도 없는 바깥(' + lo.toFixed(1) + '보다 왼쪽이나 ' + hi.toFixed(1) + '보다 오른쪽)을 골랐다. 그곳의 점수는 순전히 짐작이다. ' + msg;
+        fb.textContent = msg;
+      } else {
+        ['me', 'naive', 'pess', 'best'].forEach((key) => st.set(key, '공개 전'));
+        if (pick != null) st.set('me', 'a=' + pick.toFixed(2));
+        fb.textContent = pick == null ? '그래프 위 아무 곳이나 클릭하면 그 위치의 행동을 고른다.' : '다른 곳을 클릭하면 선택을 바꿀 수 있다. 마음을 정했으면 "정답 공개".';
+      }
+      chart.update({ series, vlines });
+    }
+    draw();
+  }
+
   /* ---------- IS 분산 ---------- */
   function mountIS(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: '중요도 가중치 $W_H = \\prod_t \\rho_t$의 분산과 유효 표본 수', caption: '두 행동 중 행동 1을 고를 확률이 행동 정책은 $b$, 목표 정책은 $q$이다. 행동 정책으로 궤적 N개를 실제로 샘플링해 지평별 가중치 분산(실선)과 이론값 $(1+\\chi^2)^H - 1$(점선)을 비교한다. 지평이 길어지면 표본 분산이 이론값 주변에서 크게 요동치는 것도 관찰하라.' });
+    const p = ui.panel(el, { kind: 'SIM', title: '중요도 가중치 $W_H = \\prod_t \\rho_t$의 분산과 유효 표본 수', caption: '두 정책의 확률 슬라이더를 서로 멀어지게 움직이고, 왼쪽 그래프의 선이 얼마나 가파르게 오르는지, 오른쪽의 유효 표본 비율이 얼마나 빨리 0으로 떨어지는지 보라. 두 행동 중 행동 1을 고를 확률이 행동 정책은 $b$, 목표 정책은 $q$이다. 행동 정책으로 궤적 N개를 실제로 샘플링해 지평별 가중치 분산(실선)과 이론값 $(1+\\chi^2)^H - 1$(점선)을 비교한다. 지평이 길어지면 표본 분산이 이론값 주변에서 크게 요동치는 것도 관찰하라.' });
     const ctr = ui.row(p.body);
     const bS = ui.slider(ctr, { label: '행동 정책 $\\pi_\\beta(a{=}1)$', min: 0.05, max: 0.95, step: 0.01, value: 0.5, format: ui.fmt.f(2), onInput: upd });
     const qS = ui.slider(ctr, { label: '목표 정책 $\\pi(a{=}1)$', min: 0.05, max: 0.95, step: 0.01, value: 0.7, format: ui.fmt.f(2), onInput: upd });
@@ -387,7 +515,7 @@ $$L_\tau(u) = |\tau - \mathbb{1}[u < 0]|\, u^2,\qquad V(s) \leftarrow \arg\min_v
 
   /* ---------- Expectile ---------- */
   function mountExpectile(el) {
-    const p = ui.panel(el, { kind: 'CALC', title: 'Expectile 회귀: 평균에서 데이터 안 최댓값으로', caption: '한 상태에서 데이터에 있는 행동들의 Q값 표본(히스토그램)이다. 비대칭 제곱 손실 $L_\\tau$를 최소화하는 값을 반복 재가중으로 실제로 계산한다. $\\tau$를 1에 가깝게 올려 보라.' });
+    const p = ui.panel(el, { kind: 'CALC', title: 'Expectile 회귀: 평균에서 데이터 안 최댓값으로', caption: '$\\tau$ 슬라이더를 1 쪽으로 올리며, 파란 세로선($m_\\tau$)이 오른쪽 끝의 최댓값 쪽으로 다가가는지 보라. 히스토그램은 한 상태에서 데이터에 있는 행동들의 Q값 표본이다. 비대칭 제곱 손실 $L_\\tau$를 최소화하는 값을 반복 재가중으로 실제로 계산한다. $\\tau$를 1에 가깝게 올려 보라.' });
     const ctr = ui.row(p.body);
     const tS = ui.slider(ctr, { label: '$\\tau$', min: 0.5, max: 0.995, step: 0.005, value: 0.9, format: ui.fmt.f(3), onInput: upd });
     const st = ui.stats(p.body, [

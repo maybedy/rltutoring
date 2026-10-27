@@ -10,6 +10,17 @@
     level: '중급',
     prereq: ['dp', 'qlearning'],
     theses: ['T9', 'T2', 'T7'],
+    easy: {
+      hook: '머릿속으로 미리 해 보고 움직이면 실제로 부딪혀 보는 횟수를 크게 줄일 수 있다. 단, 머릿속 지도가 틀리면 틀린 계획을 세운다.',
+      intro: '<p>처음 가는 동네에서 약속 장소를 찾는다고 하자. 무작정 걸어 다니며 길을 익힐 수도 있고, 지도를 보고 머릿속으로 길을 그려 본 뒤 출발할 수도 있다. 두 번째가 훨씬 빠르다.</p><p>이 장은 그 "머릿속 지도"(모델)를 쓰는 세 가지 방법을 다룬다. 지도로 미리 연습해 두기(Dyna), 갈림길마다 몇 수 앞을 내다보기(트리 탐색), 그리고 내다본 결과를 감각으로 외워 두기(AlphaZero)다.</p>',
+      analogy: '바둑 기사는 수를 두기 전에 머릿속으로 여러 갈래를 둬 본다. 유망해 보이는 갈래는 깊이, 별로인 갈래는 얕게 본다. 그리고 가장 많이 들여다본 수를 믿고 둔다. 몬테카를로 트리 탐색(MCTS)은 이 수읽기를 그대로 숫자로 옮긴 것이고, AlphaZero는 그렇게 찾은 좋은 수를 다시 공부해 다음 수읽기의 감각으로 쓴다.',
+      path: ['머릿속 지도로 연습하면 얼마나 빨리 배우는지 본다(Dyna)', '살짝 틀린 지도로 길을 계획하고, 실제 세상에서 무슨 일이 생기는지 직접 확인한다', '갈림길 점수(PUCT)를 손으로 한 번 계산한다', '수읽기 결과를 외워 다음 수읽기를 돕는 AlphaZero의 고리를 본다'],
+      recap: [
+        '세상의 규칙을 흉내 내는 머릿속 지도가 있으면, 실제로 덜 부딪혀 보고도 배울 수 있다.',
+        '지도가 조금만 틀려도 먼 앞까지 한 번에 계획하면 오차가 크게 불어나므로, 짧게 계획하고 자주 다시 계획한다.',
+        '여러 갈래를 내다보는 탐색은 유망한 쪽을 더 깊이 보고, 가장 많이 본 쪽을 고르며, 그 결과를 외워 다음 탐색을 빠르게 한다.',
+      ],
+    },
     goals: [
       '배경 계획(Dyna, MBPO)과 결정 시점 계획(MCTS, MPC)의 차이를 설명할 수 있다.',
       '시뮬레이션 보조정리로 모델 오차가 $1/(1-\\gamma)^2$로 증폭됨을 유도할 수 있다.',
@@ -62,6 +73,8 @@
 <h2>모델 오차는 지평만큼 증폭된다</h2>
 <p>모델이 틀리면 계획은 틀린 세계에서 최적인 정책을 만든다. 얼마나 틀리는가를 정량화하는 고전 결과가 <strong>시뮬레이션 보조정리</strong>다.</p>
 <div data-w="dv-sim"></div>
+<p>공식보다 먼저 직접 겪어 보자. 아래 지도는 실제 세상과 거의 같지만, 공사 중인 벽 하나를 모른다.</p>
+<div data-w="try-plan"></div>
 <p>$1/(1-\gamma)^2$은 "한 스텝 오차 $\epsilon$이 지평 $H$ 동안 누적되고, 그 누적 오차가 또 $H$ 동안 가치에 반영된다"로 읽는다. 그래서 실용 알고리즘은 모델로 긴 궤적을 만들지 않는다. MBPO(Janner et al. 2019)는 <strong>실제 데이터의 상태에서 짧게(k 스텝) 갈라져 나온</strong> 모델 롤아웃만 SAC 학습에 섞는다. PETS(Chua et al. 2018)는 확률적 모델의 앙상블로 불확실성을 잡고, MOPO(Yu et al. 2020)는 오프라인에서 모델 불확실성을 보상에서 빼서 비관적으로 계획한다(T7, <a href="#offline">15장</a>).</p>
 
 <h2>결정 시점 계획: 몬테카를로 트리 탐색</h2>
@@ -75,6 +88,7 @@
 <p>선택 규칙은 밴딧(<a href="#bandit">05장</a>)의 UCB를 트리의 각 노드에 적용한 것이다. UCT(Kocsis &amp; Szepesvári 2006)는 $Q + c\sqrt{\ln N/n}$, AlphaZero의 PUCT는 사전확률을 곱한 탐험 항을 쓴다.</p>
 <div data-w="fx-puct"></div>
 <p>아래 시뮬레이터는 깊이 3, 분기 3인 작은 결정 트리다(행동 3번 후 확률적 보상). <strong>함정 트리</strong>는 일부러 만들었다. 가운데 가지 $a_1$ 밑에는 최고의 잎(0.9)이 하나 있지만 나머지 잎은 대부분 나쁘다. 그래서 무작위 롤아웃 평균만 보면 $a_1$이 가장 나빠 보인다. 탐색이 진행되며 방문이 어디로 몰리는지 보라.</p>
+<div data-w="step-puct"></div>
 <div data-w="mcts-sim"></div>
 <p>기본 설정(균일 prior + 무작위 롤아웃)에서는 수백 번의 시뮬레이션 동안 $a_0$에 방문이 몰린다. $a_1$의 롤아웃 평균이 나빠 탐험 보너스가 그 차이를 이기기까지 오래 걸리기 때문이다. 대략 천 번 근처에서야 $a_1$로 방문이 옮겨 가기 시작한다. 같은 트리에서 <em>좋은 prior</em>나 <em>가치망 평가</em>로 바꾸면 백 번 안에 $a_1$이 압도적인 방문을 받는다. 반대로 <em>틀린 prior</em>는 천 번이 지나도 $a_1$을 거의 보지 않는다. 학습된 사전분포와 평가기의 품질이 탐색 예산을 몇 자릿수 바꾼다. AlphaGo가 사람 기보로 정책망을 먼저 학습한 이유이자, LLM 탐색에서 좋은 기본 모델과 검증기가 결정적인 이유다.</p>
 <div class="thesis-box"><span class="label">대전제 T9 · 탐색의 상각</span>
@@ -127,8 +141,21 @@ $$\mathcal{L} = \sum_{k=0}^{K}\Big[\ell^r\big(u_{t+k}, r^k\big) + \ell^v\big(z_{
     mount: {
       'dyna-sim': mountDyna,
       'mcts-sim': mountMCTS,
+      'try-plan': mountPlan,
+      'step-puct': (el) => ui.walkthrough(el, {
+        title: 'PUCT 점수를 손으로 계산하기',
+        caption: '갈림길에서 두 길 중 하나를 고른다. 지금까지 이 갈림길에 9번 왔다. 길 a는 5번 가 봤고 평균 점수 0.5, 처음부터 유망하다고 본 정도(사전확률)는 0.6이다. 길 b는 1번 가 봤고 평균 0.3, 사전확률 0.3이다. 탐험 계수 c = 1.',
+        steps: [
+          { say: '보너스는 "c × 사전확률 × √(갈림길 방문 수) ÷ (그 길 방문 수 + 1)"이다. 갈림길 방문 수의 제곱근부터 구한다.', calc: String.raw`\sqrt{N(s)} = \sqrt{9} = 3` },
+          { say: '길 a의 보너스는?', ask: { answer: 0.3, tol: 0.005 }, calc: String.raw`1 \times 0.6 \times \frac{3}{1+5} = 0.3` },
+          { say: '길 a의 최종 점수(평균 + 보너스)는?', ask: { answer: 0.8, tol: 0.005 }, calc: String.raw`0.5 + 0.3 = 0.8` },
+          { say: '길 b의 최종 점수는?', ask: { answer: 0.75, tol: 0.005 }, calc: String.raw`0.3 + 1 \times 0.3 \times \frac{3}{1+1} = 0.3 + 0.45 = 0.75`, note: '0.8 > 0.75이므로 이번에는 a로 간다.' },
+          { say: 'a로 7번 더 갔고 평균은 그대로 0.5라고 하자. 이제 갈림길 방문은 16번, a는 12번, b는 여전히 1번이다. 길 b의 점수는?', ask: { answer: 0.9, tol: 0.005 }, calc: String.raw`0.3 + 1 \times 0.3 \times \frac{\sqrt{16}}{1+1} = 0.3 + 0.6 = 0.9`, note: 'a는 $0.5 + 0.6\\times\\frac{4}{13} \\approx 0.68$로 내려갔다. 많이 가 본 길의 보너스는 줄고 오래 안 가 본 길의 보너스는 커져서, 결국 b도 다시 확인하게 된다.' },
+        ],
+      }),
       'dv-sim': (el) => ui.derivation(el, {
         title: '시뮬레이션 보조정리: 모델 오차가 가치 오차로 번지는 양',
+        easy: '머릿속 지도가 한 걸음마다 조금씩 틀리면, 그 오차가 남은 걸음 수만큼 쌓이고, 쌓인 오차가 또 앞으로의 점수 전체에 번진다. 그래서 가치의 오차는 지평의 제곱만큼 커질 수 있다.',
         caption: '같은 정책 $\\pi$, 같은 보상 $r^\\pi$에서 실제 전이 $P$와 모델 전이 $\\hat P$(정책을 적용한 상태 전이 행렬)만 다르다고 하자.',
         steps: [
           { tex: String.raw`V = r + \gamma P V,\qquad \hat V = r + \gamma \hat P \hat V`, why: '두 세계 각각의 벨만 기대 방정식(02장 행렬 형태).' },
@@ -141,6 +168,7 @@ $$\mathcal{L} = \sum_{k=0}^{K}\Big[\ell^r\big(u_{t+k}, r^k\big) + \ell^v\big(z_{
       }),
       'fx-puct': (el) => ui.formula(el, {
         title: 'PUCT 선택 규칙 (AlphaZero)',
+        say: '{Q|지금까지 이 길로 가 봤을 때의 평균 점수}에, {c|얼마나 모험할지 정하는 계수} × {P|처음부터 유망하다고 본 정도} × {N|이 갈림길에 온 횟수의 제곱근} ÷ {n|이 길로 이미 가 본 횟수 더하기 1}만큼의 보너스를 더해서, 가장 큰 길을 고른다.',
         tex: String.raw`a^\star = \arg\max_a \Big[\; \tm{Q}{Q(s,a)} \;+\; \tm{c}{c_{\text{puct}}}\; \tm{P}{P(s,a)}\; \frac{\tm{N}{\sqrt{N(s)}}}{\tm{n}{1 + N(s,a)}} \;\Big]`,
         terms: [
           { id: 'Q', sym: 'Q(s,a)', label: '활용 항', desc: '지금까지 이 가지를 지난 시뮬레이션들의 평균 가치.', long: '$Q = W/N$. 방문이 쌓일수록 정확해진다. 아직 안 가 본 가지의 $Q$를 무엇으로 둘지(first-play urgency)가 실전에서 큰 차이를 만든다. 이 구현은 0을 쓴다.' },
@@ -216,7 +244,7 @@ $$\mathcal{L} = \sum_{k=0}^{K}\Big[\ell^r\big(u_{t+k}, r^k\big) + \ell^v\big(z_{
   }
 
   function mountDyna(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: 'Dyna-Q 미로: 계획 스텝 수에 따른 학습 속도', caption: 'Sutton &amp; Barto(그림 8.2)의 6×9 미로. 보상은 목표 도달 시 +1, $\\gamma=0.95$, $\\alpha=0.1$, $\\varepsilon=0.1$. 각 설정을 여러 시드로 실제로 학습시켜 에피소드별 스텝 수의 평균을 그린다(에피소드 1은 모두 같으므로 2부터). 최단 경로는 14 스텝이다.' });
+    const p = ui.panel(el, { kind: 'SIM', title: 'Dyna-Q 미로: 계획 스텝 수에 따른 학습 속도', caption: '"다시 학습"을 누르고, 계획 스텝 n이 클수록 선이 얼마나 빨리 바닥(14 스텝)으로 내려오는지 보라. 아래 격자에서는 에피소드 슬라이더를 2에 두고 설정을 바꿔 가며 화살표가 퍼진 범위를 비교하라. 미로는 Sutton &amp; Barto(그림 8.2)의 6×9 미로다. 보상은 목표 도달 시 +1, $\\gamma=0.95$, $\\alpha=0.1$, $\\varepsilon=0.1$. 각 설정을 여러 시드로 실제로 학습시켜 에피소드별 스텝 수의 평균을 그린다(에피소드 1은 모두 같으므로 2부터). 최단 경로는 14 스텝이다.' });
     const ctr = ui.row(p.body);
     const nS = ui.slider(ctr, { label: '사용자 지정 n', min: 0, max: 100, step: 1, value: 15, format: ui.fmt.int });
     const sdS = ui.slider(ctr, { label: '평균낼 시드 수', min: 1, max: 10, step: 1, value: 5, format: ui.fmt.int });
@@ -307,6 +335,142 @@ $$\mathcal{L} = \sum_{k=0}^{K}\Big[\ell^r\big(u_{t+k}, r^k\big) + \ell^v\big(z_{
     runAll();
   }
 
+  /* ---------------- TRY: 살짝 틀린 지도로 계획하기 ---------------- */
+  const PLAN_MODEL = ['S......', '.......', '......G', '.......', '.......'];
+  const PLAN_REAL = ['S..#...', '...#...', '...#..G', '...#...', '.......'];
+  const DIRS = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+  function gridBfs(R, C, walls, from, to) {
+    const key = (r, c) => r + ',' + c;
+    const prev = new Map([[key(from[0], from[1]), null]]);
+    const q = [from];
+    while (q.length) {
+      const [r, c] = q.shift();
+      if (r === to[0] && c === to[1]) break;
+      for (const [dr, dc] of DIRS) {
+        const nr = r + dr, nc = c + dc, k = key(nr, nc);
+        if (nr < 0 || nc < 0 || nr >= R || nc >= C || walls.has(k) || prev.has(k)) continue;
+        prev.set(k, [r, c]);
+        q.push([nr, nc]);
+      }
+    }
+    if (!prev.has(key(to[0], to[1]))) return null;
+    const path = [];
+    for (let cur = to; cur; cur = prev.get(key(cur[0], cur[1]))) path.unshift(cur);
+    return path;
+  }
+
+  function mountPlan(el) {
+    const p = ui.panel(el, { kind: 'TRY', title: '살짝 틀린 지도로 길 계획하기', caption: '왼쪽 지도의 칸을 눌러 출발점(점선 칸)에서 목표(+1)까지 길을 그리자. 누른 칸까지는 지도상 가장 짧은 길로 자동으로 이어진다. 다 그렸으면 "계획대로 끝까지 실행"과 "한 걸음마다 다시 계획"을 각각 눌러 실제 세상 격자에서 무슨 일이 생기는지 비교하라.' });
+    const R = 5, C = 7, start = [0, 0], goal = [2, 6];
+    const realWalls = new Set();
+    PLAN_REAL.forEach((row, r) => [...row].forEach((ch, c) => { if (ch === '#') realWalls.add(r + ',' + c); }));
+    const modelEnv = new sim.GridWorld(PLAN_MODEL, { rewards: { G: 1 } });
+    const realEnv = new sim.GridWorld(PLAN_REAL, { rewards: { G: 1 } });
+    const split = document.createElement('div');
+    split.className = 'w-split';
+    const L = document.createElement('div'), Rt = document.createElement('div');
+    const lt = document.createElement('p'); lt.className = 'w-caption'; lt.innerHTML = '<strong>머릿속 지도</strong> (벽이 없다고 믿는다)';
+    const rt = document.createElement('p'); rt.className = 'w-caption';
+    const gL = document.createElement('div'), gR = document.createElement('div');
+    L.append(lt, gL); Rt.append(rt, gR);
+    split.append(L, Rt);
+    p.body.appendChild(split);
+    const btns = ui.row(p.body, 'btns');
+    ui.button(btns, '지도상 최단 경로 자동으로 그리기', () => { path = gridBfs(R, C, new Set(), start, goal); result = null; draw(); });
+    ui.button(btns, '계획대로 끝까지 실행', () => { if (path.length === 1) path = gridBfs(R, C, new Set(), start, goal); result = openLoop(); draw(); }, { primary: true });
+    ui.button(btns, '한 걸음마다 다시 계획', () => { result = replan(); draw(); }, { primary: true });
+    ui.button(btns, '지우기', () => { path = [start]; result = null; draw(); });
+    const st = ui.stats(p.body, [
+      { key: 'plan', label: '계획한 걸음 수', tone: 'accent' },
+      { key: 'res', label: '실제 결과', tone: 'signal' },
+      { key: 'how', label: '실행 방식' },
+    ]);
+    const log = document.createElement('div');
+    log.className = 'log';
+    p.body.appendChild(log);
+    let path = [start], result = null;
+    const idx = (env, rc) => env.index[rc[0] + ',' + rc[1]];
+    const gridModel = sim.renderGrid(gL, modelEnv, { showValues: false, showArrows: false, maxCell: 50, onCell: (s, r, c) => extend([r, c]) });
+    let gridReal = null;
+
+    function extend(rc) {
+      const last = path[path.length - 1];
+      if (last[0] === goal[0] && last[1] === goal[1]) return;
+      const seg = gridBfs(R, C, new Set(), last, rc);
+      if (!seg) return;
+      path = path.concat(seg.slice(1));
+      result = null;
+      draw();
+    }
+    function moveOf(a, b) { return [b[0] - a[0], b[1] - a[1]]; }
+    function tryMove(pos, mv) {
+      const nr = pos[0] + mv[0], nc = pos[1] + mv[1];
+      if (nr < 0 || nc < 0 || nr >= R || nc >= C || realWalls.has(nr + ',' + nc)) return { pos, bump: true };
+      return { pos: [nr, nc], bump: false };
+    }
+    function openLoop() {
+      let pos = start;
+      const trail = [start], lines = [];
+      let bumps = 0;
+      for (let i = 1; i < path.length; i++) {
+        const mv = moveOf(path[i - 1], path[i]);
+        const o = tryMove(pos, mv);
+        if (o.bump) { bumps++; lines.push(i + '걸음: (' + pos + ')에서 ' + dirName(mv) + ' → 벽에 막혀 제자리'); }
+        pos = o.pos;
+        trail.push(pos);
+      }
+      const ok = pos[0] === goal[0] && pos[1] === goal[1];
+      lines.unshift('계획한 ' + (path.length - 1) + '걸음을 그대로 실행했다. 벽에 ' + bumps + '번 막혔다. 막힌 뒤에도 계획은 "이미 벽을 지났다"고 믿고 다음 동작을 계속했다.');
+      return { kind: '계획대로 끝까지', trail, ok, steps: path.length - 1, lines, end: pos };
+    }
+    function replan() {
+      const known = new Set();
+      let pos = start;
+      const trail = [start], lines = [];
+      let steps = 0, replans = 0;
+      while (steps < 60 && !(pos[0] === goal[0] && pos[1] === goal[1])) {
+        const plan = gridBfs(R, C, known, pos, goal);
+        if (!plan) break;
+        const mv = moveOf(plan[0], plan[1]);
+        const o = tryMove(pos, mv);
+        steps++;
+        if (o.bump) {
+          const w = [pos[0] + mv[0], pos[1] + mv[1]];
+          known.add(w[0] + ',' + w[1]);
+          replans++;
+          lines.push(steps + '걸음: (' + w + ')가 벽임을 발견 → 지도에 적고 그 자리에서 다시 계획');
+        }
+        pos = o.pos;
+        trail.push(pos);
+      }
+      const ok = pos[0] === goal[0] && pos[1] === goal[1];
+      lines.unshift('매 걸음 지금 위치에서 지도로 다시 계획하고 첫 걸음만 실행했다. 벽을 ' + replans + '번 발견해 지도를 고쳤다.');
+      return { kind: '한 걸음마다 다시 계획', trail, ok, steps, lines, end: pos };
+    }
+    function dirName(mv) { return mv[0] === 0 ? (mv[1] > 0 ? '오른쪽' : '왼쪽') : (mv[0] > 0 ? '아래' : '위'); }
+    function draw() {
+      gridModel.update({ trail: path.map((rc) => idx(modelEnv, rc)), agent: idx(modelEnv, path[path.length - 1]) });
+      gR.innerHTML = '';
+      if (result) {
+        rt.innerHTML = '<strong>실제 세상</strong> (가운데 열에 공사 중인 벽이 있었다)';
+        gridReal = sim.renderGrid(gR, realEnv, { showValues: false, showArrows: false, maxCell: 50, trail: result.trail.map((rc) => idx(realEnv, rc)), agent: idx(realEnv, result.end) });
+        st.set('res', result.ok ? '도착 (' + result.steps + '걸음)' : '실패: (' + result.end + ')에서 멈춤');
+        st.set('how', result.kind);
+        log.textContent = result.lines.join('\n');
+      } else {
+        rt.innerHTML = '<strong>실제 세상</strong> (실행하기 전에는 모른다)';
+        gridReal = sim.renderGrid(gR, modelEnv, { showValues: false, showArrows: false, maxCell: 50 });
+        st.set('res', '실행 전');
+        st.set('how', '–');
+        log.textContent = path.length > 1 ? '지도 위 계획: ' + (path.length - 1) + '걸음. 이제 아래 두 실행 버튼을 눌러 보자.' : '왼쪽 지도에서 목표 칸(+1)을 누르거나 "지도상 최단 경로 자동으로 그리기"를 누르자.';
+      }
+      void gridReal;
+      const done = path[path.length - 1][0] === goal[0] && path[path.length - 1][1] === goal[1];
+      st.set('plan', (path.length - 1) + (done ? ' (목표까지)' : ' (아직 목표 전)'));
+    }
+    draw();
+  }
+
   /* ---------------- MCTS ---------------- */
   const TRAP = [
     [[0.35, 0.30, 0.40], [0.45, 0.20, 0.30], [0.25, 0.35, 0.30]],
@@ -336,7 +500,7 @@ $$\mathcal{L} = \sum_{k=0}^{K}\Big[\ell^r\big(u_{t+k}, r^k\big) + \ell^v\big(z_{
   }
 
   function mountMCTS(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: 'MCTS 한 단계씩: 선택 · 확장 · 평가 · 역전파' });
+    const p = ui.panel(el, { kind: 'SIM', title: 'MCTS 한 단계씩: 선택 · 확장 · 평가 · 역전파', caption: '"시뮬레이션 1회"를 여러 번 눌러 주황 경로가 어느 가지로 내려가는지 보고, "100회"나 "500회"를 눌러 방문(원 크기)이 어느 가지로 몰리는지 보라. 사전확률과 평가 방식을 바꾸면 같은 트리에서 결과가 크게 달라진다.' });
     const ctr = ui.row(p.body);
     let rule = 'puct', priorMode = 'uniform', treeMode = 'trap', evalMode = 'rollout';
     let seed = 3;

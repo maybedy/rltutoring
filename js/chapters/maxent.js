@@ -10,6 +10,17 @@
     level: '중급 · 심화',
     prereq: ['ppo', 'qviews'],
     theses: ['T5', 'T8', 'T3'],
+    easy: {
+      hook: '가장 좋은 것만 고집하지 말고, 좋은 정도에 비례해 골고루 시도한다. 그 모험심을 숫자 하나로 조절한다.',
+      intro: '<p>점심 식당이 네 곳 있고 평점이 4.5, 4.3, 3.8, 2.0이라고 하자. 매일 4.5점 식당만 가는 것이 정답처럼 보인다. 하지만 평점은 틀릴 수 있다. 4.3점 식당에 가끔 가 보는 것은 큰 손해가 아니고, 평점이 틀렸을 때를 대비한 보험이 된다.</p><p>이 장의 알고리즘들은 "점수를 최대로"에 <strong>"되도록 다양하게"</strong>를 더한다. 그 비중을 정하는 손잡이가 <strong>온도</strong>다. 온도가 낮으면 최고점만, 높으면 골고루 고른다. 로봇 팔의 힘처럼 행동이 연속적인 값일 때는 "평가자가 가리키는 오르막 쪽으로 행동을 미는" 방법도 함께 쓴다.</p>',
+      analogy: '손전등 하나로 어두운 방에 있는 두 보물을 비춘다고 하자. 빛을 좁히면 한쪽 보물만 밝게 비출 수 있고, 넓히면 둘 다 흐릿하게 비추면서 가운데 빈 바닥까지 비춘다. SAC의 정책(종 모양 분포 하나)은 "빈 바닥을 비추면 큰 벌점"이라는 기준으로 맞추기 때문에, 보통 한쪽 보물에 빛을 모은다. 이것이 아래에서 말하는 mode-seeking이다.',
+      path: ['식당 네 곳을 두고 온도 손잡이를 돌려 본다', '온도로 나눈 소프트맥스를 손으로 계산한다', '연속 행동에서 종 모양 정책이 어느 봉우리를 고르는지 본다', '자동 온도 조절이 "처음엔 넓게, 나중엔 좁게"를 만드는 과정을 본다'],
+      recap: [
+        '최대 엔트로피 RL은 점수와 함께 "다양하게 고르기"에도 상을 주고, 그 비중을 온도로 정한다.',
+        '그 답은 점수가 높을수록 지수적으로 더 자주 고르는 분포다. 온도가 0에 가까우면 최고점만, 크면 골고루 고른다.',
+        '연속 행동에서는 평가자의 기울기를 따라 행동을 밀되, 평가자가 틀린 곳을 파고들지 않도록 두 평가자 중 낮은 값을 쓰는 등의 안전장치를 둔다.',
+      ],
+    },
     goals: [
       '결정적 정책 경사 $\\nabla_\\theta J = \\mathbb{E}[\\nabla_\\theta\\mu_\\theta(s)\\nabla_a Q(s,a)|_{a=\\mu(s)}]$의 의미와 DDPG·TD3가 과대추정에 대응하는 방법을 설명할 수 있다.',
       '최대 엔트로피 목적의 최적 정책이 $\\pi^*\\propto\\exp(Q/\\alpha)$임을 유도하고, soft 가치가 max와 평균 사이를 보간함을 확인한다.',
@@ -43,6 +54,8 @@
 </div>
 
 <h2>최대 엔트로피 RL</h2>
+<p>식으로 들어가기 전에 식당 네 곳으로 온도의 감을 잡자.</p>
+<div data-w="try-lunch"></div>
 <p>보상에 정책의 엔트로피를 더한 목적을 생각한다. 온도 $\alpha$가 둘의 비중을 정한다.</p>
 $$J_{\text{MaxEnt}}(\pi) = \mathbb{E}_{\tau\sim\pi}\Big[\sum_t\gamma^t\big(r_{t+1} + \alpha\,\mathcal{H}(\pi(\cdot|s_t))\big)\Big],\qquad \mathcal{H}(\pi(\cdot|s)) = -\mathbb{E}_{a\sim\pi}[\log\pi(a|s)]$$
 <p>한 상태에서 $Q$가 주어졌을 때 최선의 정책을 구하면 볼츠만 분포가 나온다. 이것이 T5(KL-정규화 해)의 기준 분포가 균등일 때의 모습이다.</p>
@@ -50,6 +63,7 @@ $$J_{\text{MaxEnt}}(\pi) = \mathbb{E}_{\tau\sim\pi}\Big[\sum_t\gamma^t\big(r_{t+
 <div class="thesis-box"><span class="label">대전제 T5 · KL(엔트로피) 정규화의 닫힌 해</span>
 <p>$\max_\pi \mathbb{E}_\pi[Q] + \alpha\mathcal{H}(\pi) \Rightarrow \pi^*\propto e^{Q/\alpha}$, 그 최댓값은 $\alpha\log\int e^{Q/\alpha}da$. 엔트로피 대신 기준 정책과의 KL을 쓰면 $\pi^*\propto\pi_{\text{ref}}e^{Q/\beta}$가 되어 RLHF와 DPO의 출발점이 된다(<a href="#llm-mdp">18장</a>, <a href="#dpo">20장</a>). SAC와 RLHF는 같은 식의 기준 분포만 다르다.</p>
 </div>
+<div data-w="step-temp"></div>
 <p>상태 전이까지 포함하면 <strong>soft 벨만 방정식</strong>이 된다. $\max$ 자리에 log-sum-exp가 들어갈 뿐 구조는 02장과 같고, log-sum-exp도 1-립시츠라 여전히 축약이다(T1).</p>
 $$Q(s,a) = r(s,a) + \gamma\,\mathbb{E}_{s'}\big[V(s')\big],\qquad V(s) = \mathbb{E}_{a\sim\pi}\big[Q(s,a) - \alpha\log\pi(a|s)\big] \;\overset{\pi=\pi^*}{=}\; \alpha\log\int e^{Q(s,a)/\alpha}\,da$$
 
@@ -96,6 +110,7 @@ $$J(\alpha) = \mathbb{E}_{a\sim\pi}\big[-\alpha\,(\log\pi(a|s) + \bar{\mathcal{H
     mount: {
       'dv-dpg': (el) => ui.derivation(el, {
         title: '결정적 정책 경사 (Silver et al. 2014)',
+        easy: '행동이 숫자 하나로 정해지면, "행동을 조금 바꿀 때 평가 점수가 얼마나 오르는지"(기울기)를 그대로 정책의 출력에 전해 주면 된다. 평가자가 오르막을 가리키면 정책은 그쪽으로 출력을 민다.',
         steps: [
           { tex: String.raw`J(\theta) = \mathbb{E}_{s\sim\rho^{\mu}}\big[Q^{\mu}(s, \mu_\theta(s))\big]`, why: '결정적 정책에서는 상태마다 행동이 하나다. (off-policy 버전에서는 $s$를 리플레이 버퍼 분포 $\\beta$에서 뽑는다.)' },
           { tex: String.raw`\nabla_\theta Q(s, \mu_\theta(s)) = \hl{\nabla_\theta\mu_\theta(s)}\;\hl{\nabla_a Q(s,a)\big|_{a=\mu_\theta(s)}}`, why: '연쇄법칙. actor의 야코비안 × critic의 행동 기울기. 점수함수가 필요 없다.' },
@@ -105,18 +120,20 @@ $$J(\alpha) = \mathbb{E}_{a\sim\pi}\big[-\alpha\,(\log\pi(a|s) + \bar{\mathcal{H
       }),
       'dv-soft': (el) => ui.derivation(el, {
         title: '엔트로피 정규화 최적화의 닫힌 해',
-        caption: '한 상태에서 $Q(a)$가 주어졌다고 하고, 행동 분포 $\\pi$에 대해 최적화한다.',
+        caption: '"다음 단계"를 누르며 따라가 보라. 한 상태에서 $Q(a)$가 주어졌다고 하고, 행동 분포 $\\pi$에 대해 최적화한다.',
+        easy: '"점수 + 온도 × 다양성"을 가장 크게 하는 분포를 구하면, 점수를 온도로 나눠 지수를 취한 비율로 고르는 분포가 나온다. 그때의 최댓값이 log-sum-exp, 즉 soft 가치다.',
         steps: [
           { tex: String.raw`\max_{\pi}\; \int\pi(a)\,Q(a)\,da \;-\; \alpha\int\pi(a)\log\pi(a)\,da \quad\text{s.t.}\quad \int\pi(a)\,da = 1`, why: '기대 $Q$ + 온도 × 엔트로피.' },
           { tex: String.raw`\frac{\delta}{\delta\pi(a)}:\quad Q(a) - \alpha\big(\log\pi(a) + 1\big) - \lambda = 0`, why: '라그랑주 승수 $\\lambda$를 붙여 $\\pi(a)$에 대해 변분.' },
           { tex: String.raw`\log\pi(a) = \frac{Q(a)}{\alpha} - 1 - \frac{\lambda}{\alpha} \;\Rightarrow\; \hl{\pi^*(a) = \frac{\exp(Q(a)/\alpha)}{\int\exp(Q(a')/\alpha)\,da'}}`, why: '정규화 조건이 상수를 정한다. 볼츠만(깁스) 분포.' },
-          { tex: String.raw`\max_\pi\big[\mathbb{E}_\pi Q + \alpha\mathcal{H}(\pi)\big] = \hl{\alpha\log\int\exp\big(Q(a)/\alpha\big)\,da} = V_{\text{soft}}`, why: '최적해를 대입하면 최댓값은 log-partition 함수. 이것이 soft 가치다. 수학적으로 log-sum-exp는 음의 엔트로피의 볼록 켤레(Legendre-Fenchel 쌍대)다.' },
+          { tex: String.raw`\max_\pi\big[\mathbb{E}_\pi Q + \alpha\mathcal{H}(\pi)\big] = \hl{\alpha\log\int\exp\big(Q(a)/\alpha\big)\,da} = V_{\text{soft}}`, why: '최적해를 대입하면 최댓값은 log-partition 함수. 이것이 soft 가치다. 수학적으로 log-sum-exp는 음의 엔트로피의 볼록 켤레(Legendre-Fenchel 쌍대)다.', easy: '점수가 2, 1, 0이고 온도가 1이면 최댓값은 log(e² + e¹ + e⁰) ≈ 2.41이다. 가장 높은 점수 2보다 조금 크다. 선택지가 여럿이라는 여유(다양성)의 값이 더해진 것이다.' },
           { tex: String.raw`\mathbb{E}_\pi[Q] + \alpha\mathcal{H}(\pi) = V_{\text{soft}} - \alpha\,\mathrm{KL}\big(\pi\,\|\,\pi^*\big)`, why: '임의의 $\\pi$에 대한 항등식. 그래서 목적을 최대화하는 것은 $\\pi^*$로의 <strong>역방향 KL</strong>을 최소화하는 것과 같다. SAC actor 손실이 정확히 이것이다.' },
           { tex: String.raw`\alpha\to0:\ \pi^*\to\text{argmax 위의 점질량},\ V_{\text{soft}}\to\max_a Q(a) \qquad \alpha\to\infty:\ \pi^*\to\text{균등}`, why: '온도는 hard max와 균등 평균 사이를 잇는다. 모든 "soft" 알고리즘은 $\\alpha\\to0$에서 원래의 "hard" 알고리즘으로 돌아간다.' },
         ],
       }),
       'fx-sac': (el) => ui.formula(el, {
         title: 'SAC 손실 해부',
+        say: 'critic은 {y|목표값}에 맞춘다. 목표값은 받은 점수에, 다음 상황에서 {min|두 평가자 중 낮은 점수}를 쓰고 거기서 {al|온도} × {lp|다음 행동의 로그확률}을 뺀(즉 다양성 보너스를 더한) 값이다. actor는 {eps|무작위 잡음}을 넣어 {f|행동을 만들고}, 그 행동의 평가 점수는 높이고 로그확률은 온도만큼 낮추는 쪽으로 움직인다.',
         tex: String.raw`\underbrace{\mathbb{E}_{(s,a,r,s')\sim\mathcal{D}}\Big[\big(Q_{\phi}(s,a) - \tm{y}{y}\big)^2\Big]}_{\text{critic}},\;\; \tm{y}{y} = r + \gamma\Big(\tm{min}{\min_{i}Q_{\bar\phi_i}(s',\tilde a')} - \tm{al}{\alpha}\tm{lp}{\log\pi_\theta(\tilde a'|s')}\Big);\qquad \underbrace{\mathbb{E}_{s\sim\mathcal{D},\,\tm{eps}{\epsilon\sim\mathcal{N}}}\Big[\tm{al}{\alpha}\log\pi_\theta(\tm{f}{f_\theta(\epsilon;s)}|s) - Q_\phi(s, \tm{f}{f_\theta(\epsilon;s)})\Big]}_{\text{actor}}`,
         terms: [
           { id: 'y', sym: 'y', label: 'soft 벨만 타깃', desc: '다음 상태의 soft 가치로 부트스트랩.', long: '$\\tilde a\'\\sim\\pi_\\theta(\\cdot|s\')$를 새로 샘플한다. 리플레이의 옛 행동이 아니라 현재 정책의 행동을 쓰므로 off-policy로 현재 정책의 soft Q를 평가한다.' },
@@ -125,6 +142,18 @@ $$J(\alpha) = \mathbb{E}_{a\sim\pi}\big[-\alpha\,(\log\pi(a|s) + \bar{\mathcal{H
           { id: 'lp', sym: '\\log\\pi', label: '로그확률', desc: '−log π의 기대가 엔트로피. 타깃에서 빼면 엔트로피 보너스.' },
           { id: 'eps', sym: '\\epsilon\\sim\\mathcal{N}', label: '외부 잡음', desc: '재매개화: 무작위성을 θ 밖으로.', long: '샘플링 연산을 미분 가능한 결정적 변환 + 고정 잡음으로 바꾼다. 그래서 actor 경사가 critic을 통해 흐른다. 점수함수 추정보다 분산이 훨씬 작다(아래 계산기).' },
           { id: 'f', sym: 'f_\\theta(\\epsilon;s)', label: '재매개화된 행동', desc: 'tanh(μ_θ(s) + σ_θ(s)·ε).', long: 'tanh가 행동을 유계 구간으로 묶고, 그 덕분에 엔트로피가 무한히 커질 수 없다. 로그확률에는 tanh의 야코비안 보정이 필요하다.' },
+        ],
+      }),
+      'try-lunch': mountLunch,
+      'step-temp': (el) => ui.walkthrough(el, {
+        title: '온도로 나눈 소프트맥스를 손으로',
+        caption: '빈칸에 계산한 값을 넣고 "확인"을 누르라. 식당 세 곳의 점수는 2, 1, 0이다.',
+        steps: [
+          { say: '온도 α = 1이면 점수를 1로 나눈 뒤 e의 거듭제곱을 한다. 2점 식당의 가중치 e²는 약 얼마일까?', ask: { answer: 7.389, rtol: 0.01 }, calc: String.raw`e^{2/1} \approx 7.389,\qquad e^{1/1} \approx 2.718,\qquad e^{0/1} = 1` },
+          { say: '가중치를 가중치의 합으로 나누면 확률이다. 2점 식당을 고를 확률은?', ask: { answer: 0.665, rtol: 0.01 }, calc: String.raw`\pi(2\text{점}) = \frac{7.389}{7.389 + 2.718 + 1} = \frac{7.389}{11.107} \approx 0.665` },
+          { say: '온도를 0.5로 낮추면 점수를 0.5로 나눈다. 즉 점수 차이가 두 배로 커진다. 가중치는 e⁴ ≈ 54.6, e² ≈ 7.39, 1이다. 2점 식당의 확률은?', ask: { answer: 0.867, rtol: 0.01 }, calc: String.raw`\pi(2\text{점}) = \frac{54.6}{54.6 + 7.39 + 1} \approx 0.867` },
+          { say: '온도를 2로 올리면 가중치는 e¹ ≈ 2.718, e^0.5 ≈ 1.649, 1이다. 2점 식당의 확률은?', ask: { answer: 0.506, rtol: 0.01 }, calc: String.raw`\pi(2\text{점}) = \frac{2.718}{2.718 + 1.649 + 1} \approx 0.506` },
+          { say: '정리하면 온도를 낮출수록 최고점 쪽으로 몰리고(0.87), 높일수록 고르게 퍼진다(0.51). 온도 × log(가중치의 합)을 soft 가치라 부른다. α = 1이면 log 11.107 ≈ 2.41이고, α가 0에 가까워지면 최고점 2로 간다.', calc: String.raw`V_{\text{soft}} = \alpha\log\sum_a e^{Q(a)/\alpha}:\quad \alpha=1 \to 2.41,\quad \alpha=0.5 \to 2.07,\quad \alpha\to0 \to 2` },
         ],
       }),
       boltz: mountBoltz,
@@ -169,7 +198,7 @@ $$J(\alpha) = \mathbb{E}_{a\sim\pi}\big[-\alpha\,(\log\pi(a|s) + \bar{\mathcal{H
 
   /* ---------- 볼츠만 vs 가우시안 적합 ---------- */
   function mountBoltz(el) {
-    const p = ui.panel(el, { kind: 'CALC', title: '$\\pi^*\\propto e^{Q/\\alpha}$와 가우시안 actor (역방향 KL vs 정방향 KL)', caption: '행동 구간 $[-4,4]$의 균등분포를 기준 측도로 쓴다. 그래서 위젯의 soft 가치는 $V = \\alpha\\log\\mathbb{E}_{a\\sim U}[e^{Q/\\alpha}] = \\mathbb{E}_{\\pi^*}[Q] - \\alpha\\,\\mathrm{KL}(\\pi^*\\|U)$이고, 유도의 $\\alpha\\log\\int e^{Q/\\alpha}da$와는 상수 $\\alpha\\log 8$만큼 다르다.' });
+    const p = ui.panel(el, { kind: 'CALC', title: '$\\pi^*\\propto e^{Q/\\alpha}$와 가우시안 actor (역방향 KL vs 정방향 KL)', caption: '온도와 봉우리 슬라이더를 움직이며 파란 실선(SAC가 찾는 종 모양 분포)이 한 봉우리에 숨는지, 두 봉우리를 덮는지 보라. 행동 구간 $[-4,4]$의 균등분포를 기준 측도로 쓴다. 그래서 위젯의 soft 가치는 $V = \\alpha\\log\\mathbb{E}_{a\\sim U}[e^{Q/\\alpha}] = \\mathbb{E}_{\\pi^*}[Q] - \\alpha\\,\\mathrm{KL}(\\pi^*\\|U)$이고, 유도의 $\\alpha\\log\\int e^{Q/\\alpha}da$와는 상수 $\\alpha\\log 8$만큼 다르다.' });
     const ctr = ui.row(p.body);
     const aS = ui.slider(ctr, { label: '온도 $\\alpha$', min: 0.02, max: 2, step: 0.01, value: 0.15, format: ui.fmt.f(2), onInput: draw });
     const h1 = ui.slider(ctr, { label: '봉우리 1 높이', min: 0, max: 1.5, step: 0.05, value: 0.8, format: ui.fmt.f(2), onInput: draw });
@@ -261,7 +290,7 @@ $$J(\alpha) = \mathbb{E}_{a\sim\pi}\big[-\alpha\,(\log\pi(a|s) + \bar{\mathcal{H
 
   /* ---------- 점수함수 vs 재매개화 ---------- */
   function mountGradEst(el) {
-    const p = ui.panel(el, { kind: 'CALC', title: '같은 경사, 다른 분산: 점수함수 vs 재매개화', caption: '$\\partial_\\mu\\,\\mathbb{E}_{a\\sim\\mathcal{N}(\\mu,\\sigma^2)}[Q(a)]$를 샘플 $n$개로 추정하는 것을 2000번 반복해 표준편차를 잰다. $Q$는 아래 실험과 같은 두 봉우리 함수.' });
+    const p = ui.panel(el, { kind: 'CALC', title: '같은 경사, 다른 분산: 점수함수 vs 재매개화', caption: '샘플 수 $n$과 $\\sigma$를 바꿔 보며 세 막대의 높이(추정치가 흩어지는 정도)를 비교하라. 각 막대는 $\\partial_\\mu\\,\\mathbb{E}_{a\\sim\\mathcal{N}(\\mu,\\sigma^2)}[Q(a)]$를 샘플 $n$개로 추정하는 일을 2000번 반복해 잰 표준편차다. $Q$는 아래 실험과 같은 두 봉우리 함수.' });
     const bumps = [{ h: 0.75, c: -0.8, w: 0.3 }, { h: 1.0, c: 2.0, w: 0.8 }];
     const Q = qOf(bumps), dQ = dqOf(bumps), dEQ = deqOf(bumps);
     const ctr = ui.row(p.body);
@@ -309,7 +338,7 @@ $$J(\alpha) = \mathbb{E}_{a\sim\pi}\big[-\alpha\,(\log\pi(a|s) + \bar{\mathcal{H
 
   /* ---------- SAC actor 실험 ---------- */
   function mountSacRun(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: 'actor만 떼어 본 DDPG식 vs SAC식 학습 (완벽한 critic 가정)' });
+    const p = ui.panel(el, { kind: 'SIM', title: 'actor만 떼어 본 DDPG식 vs SAC식 학습 (완벽한 critic 가정)', caption: 'actor 종류를 바꾸고 $\\alpha$를 0, 0.3, 3으로 바꿔 보라. 가운데 그래프에서 20개 궤적이 위쪽 초록 점선(넓은 봉우리)으로 가는지, 아래쪽 빨간 점선(좁은 봉우리)에 머무는지 보라.' });
     const bumps = [{ h: 0.75, c: -0.8, w: 0.3 }, { h: 1.0, c: 2.0, w: 0.8 }];
     const Q = qOf(bumps), dQ = dqOf(bumps), EQ = eqOf(bumps);
     const ctr = ui.row(p.body);
@@ -392,5 +421,80 @@ $$J(\alpha) = \mathbb{E}_{a\sim\pi}\big[-\alpha\,(\log\pi(a|s) + \bar{\mathcal{H
       st.set('al', mode === 'det' ? '–' : sim.mean(finals.map((f) => f.al)).toFixed(3));
     }
     run();
+  }
+  /* ---------- 점심 온도 다이얼 ---------- */
+  function mountLunch(el) {
+    const p = ui.panel(el, { kind: 'TRY', title: '점심 고르기: 모험심(온도) 다이얼', caption: '온도 슬라이더를 왼쪽 끝과 오른쪽 끝으로 움직여 보라. 막대는 각 식당을 고를 확률이다. 그다음 "한 달 살아 보기"를 눌러 20일 동안 실제로 어디를 갔는지 보라.' });
+    const names = ['한식당', '국숫집', '샐러드바', '패스트푸드'];
+    const listed = [4.5, 4.3, 3.8, 2.0];
+    const ctr = ui.row(p.body);
+    const aS = ui.slider(ctr, { label: '온도 $\\alpha$ (모험심)', min: 0.02, max: 3, step: 0.01, value: 0.3, format: ui.fmt.f(2), onInput: () => { drawProbs(); curve.update({ vlines: [{ x: aS.get(), label: '지금 온도' }] }); } });
+    const gem = ui.checkbox(ctr, { label: '사실 국숫집이 숨은 맛집(실제 4.8점)이라면', value: false, onChange: () => { drawCurve(); month(); } });
+    const btns = ui.row(p.body, 'btns');
+    let seed = 1;
+    ui.button(btns, '한 달(20일) 살아 보기', () => { seed++; month(); }, { primary: true });
+    const st = ui.stats(p.body, [
+      { key: 'eq', label: '알려진 평점 기준 기대 평점', tone: 'accent' },
+      { key: 'eff', label: '사실상 고르는 식당 수 $e^{\\mathcal{H}}$' },
+      { key: 'top', label: '한식당만 갈 확률' },
+    ]);
+    const split = document.createElement('div');
+    split.className = 'w-split';
+    const left = document.createElement('div');
+    const right = document.createElement('div');
+    split.append(left, right);
+    const msg = document.createElement('div');
+    msg.className = 'fx-detail';
+    p.body.append(split, msg);
+    const bars = plot.bars(left, { categories: names, series: [], height: 220, y: { min: 0, max: 1, label: '고를 확률' }, labels: true, labelFmt: (v) => Math.round(v * 100) + '%' });
+    const curve = plot.line(right, { height: 220, x: { label: '온도 α', min: 0, max: 3 }, y: { label: '한 달 평균 만족도 (300달 평균)' }, series: [] });
+    const probs = (bel, a) => sim.softmax(bel.map((x) => x / a));
+    function simMonth(alpha, hidden, r) {
+      const bel = listed.slice();
+      const truth = [4.5, hidden ? 4.8 : 4.3, 3.8, 2.0];
+      const visits = [0, 0, 0, 0];
+      let tot = 0, found = 0;
+      for (let d = 0; d < 20; d++) {
+        const a = r.choice(probs(bel, alpha));
+        visits[a]++;
+        tot += truth[a];
+        bel[a] = truth[a];
+        if (hidden && a === 1 && !found) found = d + 1;
+      }
+      return { avg: tot / 20, visits, found };
+    }
+    function drawProbs() {
+      const a = aS.get();
+      const pr = probs(listed, a);
+      const H = sim.entropy(pr);
+      bars.update({ series: [{ name: '알려진 평점으로 계산한 확률', color: 'c1', values: pr }] });
+      st.set('eq', sim.sum(pr.map((x, i) => x * listed[i])).toFixed(2));
+      st.set('eff', Math.exp(H).toFixed(2) + '곳');
+      st.set('top', Math.round(pr[0] * 100) + '%');
+    }
+    function drawCurve() {
+      const hidden = gem.get();
+      const r = sim.rng(77);
+      const xs = [0.02, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.8, 1, 1.25, 1.5, 2, 2.5, 3];
+      const data = xs.map((a) => { let s = 0; for (let i = 0; i < 300; i++) s += simMonth(a, hidden, r).avg; return [a, s / 300]; });
+      const best = data.reduce((b, x) => (x[1] > b[1] ? x : b), data[0]);
+      curve.update({
+        series: [{ name: hidden ? '숨은 맛집이 있을 때' : '평점이 정확할 때', color: hidden ? 'c3' : 'c2', data, markers: true }],
+        vlines: [{ x: aS.get(), label: '지금 온도' }],
+        hlines: [{ y: best[1], label: '최고 ' + best[1].toFixed(2) + ' (α ≈ ' + best[0] + ')' }],
+      });
+    }
+    function month() {
+      const hidden = gem.get();
+      const o = simMonth(aS.get(), hidden, sim.rng(300 + seed));
+      const vis = names.map((n, i) => n + ' ' + o.visits[i] + '일').join(', ');
+      let text = '20일 동안 ' + vis + '. 평균 만족도 ' + o.avg.toFixed(2) + '점.';
+      if (hidden) text += o.found ? ' 국숫집이 숨은 맛집이라는 것을 ' + o.found + '일째에 알게 되었고, 그 뒤로는 국숫집에 자주 갔다.' : ' 국숫집에 한 번도 가지 않아서 숨은 맛집을 끝내 몰랐다.';
+      else text += ' 평점이 정확하면 모험은 손해다. 온도가 높을수록 평균 만족도가 내려간다.';
+      msg.innerHTML = text;
+    }
+    drawProbs();
+    drawCurve();
+    month();
   }
 })();

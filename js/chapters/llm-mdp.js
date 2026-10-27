@@ -10,6 +10,17 @@
     level: '중급 · 핵심',
     prereq: ['mdp', 'pg', 'maxent'],
     theses: ['T5', 'T3', 'T1'],
+    easy: {
+      hook: '챗봇이 답을 쓰는 일은 "다음 단어 고르기"를 수십 번 반복하는 게임이고, 정렬은 "점수는 올리되 원래 말투에서 너무 멀어지지 않게" 이 게임을 하는 것이다.',
+      intro: '<p>챗봇은 문장을 한 번에 쓰지 않는다. 지금까지 쓴 글을 보고 다음 단어 하나를 고르고, 다시 다음 단어를 고른다. 앞 장들의 "상황을 보고 선택하기"와 똑같은 구조다. 상황은 "질문과 지금까지 쓴 글", 선택은 "다음 단어", 점수는 답이 끝났을 때 한 번 받는다.</p><p>점수만 쫓으면 챗봇은 채점기의 허점을 노린 이상한 답으로 흘러간다. 그래서 "원래 모델이 말하던 방식에서 얼마나 멀어졌는가"(KL)를 벌점으로 함께 센다. 이 둘을 동시에 만족하는 최선의 답은 간단한 공식 하나로 나온다.</p>',
+      analogy: '평소 자주 가던 식당 목록이 있다(원래 모델의 확률). 오늘 받은 평점(보상)이 좋은 곳일수록 가중치를 더 주어 고른다. 평소 자주 가던 곳은 평점이 조금만 좋아도 뽑히고, 평소 거의 안 가던 곳은 평점이 아주 높아야 뽑힌다. β는 "평소 습관을 얼마나 고집할지"를 정하는 손잡이다. 이 장의 공식이 정확히 이 계산이다.',
+      path: ['다음 단어를 하나씩 직접 골라 보며 확률과 "원래 모델과의 거리"가 쌓이는 것을 본다', '"점수 올리기 + 거리 벌점"의 최선의 답을 응답 세 개짜리 예로 손으로 계산한다', 'β를 움직여 점수와 거리의 줄다리기, 그리고 채점기 허점에 빠지는 지점을 본다', '그 공식이 RLHF, DPO, Best-of-N의 공통 뿌리임을 확인한다'],
+      recap: [
+        '챗봇의 답 쓰기는 다음 단어 고르기를 반복하는 게임이고, 점수는 대개 답이 끝날 때 한 번 받는다.',
+        '점수만 쫓으면 채점기의 허점으로 흘러가므로, 원래 모델에서 멀어진 만큼 벌점을 준다.',
+        '그 결과 최선의 답은 "원래 모델의 확률 × 점수가 높을수록 커지는 배수"이고, β가 그 배수의 세기를 정한다.',
+      ],
+    },
     goals: [
       '토큰 단위 MDP와 시퀀스 단위 문맥 밴딧이라는 두 관점을 정의하고 각각에 맞는 알고리즘을 구분할 수 있다.',
       'KL-정규화 목적의 최적해 $\\pi^* \\propto \\pi_{\\text{ref}}\\,e^{r/\\beta}$를 깁스 변분 원리로 유도할 수 있다.',
@@ -42,6 +53,8 @@
     <text x="340" y="154" style="fill:var(--muted);font-size:11.5px">보상 = 대개 EOS에서 한 번 (보상모델, 검증기, 사람 선호)</text>
   </g>
 </svg></div></div>
+<p>직접 해 보면 금방 감이 온다. 아래에서 다음 단어를 하나씩 골라 답을 완성해 보자.</p>
+<div data-w="try-tokens"></div>
 <p>이 MDP는 로봇 제어와 성질이 매우 다르다.</p>
 <ul>
   <li><strong>전이가 결정적이고 완벽히 알려져 있다.</strong> 환경 모델을 배울 필요가 없고, 어떤 접두사로든 되돌아가 다시 생성할 수 있다. 트리 탐색과 중간 상태의 몬테카를로 추정이 싸다(<a href="#modelbased">16장</a>, <a href="#test-time">22장</a>).</li>
@@ -69,6 +82,7 @@ $$\max_\pi\; J_\beta(\pi) = \mathbb{E}_{y\sim\pi(\cdot|x)}\big[r(x,y)\big] - \be
 <p>$\pi^*(y|x) = \frac{1}{Z(x)}\pi_{\text{ref}}(y|x)\,e^{r(x,y)/\beta}$. 최적 정책은 기준 모델을 보상의 지수로 <strong>재가중</strong>한 것이다. 기준 모델이 확률 0을 준 응답은 아무리 보상이 커도 0으로 남는다. 최적 목적값은 $\beta\log Z(x)$, 즉 소프트 최댓값이다.</p>
 <p>이 한 식에서 세 갈래가 나온다. (1) <strong>RLHF/PPO</strong>는 이 $\pi^*$를 정책 경사로 근사한다(19장). (2) 식을 뒤집으면 $r = \beta\log\frac{\pi^*}{\pi_{\text{ref}}} + \beta\log Z$이므로 보상을 정책으로 표현할 수 있고, 이것이 <strong>DPO</strong>다(20장). (3) $\pi_{\text{ref}}$에서 여러 개 뽑아 보상으로 고르는 <strong>Best-of-N</strong>은 이 재가중을 샘플링으로 근사한다(22장). SAC의 볼츠만 정책(14장)도 같은 식이다.</p>
 </div>
+<div data-w="step-pistar"></div>
 <p>아래 계산기는 한 프롬프트에 대한 응답 후보 6개로 이 식을 그대로 계산한다. 보상모델 점수 $r$은 "형식만 맞춘" 응답에 가장 높은 점수를 주도록 일부러 잘못 설정되어 있다. 각 응답의 실제 품질(사람이 본다면)은 따로 있다.</p>
 <div data-w="kl-frontier"></div>
 <ul>
@@ -116,6 +130,7 @@ $$k_1 = -\log\rho,\qquad k_2 = \tfrac12(\log\rho)^2,\qquad k_3 = (\rho - 1) - \l
     mount: {
       'fx-token': (el) => ui.formula(el, {
         title: 'LLM 생성을 MDP로',
+        say: '{s|질문과 지금까지 쓴 글}을 보고 {pi|언어 모델}이 {a|다음 단어 하나}를 고르면, {P|그 단어가 글 끝에 붙어} 새 상황이 된다. {r|점수는 답이 끝나는 순간에 한 번} 받고, {g|먼 미래의 점수라고 깎지 않는다}.',
         tex: String.raw`\tm{s}{s_t = (x,\, y_{<t})},\quad \tm{a}{a_t = y_t \in \mathcal{V}},\quad \tm{P}{s_{t+1} = s_t \oplus a_t},\quad \tm{r}{r_t = r(x,y)\,\mathbb{1}[\,a_t = \texttt{EOS}\,]},\quad \tm{g}{\gamma = 1},\quad \tm{pi}{\pi_\theta(a_t\mid s_t)}`,
         terms: [
           { id: 's', sym: 's_t', label: '상태', desc: '프롬프트와 지금까지 생성한 토큰 전체.', long: '전체 기록을 상태로 두므로 마르코프 성질이 자명하게 성립한다(01장 암묵지: 상태는 설계 대상). 대신 상태 공간이 지수적으로 커서 표 방법은 불가능하고, 신경망의 일반화에 전적으로 의존한다.' },
@@ -128,6 +143,7 @@ $$k_1 = -\log\rho,\qquad k_2 = \tfrac12(\log\rho)^2,\qquad k_3 = (\rho - 1) - \l
       }),
       'dv-gibbs': (el) => ui.derivation(el, {
         title: '깁스 변분 원리로 $\\pi^*$ 유도하기',
+        easy: '"점수의 평균 − β × 원래 모델과의 거리"를 정리하면 "상수 − β × (어떤 특별한 분포와의 거리)"가 된다. 거리가 0일 때가 최선이므로 그 특별한 분포가 답이다. 원래 확률에 $e^{\\text{보상}/\\beta}$를 곱하고, 합이 1이 되게 나눈 분포다.',
         caption: '프롬프트 $x$ 하나를 고정하고 응답 분포 $\\pi(y)$에 대해 최대화한다. 표기를 줄이려고 $x$를 생략한다.',
         steps: [
           { tex: String.raw`J_\beta(\pi) = \sum_y \pi(y)\,r(y) - \beta\sum_y \pi(y)\log\frac{\pi(y)}{\pi_{\text{ref}}(y)}`, why: '목적을 합으로 쓴다.' },
@@ -140,6 +156,7 @@ $$k_1 = -\log\rho,\qquad k_2 = \tfrac12(\log\rho)^2,\qquad k_3 = (\rho - 1) - \l
       }),
       'fx-soft': (el) => ui.formula(el, {
         title: '토큰 단위 소프트 벨만 방정식',
+        say: '{pi|가장 좋은 다음 단어 확률}은 {ref|원래 모델의 확률}에 배수를 곱한 것이다. 배수는 {Q|그 단어를 골랐을 때 기대되는 점수}가 {V|지금 상황의 평균적인 기대 점수}보다 얼마나 높은지를 {b|온도}로 나눈 값의 지수다.',
         tex: String.raw`\tm{pi}{\pi^*(a\mid s_t)} = \tm{ref}{\pi_{\text{ref}}(a\mid s_t)}\,\exp\!\Big(\frac{\tm{Q}{Q^*(s_t,a)} - \tm{V}{V^*(s_t)}}{\tm{b}{\beta}}\Big),\qquad \tm{V}{V^*(s_t)} = \beta\log\sum_{a}\pi_{\text{ref}}(a\mid s_t)\,e^{Q^*(s_t,a)/\beta}`,
         terms: [
           { id: 'pi', sym: '\\pi^*(a|s_t)', label: '최적 토큰 정책', desc: '다음 토큰의 KL-정규화 최적 분포.' },
@@ -150,6 +167,18 @@ $$k_1 = -\log\rho,\qquad k_2 = \tfrac12(\log\rho)^2,\qquad k_3 = (\rho - 1) - \l
         ],
       }),
       'kl-frontier': mountFrontier,
+      'try-tokens': mountTokens,
+      'step-pistar': (el) => ui.walkthrough(el, {
+        title: '최선의 정책을 응답 세 개로 손으로 계산하기',
+        caption: '응답 세 개의 원래 확률이 0.5, 0.3, 0.2이고 보상이 0, 1, 2점이다. β = 1로 두고 공식 "원래 확률 × $e^{\\text{보상}/\\beta}$를 합이 1이 되게 나누기"를 따라가 보자. $e \\approx 2.718$, $e^2 \\approx 7.389$를 쓰면 된다.',
+        steps: [
+          { say: '응답 1은 보상이 0이라 배수가 $e^0 = 1$이다. 가중치는 원래 확률 그대로다.', calc: String.raw`0.5 \times e^{0} = 0.5` },
+          { say: '응답 2의 가중치 $0.3 \\times e^{1}$은?', ask: { answer: 0.8155, rtol: 0.01 }, calc: String.raw`0.3 \times 2.718 \approx 0.815` },
+          { say: '응답 3의 가중치 $0.2 \\times e^{2}$는?', ask: { answer: 1.4778, rtol: 0.01 }, calc: String.raw`0.2 \times 7.389 \approx 1.478` },
+          { say: '세 가중치의 합 $Z$는?', ask: { answer: 2.7933, rtol: 0.01 }, calc: String.raw`Z = 0.5 + 0.815 + 1.478 \approx 2.793` },
+          { say: '응답 3의 최선 확률은 가중치를 $Z$로 나눈 값이다. 얼마일까?', ask: { answer: 0.529, rtol: 0.02 }, calc: String.raw`\pi^*(3) = \frac{1.478}{2.793} \approx 0.53`, note: '나머지는 $0.5/2.793 \\approx 0.18$, $0.815/2.793 \\approx 0.29$다. 보상이 가장 높은 응답이 0.2에서 0.53으로 늘었지만 다른 응답도 사라지지 않았다. β를 0.5로 줄이면 배수가 $e^{0}, e^{2}, e^{4}$로 커져 응답 3의 확률이 약 0.80까지 올라간다. β가 작을수록 점수를, 클수록 원래 습관을 따른다.' },
+        ],
+      }),
       'kl-est': mountKLEst,
       'fwd-rev': mountFwdRev,
     },
@@ -189,7 +218,7 @@ $$k_1 = -\log\rho,\qquad k_2 = \tfrac12(\log\rho)^2,\qquad k_3 = (\rho - 1) - \l
       { name: '오답', full: '오답', ref: 0.32, r: -1.2, gold: -1.0 },
       { name: '해킹', full: '형식만 맞춘 답 (보상 해킹)', ref: 0.03, r: 2.0, gold: -1.5 },
     ];
-    const p = ui.panel(el, { kind: 'CALC', title: '$\\pi^* \\propto \\pi_{\\text{ref}}\\,e^{r/\\beta}$ 계산기와 보상-KL 경계', caption: '한 프롬프트의 응답 후보 6개(간결한 정답, 장황한 정답, 부분 정답, 아첨, 오답, 형식만 맞춘 보상 해킹). 아래에서 응답을 골라 기준 확률과 보상모델 점수를 바꿀 수 있다. 오른쪽 그래프는 $\\beta$를 $10^{-1.5}$에서 $10^{1.3}$까지 움직일 때의 (KL, 기대 보상) 경로이며, 점이 현재 $\\beta$다.' });
+    const p = ui.panel(el, { kind: 'CALC', title: '$\\pi^* \\propto \\pi_{\\text{ref}}\\,e^{r/\\beta}$ 계산기와 보상-KL 경계', caption: 'β 슬라이더를 오른쪽에서 왼쪽으로 천천히 옮기며, 오른쪽 그래프의 주황 점(실제 품질)이 올라갔다가 다시 떨어지는 지점을 찾아보라. 한 프롬프트의 응답 후보 6개(간결한 정답, 장황한 정답, 부분 정답, 아첨, 오답, 형식만 맞춘 보상 해킹). 아래에서 응답을 골라 기준 확률과 보상모델 점수를 바꿀 수 있다. 오른쪽 그래프는 $\\beta$를 $10^{-1.5}$에서 $10^{1.3}$까지 움직일 때의 (KL, 기대 보상) 경로이며, 점이 현재 $\\beta$다.' });
     const ctr = ui.row(p.body);
     let sel = 5;
     const bS = ui.slider(ctr, { label: '$\\log_{10}\\beta$', min: -1.5, max: 1.3, step: 0.01, value: 0.5, format: (v) => v.toFixed(2) + '  (β=' + Math.pow(10, v).toPrecision(2) + ')', onInput: upd });
@@ -262,7 +291,7 @@ $$k_1 = -\log\rho,\qquad k_2 = \tfrac12(\log\rho)^2,\qquad k_3 = (\rho - 1) - \l
 
   /* ---------- KL 추정량 비교 ---------- */
   function mountKLEst(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: 'KL 추정량 k1 · k2 · k3의 편향과 분산', caption: '$q=\\mathcal{N}(0,1)$에서 샘플하고 $\\rho = p(x)/q(x)$, $p = \\mathcal{N}(\\mu,1)$. 표본 하나당 추정값의 평균(편향)과 표준편차를 참 KL $\\mu^2/2$로 나눈 상대값으로 비교한다. 오른쪽은 $\\mu$에 따른 상대 표준편차(로그 축)를 실제 샘플링으로 그린 것이다.' });
+    const p = ui.panel(el, { kind: 'SIM', title: 'KL 추정량 k1 · k2 · k3의 편향과 분산', caption: 'μ 슬라이더를 작은 값으로 내리고, 막대 그래프에서 k1의 주황 막대(흩어짐)가 k2, k3보다 얼마나 커지는지 보라. $q=\\mathcal{N}(0,1)$에서 샘플하고 $\\rho = p(x)/q(x)$, $p = \\mathcal{N}(\\mu,1)$. 표본 하나당 추정값의 평균(편향)과 표준편차를 참 KL $\\mu^2/2$로 나눈 상대값으로 비교한다. 오른쪽은 $\\mu$에 따른 상대 표준편차(로그 축)를 실제 샘플링으로 그린 것이다.' });
     const ctr = ui.row(p.body);
     const mS = ui.slider(ctr, { label: '분포 간 거리 μ', min: 0.05, max: 2, step: 0.05, value: 0.5, format: ui.fmt.f(2), onInput: upd });
     const nS = ui.slider(ctr, { label: '표본 수', min: 1000, max: 50000, step: 1000, value: 20000, format: ui.fmt.int, onInput: upd });
@@ -330,7 +359,7 @@ $$k_1 = -\log\rho,\qquad k_2 = \tfrac12(\log\rho)^2,\qquad k_3 = (\rho - 1) - \l
 
   /* ---------- 정방향 vs 역방향 KL ---------- */
   function mountFwdRev(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: '쌍봉 분포 $p$에 단봉 가우시안 $q$ 맞추기', caption: '정방향 $\\mathrm{KL}(p\\|q)$의 최적 가우시안은 $p$의 평균과 분산을 그대로 맞춘 것(모멘트 매칭)이다. 역방향 $\\mathrm{KL}(q\\|p)$는 수치 적분과 격자 탐색으로 실제로 최소화한다.' });
+    const p = ui.panel(el, { kind: 'SIM', title: '쌍봉 분포 $p$에 단봉 가우시안 $q$ 맞추기', caption: '봉우리 간격 슬라이더를 넓혀 가며, 파란 곡선(정방향)은 두 봉우리 사이로 넓게 퍼지고 주황 곡선(역방향)은 한 봉우리에 달라붙는지 보라. 정방향 $\\mathrm{KL}(p\\|q)$의 최적 가우시안은 $p$의 평균과 분산을 그대로 맞춘 것(모멘트 매칭)이다. 역방향 $\\mathrm{KL}(q\\|p)$는 수치 적분과 격자 탐색으로 실제로 최소화한다.' });
     const ctr = ui.row(p.body);
     const dS = ui.slider(ctr, { label: '봉우리 간격', min: 0.5, max: 6, step: 0.1, value: 4, format: ui.fmt.f(1), onInput: upd });
     const wS = ui.slider(ctr, { label: '왼쪽 봉우리 비중', min: 0.1, max: 0.9, step: 0.05, value: 0.4, format: ui.fmt.f(2), onInput: upd });

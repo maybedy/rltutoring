@@ -10,6 +10,17 @@
     level: '기초 · 핵심',
     prereq: ['bellman'],
     theses: ['T2', 'T1', 'T4'],
+    easy: {
+      hook: '지도를 다 알고 있다면, "지금 방식으로 몇 점인지 재 보기"와 "더 나은 쪽으로 화살표 돌리기"를 번갈아 하면 된다.',
+      intro: '<p>격자 위의 로봇이 출구(+1)로 가야 한다. 어느 칸에서 어느 쪽으로 가면 어디에 도착하는지, 즉 <strong>지도</strong>는 전부 알고 있다. 각 칸에는 "이쪽으로 가라"는 화살표가 하나씩 있다.</p><p>먼저 지금 화살표대로 끝까지 가면 각 칸이 몇 점인지 계산한다(<strong>평가</strong>). 그다음 각 칸에서 이웃 칸들의 점수를 보고 화살표를 가장 좋은 쪽으로 돌린다(<strong>개선</strong>). 이 두 가지를 몇 번 반복하면 화살표가 더는 바뀌지 않는다. 그때의 화살표가 최적이다.</p>',
+      analogy: '요리 레시피를 고치는 것과 같다. 지금 레시피로 만들어 맛을 보고(평가), 가장 아쉬운 단계 하나를 더 나은 재료로 바꾼다(개선). 한 단계만 더 좋은 것으로 바꾸고 나머지를 그대로 두면 요리는 적어도 나빠지지 않는다. 그래서 반복할수록 좋아지고, 더 바꿀 곳이 없을 때 멈춘다. 이 "바꿔도 나빠지지 않는다"가 이 장의 정책 개선 정리다.',
+      path: ['격자 위 화살표를 직접 돌려 보며 "이웃 중 가장 좋은 쪽"을 고르는 감각을 익힌다', '칸 두 개짜리 복도에서 평가와 개선을 숫자로 한 번씩 손계산한다', '같은 반복을 컴퓨터로 크게 돌려 보고, 평가를 대충 해도 된다는 것을 확인한다', '이 "재기 ↔ 고치기" 반복이 이후 거의 모든 알고리즘의 뼈대임을 본다'],
+      recap: [
+        '지도를 알면 두 가지를 번갈아 한다. 지금 화살표대로 가면 각 칸이 몇 점인지 재고, 그 점수를 보고 화살표를 더 좋은 쪽으로 돌린다.',
+        '화살표를 더 좋은 쪽으로 돌리면 결과는 절대 나빠지지 않고, 더 돌릴 곳이 없으면 그것이 최적이다.',
+        '점수를 끝까지 정확히 잴 필요는 없다. 대충 재고 고쳐도 같은 답에 닿으며, 이 재기와 고치기의 반복이 강화학습 전체의 뼈대다.',
+      ],
+    },
     goals: [
       '반복적 정책 평가가 $\\mathcal{T}^\\pi$의 고정점 반복이며 왜 수렴하는지 설명할 수 있다.',
       '정책 개선 정리를 한 스텝 이탈(one-step deviation) 논증으로 유도할 수 있다.',
@@ -32,6 +43,9 @@ $$V_{k+1}(s) = \sum_a \pi(a|s)\Big[R(s,a) + \gamma\sum_{s'}P(s'|s,a)\,V_k(s')\Bi
 
 <h2>정책 개선 정리</h2>
 <p>$V^\pi$를 알면 각 상태에서 한 스텝 앞을 내다보고 가장 좋은 행동을 고를 수 있다. 이렇게 만든 탐욕 정책이 원래 정책보다 <strong>나빠지지 않는다</strong>는 것이 정책 개선 정리다.</p>
+<p>수식보다 먼저 손으로 해 보자. 아래 격자에서 화살표를 직접 돌려 시작 칸의 점수를 올려 보고, 이어서 칸 두 개짜리 복도에서 평가와 개선을 숫자로 계산해 본다.</p>
+<div data-w="try-arrows"></div>
+<div data-w="step-pi"></div>
 <div data-w="fx-improve"></div>
 <div data-w="dv-improve"></div>
 <div class="key"><span class="label">핵심</span>증명의 구조는 "한 번만 새 정책을 따르고 이후엔 옛 정책을 따르는 것이 이미 옛 정책보다 낫다면, 그 이탈을 매 스텝 반복해도 낫다"이다. 이 논증을 "확률적 정책 + 근사 평가"로 일반화한 것이 성능 차이 보조정리(T4, <a href="#ppo">13장</a>)다. 정책 개선 정리는 $A^\pi(s,\pi'(s)) \ge 0$이 <em>모든</em> 상태에서 성립한다고 가정하지만, 성능 차이 보조정리는 그 이득을 새 정책의 상태 분포로 평균내어 정확한 등식으로 만든다.</div>
@@ -130,20 +144,22 @@ $$\textbf{원문제:}\quad \min_V\ (1-\gamma)\sum_s \rho_0(s)V(s)\quad \text{s.t
     mount: {
       'fx-improve': (el) => ui.formula(el, {
         title: '탐욕적 정책 개선',
+        say: '{new|이 칸의 새 화살표}는 {am|점수가 가장 높은 행동}을 가리킨다. 각 행동의 점수는 {R|바로 받는 점수}에, {P|도착할 수 있는 칸들을 확률만큼 평균 낸} {V|지금 방식대로 했을 때의 다음 칸 점수}를 {g|할인율}만큼 깎아 더한 것, 즉 {Q|그 행동의 가치}다.',
         tex: String.raw`\tm{new}{\pi'(s)} = \tm{am}{\argmax_a}\ \Big[\tm{R}{R(s,a)} + \tm{g}{\gamma}\tm{P}{\sum_{s'}P(s'|s,a)}\,\tm{V}{V^{\pi}(s')}\Big] = \argmax_a\ \tm{Q}{Q^\pi(s,a)}`,
         terms: [
           { id: 'new', sym: "\\pi'(s)", label: '개선된 정책', desc: '각 상태에서 하나의 행동을 고르는 결정적 정책.', long: '동점인 행동이 여럿이면 그중 아무거나, 또는 균등하게 섞어도 된다. 개선 정리는 그대로 성립한다.' },
-          { id: 'am', sym: '\\argmax_a', label: '탐욕 선택', desc: '한 스텝 앞을 본 뒤 최선의 행동.', long: '이 자리를 "argmax 쪽으로 조금만 움직이기"로 바꾸면 정책 경사(11장), "KL 제약 안에서 argmax 쪽으로"로 바꾸면 TRPO/PPO(13장), "$\\exp(Q/\\beta)$로 재가중"으로 바꾸면 soft 정책 개선(14장)이 된다.' },
+          { id: 'am', sym: '\\argmax_a', label: '탐욕 선택', desc: '한 스텝 앞을 본 뒤 최선의 행동.', easy: '네 방향 점수 중 가장 큰 쪽을 고른다.', long: '이 자리를 "argmax 쪽으로 조금만 움직이기"로 바꾸면 정책 경사(11장), "KL 제약 안에서 argmax 쪽으로"로 바꾸면 TRPO/PPO(13장), "$\\exp(Q/\\beta)$로 재가중"으로 바꾸면 soft 정책 개선(14장)이 된다.' },
           { id: 'R', sym: 'R(s,a)', label: '즉시 보상', desc: '모델이 알려 준다.' },
           { id: 'g', sym: '\\gamma', label: '할인율', desc: '' },
-          { id: 'P', sym: "\\sum_{s'}P", label: '모델 평균', desc: 'DP가 모델을 필요로 하는 지점.', long: '$Q^\\pi$를 직접 갖고 있으면 이 합이 필요 없다. 그래서 모델 프리 제어는 $V$ 대신 $Q$를 학습한다.' },
-          { id: 'V', sym: "V^\\pi(s')", label: '옛 정책의 가치', desc: '평가 단계의 결과.', long: '개선은 <em>옛</em> 정책의 가치를 기준으로 한다. 새 정책을 따르면 가치가 바뀌지만, 개선 정리는 그 바뀐 가치가 옛 가치 이상임을 보장한다.' },
+          { id: 'P', sym: "\\sum_{s'}P", label: '모델 평균', desc: 'DP가 모델을 필요로 하는 지점.', easy: '미끄러져 다른 칸에 갈 수도 있으면, 도착할 확률만큼 평균을 낸다.', long: '$Q^\\pi$를 직접 갖고 있으면 이 합이 필요 없다. 그래서 모델 프리 제어는 $V$ 대신 $Q$를 학습한다.' },
+          { id: 'V', sym: "V^\\pi(s')", label: '옛 정책의 가치', desc: '평가 단계의 결과.', easy: '지금 화살표대로 갔을 때 다음 칸에서 받는 점수.', long: '개선은 <em>옛</em> 정책의 가치를 기준으로 한다. 새 정책을 따르면 가치가 바뀌지만, 개선 정리는 그 바뀐 가치가 옛 가치 이상임을 보장한다.' },
           { id: 'Q', sym: 'Q^\\pi(s,a)', label: '행동 가치', desc: '괄호 안 전체 = Q.' },
         ],
       }),
       'dv-improve': (el) => ui.derivation(el, {
         title: '정책 개선 정리: $Q^\\pi(s,\\pi\'(s)) \\ge V^\\pi(s)\\ \\forall s \\Rightarrow V^{\\pi\'} \\ge V^\\pi$',
-        caption: '결정적 정책 $\\pi\'$가 모든 상태에서 "한 번 이탈한 뒤 $\\pi$로 돌아오는 것"이 $\\pi$보다 낫다고 하자.',
+        easy: '한 칸에서만 더 나은 행동을 하고 나머지는 원래대로 해도 손해가 없다면, 그 바꿈을 모든 칸, 모든 순간에 적용해도 손해가 없다. 그래서 "더 좋아 보이는 쪽으로 화살표 돌리기"는 안전하다. 더 돌릴 곳이 없으면 그것이 최적이다.',
+        caption: '"다음 단계"를 눌러 한 줄씩 펼쳐 보라. 출발점은 이것이다: 결정적 정책 $\\pi\'$가 모든 상태에서 "한 번 이탈한 뒤 $\\pi$로 돌아오는 것"이 $\\pi$보다 낫다.',
         steps: [
           { tex: String.raw`V^\pi(s) \le Q^\pi(s, \pi'(s))`, why: '가정. 탐욕 정책 $\\pi\'(s)=\\arg\\max_a Q^\\pi(s,a)$는 $\\max_a Q^\\pi(s,a) \\ge \\sum_a\\pi(a|s)Q^\\pi(s,a) = V^\\pi(s)$이므로 자동으로 만족한다.' },
           { tex: String.raw`= \mathbb{E}\big[r_{t+1} + \gamma V^\pi(s_{t+1}) \mid s_t = s,\ a_t = \pi'(s)\big] = \mathbb{E}_{\hl{\pi'}}\big[r_{t+1} + \gamma V^\pi(s_{t+1}) \mid s_t = s\big]`, why: '$Q^\\pi$를 한 스텝 전개. 첫 행동을 $\\pi\'$가 고르므로 $\\mathbb{E}_{\\pi\'}$로 쓸 수 있다.' },
@@ -155,6 +171,7 @@ $$\textbf{원문제:}\quad \min_V\ (1-\gamma)\sum_s \rho_0(s)V(s)\quad \text{s.t
       }),
       'fx-dual': (el) => ui.formula(el, {
         title: '쌍대 LP: 점유 측도 위의 최적화',
+        say: '{d|각 칸에서 각 행동을 얼마나 자주 하는지}를 정해서 {obj|받는 점수의 합}을 최대로 만든다. 단, 어느 칸이든 {out|그 칸에 머무는 빈도}는 {start|그 칸에서 출발하는 몫}과 {inflow|다른 칸에서 흘러 들어오는 몫}을 더한 것과 같아야 한다.',
         tex: String.raw`\max_{\tm{d}{d \ge 0}}\ \tm{obj}{\sum_{s,a} d(s,a)R(s,a)}\quad\text{s.t.}\quad \tm{out}{\sum_a d(s',a)} = \tm{start}{(1-\gamma)\rho_0(s')} + \tm{inflow}{\gamma\sum_{s,a}P(s'|s,a)\,d(s,a)}\quad\forall s'`,
         terms: [
           { id: 'd', sym: 'd(s,a)', label: '점유 측도', desc: '(s,a)를 할인 방문하는 정규화된 빈도. 합은 1.', long: '$d^\\pi(s,a) = (1-\\gamma)\\sum_t\\gamma^t\\Pr(s_t=s, a_t=a)$. 정책과 점유 측도는 일대일 대응한다(정상 정책에 한해). 그래서 정책 대신 $d$를 최적화해도 된다.' },
@@ -166,6 +183,19 @@ $$\textbf{원문제:}\quad \min_V\ (1-\gamma)\sum_s \rho_0(s)V(s)\quad \text{s.t
       }),
       'pi-sim': mountPI,
       'pi-compare': mountCompare,
+      'try-arrows': mountArrows,
+      'step-pi': (el) => ui.walkthrough(el, {
+        title: '복도에서 평가와 개선을 손으로 한 번씩',
+        caption: '칸에 답을 적고 "확인"을 누르면 계산식이 열린다. 복도는 <strong>[함정 −10] · A · B · [출구 +10]</strong>이고, 할인율은 0.9, 이동 자체에는 점수가 없다. 지금 화살표는 A도 B도 왼쪽을 가리킨다.',
+        steps: [
+          { say: '<strong>평가 1.</strong> A에서 왼쪽으로 가면 함정에 빠져 −10점을 받고 끝난다. 지금 화살표대로라면 A의 점수 $V(A)$는?', ask: { answer: -10 }, calc: String.raw`V(A) = -10` },
+          { say: '<strong>평가 2.</strong> B에서 왼쪽으로 가면 0점을 받고 A로 간다. A의 점수를 한 번 할인해서 B의 점수 $V(B)$는?', ask: { answer: -9, tol: 0.01 }, calc: String.raw`V(B) = 0 + 0.9 \times V(A) = 0.9 \times (-10) = -9` },
+          { say: '<strong>개선 1.</strong> 이제 A의 화살표를 돌려 볼지 따진다. A에서 오른쪽으로 가면 0점을 받고 B로 간다. 방금 잰 B의 점수(−9)를 쓰면, "A에서 오른쪽"의 점수는?', ask: { answer: -8.1, tol: 0.01 }, calc: String.raw`Q(A, \text{오른쪽}) = 0 + 0.9 \times (-9) = -8.1 \;>\; Q(A, \text{왼쪽}) = -10`, note: '−8.1이 −10보다 크므로 A의 화살표를 오른쪽으로 돌린다. B가 아직 나쁜 화살표를 갖고 있는데도 이미 더 나은 쪽을 찾았다.' },
+          { say: '<strong>개선 2.</strong> B에서 오른쪽은 바로 출구라 +10점이다. 왼쪽(−9)보다 크므로 B의 화살표도 오른쪽으로 돌린다.', calc: String.raw`Q(B, \text{오른쪽}) = 10 \;>\; Q(B, \text{왼쪽}) = 0.9 \times (-10) = -9` },
+          { say: '<strong>다시 평가.</strong> 이제 두 화살표 모두 오른쪽이다. $V(B) = 10$이다. 그러면 $V(A)$는?', ask: { answer: 9, tol: 0.01 }, calc: String.raw`V(B) = 10,\qquad V(A) = 0 + 0.9 \times 10 = 9` },
+          { say: '<strong>다시 개선.</strong> A: 왼쪽 −10, 오른쪽 9. B: 왼쪽 $0.9\\times9 = 8.1$, 오른쪽 10. 어느 화살표도 바뀌지 않는다. 개선이 멈춘 이 지점이 최적 정책이다. 평가 두 번, 개선 두 번으로 끝났다.', calc: String.raw`\pi^*(A) = \pi^*(B) = \text{오른쪽},\qquad V^*(A) = 9,\ V^*(B) = 10` },
+        ],
+      }),
     },
     tacit: [
       { tag: 'math', t: '정책 반복은 벨만 방정식에 대한 뉴턴법이다',
@@ -190,6 +220,99 @@ $$\textbf{원문제:}\quad \min_V\ (1-\gamma)\sum_s \rho_0(s)V(s)\quad \text{s.t
         explain: 'critic 학습이 근사 평가, 제약된 정책 경사가 근사 개선이다. 탐욕 개선 대신 "작은 개선"을 한다.' },
     ],
   });
+
+  /* ---------- 내가 정책 개선: 화살표를 돌려 점수 올리기 ---------- */
+  function mountArrows(el) {
+    const p = ui.panel(el, { kind: 'TRY', title: '화살표를 돌려 시작 칸의 점수 올리기', caption: '칸을 누를 때마다 그 칸의 화살표가 시계 방향으로 한 칸 돈다. 칸의 숫자는 "지금 화살표대로 끝까지 갔을 때 그 칸에서 받는 점수"(할인율 0.9)이고, 화살표를 바꾸는 즉시 다시 계산된다. 점선 칸(시작)의 숫자를 가장 크게 만들어 보라.' });
+    const env = new sim.GridWorld(sim.layouts.classic, { rewards: { G: 1, X: -1 }, step: 0, slip: 0 });
+    const g = 0.9;
+    const Vstar = env.solve(g);
+    const btns = ui.row(p.body, 'btns');
+    ui.button(btns, '모든 칸 한 번에 고치기 (컴퓨터가 정책 개선 1회)', improveAll, { primary: true });
+    ui.button(btns, '처음부터 (모두 ←)', () => reset('left'));
+    ui.button(btns, '무작위 화살표', () => reset('rand'));
+    const st = ui.stats(p.body, [
+      { key: 'start', label: '시작 칸의 점수', tone: 'accent' },
+      { key: 'best', label: '가능한 최고 점수' },
+      { key: 'bad', label: '더 좋은 방향이 남은 칸', tone: 'signal' },
+      { key: 'n', label: '내가 돌린 횟수' },
+    ]);
+    const split = document.createElement('div');
+    split.className = 'w-split';
+    const left = document.createElement('div');
+    const right = document.createElement('div');
+    split.append(left, right);
+    p.body.appendChild(split);
+    const detail = document.createElement('div');
+    detail.className = 'fx-detail';
+    const tip = document.createElement('p');
+    tip.className = 'w-caption';
+    tip.innerHTML = '칸을 누르면 여기에 네 방향 각각의 점수가 나온다. 가장 큰 쪽으로 돌리는 것이 "정책 개선"이다. 화살표 둘이 서로 마주 보거나 벽을 향하면 그 자리를 영원히 맴돌아 0점이 된다.';
+    right.append(detail, tip);
+    const DIR = ['↑', '→', '↓', '←'];
+    const r = sim.rng(3);
+    let arrows, V, clicks, grid, last = null;
+    const onehot = () => arrows.map((a) => [0, 1, 2, 3].map((k) => (k === a ? 1 : 0)));
+    function evaluate() {
+      const pi = onehot();
+      let W = new Array(env.nS).fill(0);
+      for (let i = 0; i < 2000; i++) { const res = env.evalSweep(W, pi, g); W = res.V; if (res.delta < 1e-12) break; }
+      return W;
+    }
+    function betterCells() {
+      let n = 0;
+      for (let s = 0; s < env.nS; s++) {
+        if (env.cells[s].terminal) continue;
+        const q = env.qFromV(V, g, s);
+        if (Math.max(...q) > q[arrows[s]] + 1e-9) n++;
+      }
+      return n;
+    }
+    function describe(s) {
+      const q = env.qFromV(V, g, s);
+      const m = Math.max(...q);
+      const c = env.cells[s];
+      return '<strong>칸 (' + (c.r + 1) + '행, ' + (c.c + 1) + '열)</strong>에서 각 방향의 점수: ' +
+        q.map((x, a) => '<span class="mono" style="background:none;padding:0' + (Math.abs(x - m) < 1e-9 ? ';font-weight:600;color:var(--good)' : '') + '">' + DIR[a] + ' ' + x.toFixed(2) + '</span>').join(' · ') +
+        '. 지금 화살표는 ' + DIR[arrows[s]] + (q[arrows[s]] >= m - 1e-9 ? ' (가장 좋은 쪽).' : '. 초록색 쪽으로 돌리면 이 칸의 점수가 오른다.');
+    }
+    function reset(kind) {
+      arrows = sim.range(env.nS).map(() => (kind === 'rand' ? r.int(4) : 3));
+      clicks = 0; last = null;
+      V = evaluate();
+      if (!grid) grid = sim.renderGrid(left, env, { V, pi: onehot(), onCell: click });
+      upd('처음 상태: 모든 화살표가 왼쪽(←)이면 아무 칸도 출구에 닿지 못해 전부 0점이다. 출구(+1) 바로 왼쪽 칸부터 눌러 보자.');
+    }
+    function click(s) {
+      if (env.cells[s].terminal) return;
+      arrows[s] = (arrows[s] + 1) % 4;
+      clicks++; last = s;
+      V = evaluate();
+      upd(describe(s));
+    }
+    function improveAll() {
+      const before = arrows.slice();
+      for (let s = 0; s < env.nS; s++) {
+        if (env.cells[s].terminal) continue;
+        const q = env.qFromV(V, g, s);
+        const m = Math.max(...q);
+        if (q[arrows[s]] < m - 1e-9) arrows[s] = q.findIndex((x) => Math.abs(x - m) < 1e-9);
+      }
+      const changed = arrows.filter((a, i) => a !== before[i]).length;
+      V = evaluate();
+      upd(changed ? '컴퓨터가 모든 칸을 한 번에 가장 좋은 쪽으로 돌렸다: ' + changed + '개 칸이 바뀌었다. 점수가 오른 칸이 생기면 그 이웃 칸도 다음 번에 바뀔 수 있다. 몇 번 더 눌러 보라.' : '더 돌릴 칸이 없다. 개선이 멈춘 이 화살표가 최적 정책이다.');
+    }
+    function upd(msg) {
+      grid.update({ V, pi: onehot() });
+      const bad = betterCells();
+      st.set('start', V[env.start].toFixed(3));
+      st.set('best', Vstar[env.start].toFixed(3));
+      st.set('bad', bad === 0 ? '없음 (최적)' : String(bad));
+      st.set('n', clicks);
+      detail.innerHTML = msg;
+    }
+    reset('left');
+  }
 
   /* ---------- 공통: 환경 만들기 ---------- */
   const shared = { gamma: 0.9, slip: 0.2, map: 'classic', listeners: [] };
@@ -223,7 +346,7 @@ $$\textbf{원문제:}\quad \min_V\ (1-\gamma)\sum_s \rho_0(s)V(s)\quad \text{s.t
 
   /* ---------- 정책 반복 시뮬레이터 ---------- */
   function mountPI(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: '정책 반복: 평가와 개선을 따로 누르기' });
+    const p = ui.panel(el, { kind: 'SIM', title: '정책 반복: 평가와 개선을 따로 누르기', caption: '"평가 수렴까지"를 누른 뒤 "정책 개선"을 누르고, 화살표가 어떻게 바뀌는지와 "최적과 다른 칸" 숫자가 줄어드는 것을 보라. 평가를 1~2 스윕만 하고 개선해도 결국 0에 닿는다.' });
     const ctr = ui.row(p.body);
     ui.slider(ctr, { label: '할인율 $\\gamma$', min: 0.5, max: 0.99, step: 0.01, value: shared.gamma, format: ui.fmt.f(2), onInput: (v) => { shared.gamma = v; notify(); } });
     ui.slider(ctr, { label: '미끄러질 확률', min: 0, max: 0.6, step: 0.05, value: shared.slip, format: ui.fmt.f(2), onInput: (v) => { shared.slip = v; notify(); } });
@@ -331,7 +454,7 @@ $$\textbf{원문제:}\quad \min_V\ (1-\gamma)\sum_s \rho_0(s)V(s)\quad \text{s.t
   }
 
   function mountCompare(el) {
-    const p = ui.panel(el, { kind: 'CALC', title: '평가 스윕 수 $k$에 따른 비교 (실제 계산)' });
+    const p = ui.panel(el, { kind: 'CALC', title: '평가 스윕 수 $k$에 따른 비교 (실제 계산)', caption: '위 시뮬레이터의 $\\gamma$나 맵을 바꾸면 이 그래프가 다시 계산된다. 초록 막대(정책이 최적이 될 때까지)가 파란 막대(가치까지 정확해질 때까지)보다 늘 짧은 것을 확인하라.' });
     const st = ui.stats(p.body, [{ key: 'cfg', label: '설정' }, { key: 'pi', label: 'PI 개선 횟수' }, { key: 'vi', label: 'VI 개선(=스윕) 횟수' }]);
     const split = document.createElement('div');
     split.className = 'w-split';

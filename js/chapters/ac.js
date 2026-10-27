@@ -10,6 +10,17 @@
     level: '중급 · 핵심',
     prereq: ['pg', 'td'],
     theses: ['T6', 'T3', 'T2'],
+    easy: {
+      hook: '선수는 행동하고, 코치는 "예상보다 잘했나"만 알려 준다. 둘이 함께 배운다.',
+      intro: '<p>앞 장의 방법은 한 판이 끝날 때까지 기다렸다가 총점을 보고 배웠다. 총점에는 운이 많이 섞여 있어서 배움이 들쭉날쭉했다.</p><p>이 장에서는 <strong>코치(critic)</strong>를 둔다. 코치는 "이 상황이면 보통 몇 점쯤 나온다"를 예상한다. 선수(actor)가 한 걸음 움직이면, 코치는 <strong>방금 받은 점수 + 다음 상황의 예상 점수</strong>를 원래 예상과 비교한다. 그 차이가 <strong>놀람</strong>(TD 오차)이다. 놀람이 양수면 선수는 그 행동을 더 하고, 음수면 덜 한다.</p>',
+      analogy: '일기예보로 이번 주 소풍 날을 고른다고 하자. 내일 날씨만 직접 보고 나머지는 예보를 믿으면(λ = 0) 빠르지만, 예보가 틀리면 같이 틀린다. 일주일을 다 기다려 실제 날씨를 보면(λ = 1) 정확하지만, 그날그날의 변덕이 판단에 다 섞인다. GAE는 "가까운 날은 실제 날씨를 많이 믿고, 먼 날일수록 예보에 맡기는" 중간 방식이다. λ는 실제 결과를 얼마나 멀리까지 믿을지 정하는 손잡이다.',
+      path: ['코치가 되어 점수를 예상하고, 놀람(TD 오차)과 선수의 반응을 직접 본다', '세 걸음짜리 점수로 놀람과 advantage를 손으로 계산한다', 'λ를 바꾸며 흔들림과 치우침이 어떻게 바뀌는지 본다', '여러 선수를 동시에 뛰게 하는 A3C와 그 보정법(V-trace)을 본다'],
+      recap: [
+        '코치는 "보통 몇 점"을 예상하고, 한 걸음의 실제 결과와 비교한 차이(놀람)를 선수에게 알려 준다.',
+        '놀람을 쓰면 총점을 기다릴 때보다 훨씬 덜 흔들리지만, 코치의 예상이 틀린 만큼 치우친다.',
+        'λ는 실제 결과를 몇 걸음까지 믿을지 정하는 손잡이이고, 흔들림과 치우침 사이의 균형을 정한다.',
+      ],
+    },
     goals: [
       'critic의 TD 오차 $\\delta_t$가 advantage의 추정치가 되는 조건을 설명할 수 있다.',
       'GAE를 $n$-step advantage의 지수 가중 평균으로 유도하고, $\\lambda=0$(TD)과 $\\lambda=1$(MC)의 양 끝을 이해한다.',
@@ -20,6 +31,8 @@
 
 <h2>Critic을 들이는 이유: TD 오차는 advantage의 표본이다</h2>
 <p>REINFORCE의 $G_t$는 에피소드 끝까지의 모든 무작위성(행동, 전이, 보상 잡음)을 끌어안는다. 대신 한 스텝만 실제로 가 보고 나머지는 가치 추정치로 대신하면 분산이 크게 줄어든다. 이 가치 추정치를 학습하는 쪽을 <strong>critic</strong>, 정책을 <strong>actor</strong>라 부른다.</p>
+<p>먼저 직접 코치가 되어 보자. 예상을 정하고, 선수가 뛰면 놀람이 얼마인지, 선수가 어떻게 반응하는지 본다.</p>
+<div data-w="try-coach"></div>
 <div data-w="dv-td-adv"></div>
 <div data-w="fx-ac"></div>
 <div class="key"><span class="label">GPI로 보기 (T2)</span>critic은 현재 정책을 <em>평가</em>하고, actor는 그 평가를 따라 정책을 <em>개선</em>한다. 03장의 정책 반복에서 "완전한 평가 후 탐욕적 개선"을 "조금 평가하고 조금 개선"으로 바꾼 것이다. 둘이 함께 움직이므로 critic이 늘 현재 actor를 따라잡고 있어야 한다. 그래서 보통 critic의 학습률을 더 크게 둔다(두 시간척도, Konda & Tsitsiklis 2000).</div>
@@ -27,7 +40,8 @@
 <h2>n-step advantage에서 GAE로</h2>
 <p>한 스텝 TD는 분산이 작지만 critic이 틀리면 편향된다. $n$ 스텝을 실제로 가 보고 부트스트랩하면 그 사이를 조절할 수 있다.</p>
 $$\hat A_t^{(n)} = r_{t+1} + \gamma r_{t+2} + \cdots + \gamma^{n-1}r_{t+n} + \gamma^n V(s_{t+n}) - V(s_t)$$
-<p>$n$을 하나 고르는 대신 모든 $n$을 기하 가중 평균하면 놀라운 일이 생긴다. 계산이 TD 오차의 할인 합 하나로 접힌다.</p>
+<p>$n$을 하나 고르는 대신 모든 $n$을 기하 가중 평균하면 놀라운 일이 생긴다. 계산이 TD 오차의 할인 합 하나로 접힌다. 유도를 보기 전에 세 걸음짜리 예로 직접 계산해 보자.</p>
+<div data-w="step-gae"></div>
 <div data-w="dv-gae"></div>
 <div class="thesis-box"><span class="label">대전제 T6 · 편향-분산</span>
 <p>$\lambda$는 critic을 얼마나 믿을지의 손잡이다. $\lambda=0$이면 $\hat A_t = \delta_t$로 분산이 가장 작지만 critic 오차가 그대로 편향이 된다. $\lambda=1$이면 $\hat A_t = G_t - V(s_t)$로, $V$는 baseline 역할만 하므로 정책 경사에 대해 불편이지만 분산은 REINFORCE 수준이다. 중간값(흔히 0.9~0.97)이 실전의 기본값이다. GAE의 $\gamma$도 같은 역할을 한다. 문제의 할인율과 별개로 "먼 미래 보상의 신용을 깎아 분산을 줄이는" 손잡이로 쓰인다.</p>
@@ -94,6 +108,7 @@ $$v_s = V(s_s) + \sum_{t\ge s}\gamma^{t-s}\Big(\prod_{i=s}^{t-1}c_i\Big)\rho_t\,
     mount: {
       'dv-td-adv': (el) => ui.derivation(el, {
         title: 'TD 오차의 조건부 기댓값은 advantage다',
+        easy: '코치의 예상이 정확하다면, 놀람을 여러 번 평균 낸 값은 "이 행동이 평소보다 얼마나 나은가"(advantage)와 정확히 같다. 예상이 틀리면 그 틀린 만큼 치우친다.',
         steps: [
           { tex: String.raw`\delta_t = r_{t+1} + \gamma V(s_{t+1}) - V(s_t)`, why: 'critic $V$로 만든 TD 오차(<a href="#td">06장</a>).' },
           { tex: String.raw`\mathbb{E}\big[\delta_t \mid s_t, a_t\big] = \hl{\mathbb{E}\big[r_{t+1} + \gamma V(s_{t+1}) \mid s_t, a_t\big]} - V(s_t)`, why: '$V(s_t)$는 조건에 의해 상수.' },
@@ -103,6 +118,7 @@ $$v_s = V(s_s) + \sum_{t\ge s}\gamma^{t-s}\Big(\prod_{i=s}^{t-1}c_i\Big)\rho_t\,
       }),
       'fx-ac': (el) => ui.formula(el, {
         title: '1-step Actor-Critic 업데이트 해부',
+        say: '{d|놀람}은 받은 점수에 {Vn|다음 상황의 예상 점수}를 할인해 더하고 {V|지금 상황의 예상 점수}를 뺀 값이다. 코치는 {cr|놀람만큼 자기 예상을 고치고}, 선수는 {ac|놀람만큼 방금 한 행동의 확률을 올리거나 내린다}.',
         tex: String.raw`\tm{d}{\delta_t} = r_{t+1} + \gamma \tm{Vn}{V_w(s_{t+1})} - \tm{V}{V_w(s_t)},\qquad \tm{cr}{w \leftarrow w + \beta\,\delta_t\,\nabla_w V_w(s_t)},\qquad \tm{ac}{\theta \leftarrow \theta + \alpha\,\delta_t\,\nabla_\theta\log\pi_\theta(a_t|s_t)}`,
         terms: [
           { id: 'd', sym: '\\delta_t', label: 'TD 오차', desc: '"예상보다 얼마나 좋았나". 두 업데이트가 공유하는 신호.', long: '하나의 스칼라가 critic에게는 회귀 오차로, actor에게는 advantage로 쓰인다. 신경과학에서 도파민 신호가 TD 오차와 닮았다는 관찰(Schultz, Dayan, Montague 1997)도 이 구조와 연결된다.' },
@@ -114,13 +130,26 @@ $$v_s = V(s_s) + \sum_{t\ge s}\gamma^{t-s}\Big(\prod_{i=s}^{t-1}c_i\Big)\rho_t\,
       }),
       'dv-gae': (el) => ui.derivation(el, {
         title: 'GAE: n-step advantage의 지수 가중 평균',
+        easy: '1걸음, 2걸음, 3걸음… 실제로 보고 나머지는 예상에 맡긴 추정들을 λ의 거듭제곱 비율로 섞는다. 그러면 계산이 "놀람들을 한 걸음마다 γλ씩 깎아 더하기" 하나로 줄어든다.',
         steps: [
-          { tex: String.raw`\hat A_t^{(1)} = \delta_t,\quad \hat A_t^{(2)} = \delta_t + \gamma\delta_{t+1},\quad \hat A_t^{(k)} = \sum_{l=0}^{k-1}\gamma^l\delta_{t+l}`, why: '$n$-step advantage를 TD 오차로 쓰면 중간의 $V$ 항들이 <strong>망원급수</strong>로 상쇄된다. 예: $\\delta_t + \\gamma\\delta_{t+1} = r_{t+1} + \\gamma r_{t+2} + \\gamma^2V(s_{t+2}) - V(s_t)$.' },
+          { tex: String.raw`\hat A_t^{(1)} = \delta_t,\quad \hat A_t^{(2)} = \delta_t + \gamma\delta_{t+1},\quad \hat A_t^{(k)} = \sum_{l=0}^{k-1}\gamma^l\delta_{t+l}`, why: '$n$-step advantage를 TD 오차로 쓰면 중간의 $V$ 항들이 <strong>망원급수</strong>로 상쇄된다. 예: $\\delta_t + \\gamma\\delta_{t+1} = r_{t+1} + \\gamma r_{t+2} + \\gamma^2V(s_{t+2}) - V(s_t)$.', easy: '두 걸음 추정 = 첫 놀람 + γ × 둘째 놀람. 가운데 상황의 예상 점수가 한 번은 더해지고 한 번은 빠져서 사라진다. 남는 것은 실제 점수 두 개와 맨 끝 예상, 맨 처음 예상뿐이다.' },
           { tex: String.raw`\hat A_t^{\mathrm{GAE}(\gamma,\lambda)} = (1-\lambda)\big(\hat A^{(1)}_t + \lambda\hat A^{(2)}_t + \lambda^2\hat A^{(3)}_t + \cdots\big)`, why: '모든 $n$을 가중치 $(1-\\lambda)\\lambda^{n-1}$로 평균낸다(가중치 합 = 1). TD(λ)의 λ-리턴과 같은 구성이다.' },
           { tex: String.raw`= (1-\lambda)\big(\delta_t(1+\lambda+\lambda^2+\cdots) + \gamma\delta_{t+1}(\lambda+\lambda^2+\cdots) + \gamma^2\delta_{t+2}(\lambda^2+\cdots) + \cdots\big)`, why: '같은 $\\delta$끼리 모은다.' },
           { tex: String.raw`= (1-\lambda)\Big(\delta_t\frac{1}{1-\lambda} + \gamma\delta_{t+1}\frac{\lambda}{1-\lambda} + \gamma^2\delta_{t+2}\frac{\lambda^2}{1-\lambda} + \cdots\Big)`, why: '등비급수 합.' },
           { tex: String.raw`\boxed{\;\hat A_t^{\mathrm{GAE}(\gamma,\lambda)} = \sum_{l=0}^{\infty}(\gamma\lambda)^l\,\delta_{t+l}\;}`, why: '$(1-\\lambda)$가 상쇄되어 TD 오차의 $(\\gamma\\lambda)$-할인 합이 된다. 뒤에서부터 $\\hat A_t = \\delta_t + \\gamma\\lambda\\hat A_{t+1}$로 한 번에 계산한다.' },
           { tex: String.raw`\lambda = 0:\ \hat A_t = \delta_t \qquad\qquad \lambda = 1:\ \hat A_t = \sum_l\gamma^l r_{t+l+1} - V(s_t) = G_t - V(s_t)`, why: '양 끝. $\\lambda=1$에서는 망원급수가 끝까지 상쇄되어 $V$가 $V(s_t)$ 하나만 남는다(baseline).' },
+        ],
+      }),
+      'try-coach': mountCoach,
+      'step-gae': (el) => ui.walkthrough(el, {
+        title: '세 걸음으로 계산하는 δ와 GAE',
+        caption: '빈칸에 계산한 값을 넣고 "확인"을 누르라. 할인율 $\\gamma = 0.9$, $\\lambda = 0.5$다.',
+        steps: [
+          { say: '세 걸음 동안 받은 점수는 1, 0, 2이고 그다음에 끝난다. 코치의 예상은 첫 상황 2, 둘째 1.5, 셋째 1이다(끝난 뒤는 0). 첫 걸음의 놀람 δ₀ = "받은 점수 + 0.9 × 다음 예상 − 지금 예상"은?', ask: { answer: 0.35, tol: 0.005 }, calc: String.raw`\delta_0 = 1 + 0.9\times1.5 - 2 = 0.35` },
+          { say: '둘째 걸음의 놀람 δ₁은? 점수 0을 받았고, 다음 상황의 예상은 1이다.', ask: { answer: -0.6, tol: 0.005 }, calc: String.raw`\delta_1 = 0 + 0.9\times1 - 1.5 = -0.6` },
+          { say: '셋째 걸음의 놀람 δ₂는? 점수 2를 받고 끝났으니 다음 예상은 0이다.', ask: { answer: 1, tol: 0.005 }, calc: String.raw`\delta_2 = 2 + 0.9\times0 - 1 = 1` },
+          { say: 'GAE는 뒤에서부터 "이번 놀람 + γλ × 다음 걸음의 Â"로 모은다. γλ = 0.45다. Â₂ = 1, Â₁ = −0.6 + 0.45 × 1 = −0.15. 그러면 Â₀은?', ask: { answer: 0.2825, tol: 0.005 }, calc: String.raw`\hat A_0 = 0.35 + 0.45\times(-0.15) = 0.2825` },
+          { say: '같은 값을 다른 방법으로 볼 수도 있다. "한 걸음만 실제로 본 추정" 0.35, "두 걸음 본 추정" 0.35 + 0.9 × (−0.6) = −0.19, "끝까지 본 추정" 0.62를 0.5 : 0.25 : 0.25로 섞은 것과 같다. λ = 0이면 첫째만(0.35), λ = 1이면 마지막만(0.62) 쓴다.', calc: String.raw`0.5\times0.35 + 0.25\times(-0.19) + 0.25\times0.62 = 0.2825`, note: '끝까지 본 추정 0.62는 실제 총점 $1 + 0.9\\times0 + 0.81\\times2 = 2.62$에서 처음 예상 2를 뺀 값이다.' },
         ],
       }),
       'gae-calc': mountGaeCalc,
@@ -191,7 +220,7 @@ $$v_s = V(s_s) + \sum_{t\ge s}\gamma^{t-s}\Big(\prod_{i=s}^{t-1}c_i\Big)\rho_t\,
   }
 
   function mountGaeCalc(el) {
-    const p = ui.panel(el, { kind: 'CALC', title: 'GAE 계산기: 궤적 하나의 $\\delta_t$와 $\\hat A_t$' });
+    const p = ui.panel(el, { kind: 'CALC', title: 'GAE 계산기: 궤적 하나의 $\\delta_t$와 $\\hat A_t$', caption: '"새 궤적 샘플"을 누르면 사슬 위를 한 번 걸은 기록이 나온다. λ 슬라이더를 0에서 1로 움직이며 파란 막대($\\hat A_t$)가 주황 막대($\\delta_t$)를 얼마나 멀리까지 모으는지 보라.' });
     const ctr = ui.row(p.body);
     const gS = ui.slider(ctr, { label: '$\\gamma$', min: 0.8, max: 1, step: 0.01, value: 0.95, format: ui.fmt.f(2), onInput: draw });
     const lS = ui.slider(ctr, { label: '$\\lambda$', min: 0, max: 1, step: 0.05, value: 0.9, format: ui.fmt.f(2), onInput: draw });
@@ -265,7 +294,7 @@ $$v_s = V(s_s) + \sum_{t\ge s}\gamma^{t-s}\Big(\prod_{i=s}^{t-1}c_i\Big)\rho_t\,
   }
 
   function mountGaeBV(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: 'λ에 따른 편향² · 분산 · MSE (사슬 환경, 시작 상태)' });
+    const p = ui.panel(el, { kind: 'SIM', title: 'λ에 따른 편향² · 분산 · MSE (사슬 환경, 시작 상태)', caption: '슬라이더 세 개를 움직이면 곡선이 바로 다시 계산된다. 초록 곡선(MSE)의 가장 낮은 지점, 즉 가장 좋은 λ가 어디로 움직이는지 보라.' });
     const ctr = ui.row(p.body);
     const eS = ui.slider(ctr, { label: 'critic 오차 크기 $\\eta$', min: 0, max: 0.8, step: 0.05, value: 0.4, format: ui.fmt.f(2), onInput: run });
     const sS = ui.slider(ctr, { label: '보상 잡음 $\\sigma$', min: 0, max: 0.6, step: 0.05, value: 0.15, format: ui.fmt.f(2), onInput: run });
@@ -387,7 +416,7 @@ $$v_s = V(s_s) + \sum_{t\ge s}\gamma^{t-s}\Big(\prod_{i=s}^{t-1}c_i\Big)\rho_t\,
   }
 
   function mountRace(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: '같은 환경, 다른 $\\Psi_t$: 학습 속도와 안정성' });
+    const p = ui.panel(el, { kind: 'SIM', title: '같은 환경, 다른 $\\Psi_t$: 학습 속도와 안정성', caption: '"학습 실행"을 누르면 세 방법이 차례로 학습하고 곡선이 하나씩 나타난다. 보상 잡음 $\\sigma$를 0과 1로 바꿔 가며 어느 곡선이 최적선에 먼저 닿는지 보라.' });
     const ctr = ui.row(p.body);
     const sS = ui.slider(ctr, { label: '보상 잡음 $\\sigma$ (매 스텝)', min: 0, max: 1, step: 0.1, value: 0.5, format: ui.fmt.f(1) });
     const lS = ui.slider(ctr, { label: 'GAE의 $\\lambda$', min: 0, max: 1, step: 0.05, value: 0.9, format: ui.fmt.f(2) });
@@ -451,5 +480,71 @@ $$v_s = V(s_s) + \sum_{t\ge s}\gamma^{t-s}\Big(\prod_{i=s}^{t-1}c_i\Big)\rho_t\,
       next();
     }
     run();
+  }
+  /* ---------- 코치와 선수 ---------- */
+  function mountCoach(el) {
+    const p = ui.panel(el, { kind: 'TRY', title: '코치와 선수: 내가 critic이 되어 보기', caption: '슬라이더로 "이 상황이면 보통 몇 점" 예상을 정한 뒤 "선수가 한 번 뛴다"를 누르라. 놀람(받은 점수 − 내 예상)이 양수면 선수는 방금 한 행동을 더 하고, 음수면 덜 한다. 막대가 어떻게 움직이는지 보라.' });
+    const ACT = [
+      { name: '안전 패스', p: 0.9, pts: 1 },
+      { name: '3점 슛', p: 0.4, pts: 3 },
+    ];
+    const lr = 0.4;
+    const r = sim.rng(21);
+    let th = 0, plays = 0, hist = [], lines = [];
+    const ctr = ui.row(p.body);
+    const vS = ui.slider(ctr, { label: '코치의 예상 점수 (critic)', min: 0, max: 3, step: 0.1, value: 0.5, format: ui.fmt.f(1) });
+    const learn = ui.checkbox(ctr, { label: '코치도 배운다 (놀람의 20%만큼 예상을 고침)', value: false });
+    const btns = ui.row(p.body, 'btns');
+    ui.button(btns, '선수가 한 번 뛴다', () => { play(); draw(); }, { primary: true });
+    ui.button(btns, '20번 연속', () => { for (let i = 0; i < 20; i++) play(); draw(); });
+    ui.button(btns, '처음부터', () => { th = 0; plays = 0; hist = []; lines = []; vS.set(0.5, true); draw(); });
+    const msg = document.createElement('div');
+    msg.className = 'fx-detail';
+    const split = document.createElement('div');
+    split.className = 'w-split';
+    const left = document.createElement('div');
+    const right = document.createElement('div');
+    split.append(left, right);
+    p.body.append(msg, split);
+    const st = ui.stats(right, [
+      { key: 'shoot', label: '선수의 3점 슛 확률', tone: 'accent' },
+      { key: 'v', label: '코치의 예상', tone: 'signal' },
+      { key: 'avg', label: '최근 20번 평균 점수' },
+      { key: 'true', label: '실제 평균 점수: 패스 / 슛', value: '0.90 / 1.20' },
+    ]);
+    const log = document.createElement('div');
+    log.className = 'log';
+    right.appendChild(log);
+    const bars = plot.bars(left, { categories: ACT.map((a) => a.name), series: [], height: 200, y: { min: 0, max: 1, label: '확률' }, labels: true, labelFmt: (v) => Math.round(v * 100) + '%', legend: false });
+    function play() {
+      const ps = sim.sigmoid(th);
+      const a = r() < ps ? 1 : 0;
+      const got = r() < ACT[a].p ? ACT[a].pts : 0;
+      const V = vS.get();
+      const delta = got - V;
+      const before = sim.sigmoid(th);
+      th = sim.clamp(th + lr * delta * (a === 1 ? 1 - ps : -ps), -6, 6);
+      const after = sim.sigmoid(th);
+      if (learn.get()) vS.set(Math.round((V + 0.2 * delta) * 100) / 100, true);
+      plays++;
+      hist.push(got);
+      const chosen = a === 1 ? after : 1 - after, chosenBefore = a === 1 ? before : 1 - before;
+      const reaction = delta > 0 ? '더 하기로' : delta < 0 ? '덜 하기로' : '그대로 두기로';
+      const text = ACT[a].name + ' → ' + got + '점. 놀람 = ' + got + ' − 예상 ' + V.toFixed(1) + ' = ' + (delta >= 0 ? '+' : '') + delta.toFixed(1) + '. 선수는 ' + ACT[a].name + '를 ' + reaction + ' 한다 (' + Math.round(chosenBefore * 100) + '% → ' + Math.round(chosen * 100) + '%).';
+      lines.unshift(plays + '. ' + text);
+      lines = lines.slice(0, 6);
+      msg.innerHTML = text;
+    }
+    function draw() {
+      const ps = sim.sigmoid(th);
+      bars.update({ series: [{ name: '확률', color: 'c1', values: [1 - ps, ps], colors: ['c3', 'c2'] }] });
+      st.set('shoot', Math.round(ps * 100) + '%');
+      st.set('v', vS.get().toFixed(2));
+      const recent = hist.slice(-20);
+      st.set('avg', recent.length ? sim.mean(recent).toFixed(2) : '–');
+      log.textContent = lines.length ? lines.join('\n') : '아직 뛰지 않았다. 예상을 3으로 올려 놓고 몇 번 뛰어 보라. 무엇을 하든 실망(음수 놀람)만 나와서 선수가 방금 한 행동을 계속 줄인다. 예상을 1 근처로 두면 놀람의 부호가 행동의 좋고 나쁨을 가려 준다.';
+      if (!plays) msg.innerHTML = '선수는 패스와 슛을 반반 확률로 한다. 슛은 성공률이 낮지만 평균 점수가 조금 더 높다.';
+    }
+    draw();
   }
 })();

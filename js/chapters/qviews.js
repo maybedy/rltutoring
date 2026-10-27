@@ -10,6 +10,17 @@
     level: '중급 · 관점 확장',
     prereq: ['qlearning'],
     theses: ['T1', 'T5', 'T8'],
+    easy: {
+      hook: '같은 Q-learning 한 줄을 여덟 개의 다른 안경으로 본다. 안경마다 숫자 하나를 바꾸면 새로운 알고리즘이 나온다.',
+      intro: '<p>Q-learning은 "받은 점수 + 다음 칸의 최고 점수 쪽으로 조금 옮기기"였다. 이 장은 이 한 줄을 여러 관점에서 다시 읽는다. 렌즈마다 맨 앞의 <strong>한 줄 요약</strong>만 읽어도 흐름을 따라갈 수 있다.</p>',
+      analogy: '"평점 1등 식당에만 간다"가 max이고, "평점이 높을수록 자주 가되 가끔은 다른 곳도 간다"가 softmax다. 온도는 얼마나 고집스러운지를 정하는 다이얼이다. 온도가 0이면 1등만, 아주 높으면 모든 식당에 고르게 간다. 렌즈 3의 이 다이얼이 SAC, RLHF, DPO까지 이어진다.',
+      path: ['렌즈마다 한 줄 요약을 먼저 읽는다', '식당 고르기로 온도 다이얼(max와 softmax)을 직접 돌려 본다', '평균은 같은데 모양이 다른 점수 분포를 본다', '보상만 바꾸면 가치 지도가 곧바로 바뀌는 후계자 표현을 눌러 본다'],
+      recap: [
+        'Q-learning은 잡음이 섞인 가치 반복이고, 걸음 크기를 어떻게 줄여 가느냐에 따라 정답에 다가가는 속도가 크게 달라진다.',
+        '1등만 고르는 대신 점수가 높을수록 자주 고르는 부드러운 선택을 쓰면 점수와 다양성을 함께 챙기는 문제가 되고, 이것이 SAC와 RLHF와 DPO의 공통 뿌리다.',
+        '평균이 같아도 위험은 다를 수 있고, "어디로 가게 될지"와 "그곳이 얼마나 좋은지"를 따로 적어 두면 목표가 바뀌어도 곧바로 다시 계산할 수 있다.',
+      ],
+    },
     goals: [
       'Q-learning을 벨만 최적 연산자의 고정점을 찾는 확률적 근사(로빈스-먼로)로 설명하고, 스텝 크기 스케줄의 효과를 실험으로 확인한다.',
       'max를 log-sum-exp로 바꾸면 엔트로피 정규화 문제(T5)가 된다는 것을 유도하고 온도 $\\beta$의 역할을 설명할 수 있다.',
@@ -22,6 +33,7 @@ $$Q(s,a) \leftarrow Q(s,a) + \alpha\big[r + \gamma\max_{a'}Q(s',a') - Q(s,a)\big
 <p>이 한 줄은 보는 각도에 따라 전혀 다른 수학 대상이 된다. 그리고 각 관점에서 "여기를 바꿔 보면?"이라는 질문이 하나의 연구 계열을 낳았다. 이 장은 여덟 개의 렌즈를 차례로 끼워 본다. 마지막 표가 지도 역할을 한다.</p>
 
 <h2>렌즈 1 · 확률적 근사: 잡음 섞인 가치 반복</h2>
+<div class="aside"><span class="label">한 줄 요약</span>정확한 계산 대신 한 번 해 본 결과로 어림하고, 걸음 크기를 점점 줄여 그 잡음을 평균으로 지운다.</div>
 <p>가치 반복은 정확한 연산자 $\mathcal{T}^*$를 반복 적용한다. Q-learning은 그 연산자를 <strong>샘플 하나로 근사한 잡음 섞인 연산자</strong> $\hat{\mathcal{T}}$를 쓰고, 잡음을 스텝 크기로 평균낸다. 경사 하강법(GD)과 확률적 경사 하강법(SGD)의 관계와 같다.</p>
 <div data-w="dv-sa"></div>
 <p>아래 실험은 미끄러짐이 있는 4×3 격자에서 매 반복마다 모든 $(s,a)$를 한 번씩 샘플해 업데이트하는 <em>동기식</em> Q-learning이다. 정확한 가치 반복(파랑)은 $\gamma^k$로 떨어지고, 상수 스텝은 어느 높이에서 멈추며(잡음 바닥), $1/k$는 로빈스-먼로 조건을 만족하는데도 $\gamma$가 크면 매우 느리다.</p>
@@ -29,15 +41,19 @@ $$Q(s,a) \leftarrow Q(s,a) + \alpha\big[r + \gamma\max_{a'}Q(s',a') - Q(s,a)\big
 <div class="key"><span class="label">무엇이 바뀌었나</span>정확한 기댓값 → 샘플. 이 렌즈에서 나온 질문들: 스텝 크기 스케줄(Even-Dar & Mansour 2003), 분산 감소(Speedy Q-learning, Azar et al. 2011), 행렬 이득을 쓰는 2차 방법(Zap Q-learning, Devraj & Meyn 2017).</div>
 
 <h2>렌즈 2 · 회귀: Fitted Q Iteration</h2>
+<div class="aside"><span class="label">한 줄 요약</span>목표값을 잠시 고정해 두고 "이 목표에 맞춰라"는 보통의 회귀 문제로 바꾼다. 이것이 DQN의 뼈대다.</div>
 <p>표 대신 함수 $f_\theta$를 쓰면 "한 칸 갱신"이 불가능하다. 대신 각 반복을 <strong>지도학습 회귀 문제</strong>로 바꾼다. 데이터셋 $\mathcal{D} = \{(s_i,a_i,r_i,s'_i)\}$에 대해</p>
 $$Q_{k+1} = \arg\min_{f}\ \sum_i \Big(f(s_i,a_i) - \underbrace{\big[r_i + \gamma\max_{a'}Q_k(s'_i,a')\big]}_{y_i:\ \text{고정된 라벨}}\Big)^2$$
 <p>라벨 $y_i$는 이전 반복의 $Q_k$로 계산되어 <strong>고정</strong>된다. 이것이 Fitted Q Iteration(Ernst et al. 2005; 신경망 버전 NFQ, Riedmiller 2005)이다. DQN(<a href="#dqn">10장</a>)은 이 내부 회귀를 SGD 몇천 스텝으로 대충 풀고, "고정된 이전 반복"을 <em>타깃 네트워크</em>로 구현한 것이다. 타깃 네트워크 갱신 주기는 곧 FQI의 바깥 반복 하나에 해당한다.</p>
 <div class="warn"><span class="label">주의</span>회귀는 "근사 공간으로의 투영" $\Pi$다. $Q_{k+1} = \Pi\mathcal{T}^*Q_k$는 $\Pi$가 sup-노름 비확장이 아니면 축약이 아닐 수 있어, 데이터가 많아도 발산할 수 있다(<a href="#approx">09장</a>). 정책 평가 버전(Fitted Q Evaluation, FQE)은 오프라인 정책 평가의 표준 도구다(<a href="#offline">15장</a>).</div>
 
 <h2>렌즈 3 · Soft Q: max를 부드럽게</h2>
+<div class="aside"><span class="label">한 줄 요약</span>1등만 고르는 대신 점수가 높을수록 자주 고르게 하면, 점수와 다양성을 함께 최대로 만드는 문제가 된다.</div>
+<div data-w="try-restaurant"></div>
 <p>$\max$를 온도 $\beta$의 log-sum-exp로 바꾸면 <strong>soft 벨만 방정식</strong>이 된다.</p>
 <div data-w="fx-soft"></div>
 <p>이것은 임의의 근사 기법이 아니다. "보상 + $\beta\times$엔트로피"를 최대화하는 문제의 정확한 해다. 아래 유도가 대전제 T5의 가장 작은 형태다.</p>
+<div data-w="step-soft"></div>
 <div data-w="dv-soft"></div>
 <div data-w="soft-temp"></div>
 <div class="thesis-box"><span class="label">대전제 T5 · KL(엔트로피) 정규화의 닫힌 해</span>
@@ -46,6 +62,7 @@ $$Q_{k+1} = \arg\min_{f}\ \sum_i \Big(f(s_i,a_i) - \underbrace{\big[r_i + \gamma
 <p>log-sum-exp도 1-립시츠이므로 soft 벨만 연산자는 여전히 $\gamma$-축약이다(T1). 고정점만 달라진다. 또 $\max_a Q \le \beta\log\sum_a e^{Q/\beta} \le \max_a Q + \beta\log|\mathcal{A}|$이므로, soft 가치는 hard 가치보다 최대 $\beta\log|\mathcal{A}|/(1-\gamma)$만큼만 크다.</p>
 
 <h2>렌즈 4 · 분포형 RL: 평균 대신 분포 전체</h2>
+<div class="aside"><span class="label">한 줄 요약</span>평균 점수 하나 대신 "몇 점이 얼마나 자주 나오는지" 전체를 배운다. 평균이 같아도 위험은 다를 수 있다.</div>
 <p>$Q(s,a) = \mathbb{E}[Z(s,a)]$에서 기댓값을 벗기면 리턴의 분포 $Z(s,a)$가 남는다. 벨만 방정식은 <strong>분포의 등식</strong>이 된다.</p>
 $$Z(s,a) \overset{D}{=} R(s,a) + \gamma\, Z(S', A'),\qquad S'\sim P(\cdot|s,a),\ A'\sim\pi(\cdot|S')$$
 <p>정책 평가 연산자는 최대 $p$-Wasserstein 거리에서 $\gamma$-축약이다(Bellemare, Dabney & Munos 2017). 그러나 KL이나 총변동 거리에서는 축약이 아니고, 제어 연산자(max 포함)는 어떤 거리에서도 축약이 보장되지 않는다. 실제 알고리즘은 분포를 유한하게 표현해야 한다.</p>
@@ -57,6 +74,7 @@ $$Z(s,a) \overset{D}{=} R(s,a) + \gamma\, Z(S', A'),\qquad S'\sim P(\cdot|s,a),\
 <p>세 행동의 Q는 모두 같지만 분포는 완전히 다르다. 기댓값 기반 Q-learning은 셋을 구별하지 못한다. 분포가 있으면 CVaR 같은 <strong>위험 척도</strong>로 행동을 고를 수 있다. 다만 C51과 Rainbow는 행동을 고를 때 여전히 평균만 쓴다. 딥러닝에서의 이득은 상당 부분 "분포 예측이라는 풍부한 보조 과제가 표현 학습을 돕는다"는 쪽으로 해석된다(아래 암묵지 참고).</p>
 
 <h2>렌즈 5 · 선형계획과 쌍대: 점유 측도</h2>
+<div class="aside"><span class="label">한 줄 요약</span>좋은 정책을 찾는 문제는 "각 상황을 얼마나 자주 방문할지"를 고르는 선형 문제로 바꿔 쓸 수 있다.</div>
 <p>최적 가치는 벨만 부등식 $V \ge \mathcal{T}^*V$를 만족하는 가장 작은 함수다. 그래서 MDP는 <strong>선형계획(LP)</strong>으로 풀린다. 이 LP의 쌍대 변수는 놀랍게도 "어떤 정책이 $(s,a)$를 얼마나 자주 방문하는가"다.</p>
 <div data-w="dv-lp"></div>
 <p>쌍대 관점에서 RL은 <strong>흐름 보존 제약 아래에서 점유 측도 $d(s,a)$에 대한 선형 최적화</strong>다. 정책은 $\pi(a|s) = d(s,a)/\sum_{a'}d(s,a')$로 복원된다. 이 관점이 낳은 것들:</p>
@@ -67,6 +85,7 @@ $$Z(s,a) \overset{D}{=} R(s,a) + \gamma\, Z(S', A'),\qquad S'\sim P(\cdot|s,a),\
 </ul>
 
 <h2>렌즈 6 · 후계자 표현: 보상과 동역학의 분리</h2>
+<div class="aside"><span class="label">한 줄 요약</span>"앞으로 어디를 얼마나 자주 가게 될지"를 따로 적어 두면, 점수가 바뀌어도 곱셈 한 번으로 가치를 다시 구한다.</div>
 <p>02장에서 본 $V^\pi = (I-\gamma P^\pi)^{-1}r$을 다시 보자. 행렬 $M^\pi = (I-\gamma P^\pi)^{-1}$의 원소 $M^\pi(s,s')$는 "$s$에서 출발해 $s'$를 할인 방문하는 기대 횟수"이고, 보상과 무관하다. 이것이 <strong>후계자 표현(successor representation, SR)</strong>이다(Dayan 1993). 특징 $\phi$로 일반화하면</p>
 <div data-w="fx-sf"></div>
 <p>$\psi^\pi$ 자체가 벨만 방정식 $\psi^\pi(s,a) = \phi(s,a) + \gamma\,\mathbb{E}[\psi^\pi(s',a')]$을 만족하므로 TD로 학습할 수 있다. 보상(가중치 $w$)이 바뀌면 $\psi$를 재사용해 즉시 새 Q를 얻는다. 아래에서 보상 칸을 클릭해 바꿔 보라. 가치 지도는 행렬-벡터 곱 하나로 갱신된다. 정책이나 할인율을 바꿀 때만 $M$을 다시 계산한다.</p>
@@ -74,6 +93,7 @@ $$Z(s,a) \overset{D}{=} R(s,a) + \gamma\, Z(S', A'),\qquad S'\sim P(\cdot|s,a),\
 <p>여러 과제의 SF $\psi^{\pi_i}$를 모아 두고 새 보상에 대해 $\max_i \psi^{\pi_i}\!\cdot w$로 행동하는 것이 <strong>일반화 정책 개선(GPI, Barreto et al. 2017)</strong>이다. 각 정책보다 나쁘지 않음이 보장된다.</p>
 
 <h2>렌즈 7 · LLM의 logit은 soft Q다</h2>
+<div class="aside"><span class="label">한 줄 요약</span>언어 모델이 단어마다 매기는 점수(logit)는 "이 단어를 쓰면 평균보다 얼마나 좋은가"로 읽을 수 있다.</div>
 <p>LLM 생성을 토큰 MDP로 보자(<a href="#llm-mdp">18장</a>): 상태 $s_t = (x, y_{\lt t})$, 행동은 다음 토큰 $y_t$, 전이는 결정적, $\gamma=1$, 보상은 끝에서 한 번. RLHF의 목적 $\mathbb{E}[r] - \beta\,\mathrm{KL}(\pi\|\pi_{\text{ref}})$를 토큰 단위로 쓰면 렌즈 3의 soft 벨만 방정식에서 기준 분포가 $\pi_{\text{ref}}$인 경우와 정확히 같다. 최적 정책은</p>
 $$\pi^*(y_t|s_t) = \pi_{\text{ref}}(y_t|s_t)\,\exp\!\Big(\tfrac{Q^*(s_t,y_t) - V^*(s_t)}{\beta}\Big),\qquad V^*(s_t) = \beta\log\sum_{y}\pi_{\text{ref}}(y|s_t)\,e^{Q^*(s_t,y)/\beta}$$
 <div data-w="fx-llmq"></div>
@@ -82,6 +102,7 @@ $$\sum_{t} \beta\log\frac{\pi^*(y_t|s_t)}{\pi_{\text{ref}}(y_t|s_t)} = \sum_t \b
 <p>즉 시퀀스 보상은 정책의 로그 비율 합으로 <strong>프롬프트에만 의존하는 상수 $V^*(s_0)$를 빼고</strong> 복원된다. DPO가 보상 모델 없이 학습할 수 있는 이유이고(<a href="#dpo">20장</a>), 이렇게 학습된 언어 모델의 logit에서 $\pi_{\text{ref}}$의 logit을 뺀 값은 상태별 상수를 제외하고 $Q^*/\beta$다. 이것이 "언어 모델은 은밀한 Q 함수다(From $r$ to $Q^*$, Rafailov et al. 2024)"의 핵심이다. 토큰 단위 신용 할당, 가치 기반 디코딩·탐색(<a href="#test-time">22장</a>)이 이 연결 위에 있다.</p>
 
 <h2>렌즈 8 · 목표 조건부 Q와 재라벨링</h2>
+<div class="aside"><span class="label">한 줄 요약</span>목표를 입력으로 함께 넣고, 실패한 시도도 "원래 거기가 목표였다"고 바꿔 적어 성공 데이터로 쓴다.</div>
 <p>목표 $g$를 입력에 넣은 $Q(s,a,g)$(UVFA, Schaul et al. 2015)는 목표들 사이에서 일반화한다. Q-learning이 off-policy라는 성질을 극한까지 쓰면 <strong>Hindsight Experience Replay</strong>(Andrychowicz et al. 2017)가 된다. 목표 $g$에 실패한 궤적도 "실제로 도달한 상태 $g'$가 원래 목표였다"고 라벨을 바꾸면 성공 데이터가 된다. 타깃이 행동 정책과 무관하기 때문에 이 재라벨링이 정당하다. 희소 보상 문제에서 "실패를 학습 신호로 바꾸는" 이 트릭은 LLM의 사후 재라벨링(목표나 지시문을 결과에 맞게 다시 쓰는 기법)에도 같은 논리로 쓰인다.</p>
 
 <h2>렌즈 지도: 무엇을 바꿨고 무엇이 나왔나</h2>
@@ -101,6 +122,7 @@ $$\sum_{t} \beta\log\frac{\pi^*(y_t|s_t)}{\pi_{\text{ref}}(y_t|s_t)} = \sum_t \b
     mount: {
       'dv-sa': (el) => ui.derivation(el, {
         title: '벨만 고정점 → 로빈스-먼로 → Q-learning',
+        easy: '정답은 "벨만 계산을 한 번 더 해도 바뀌지 않는 표"다. 정확한 계산 대신 한 번 해 본 결과로 어림한 값을 쓰고, 그 잡음은 걸음 크기를 점점 줄여 평균으로 지운다. 경사 하강과 확률적 경사 하강의 관계와 같다.',
         steps: [
           { tex: String.raw`F(Q) := \mathcal{T}^*Q - Q = 0`, why: '$Q^*$는 $\\mathcal{T}^*$의 고정점, 즉 $F$의 근(root)이다. 근 찾기 문제로 바꾼다.' },
           { tex: String.raw`\theta_{k+1} = \theta_k + \alpha_k\big(F(\theta_k) + \hl{\varepsilon_k}\big),\quad \mathbb{E}[\varepsilon_k \mid \theta_k] = 0`, why: '로빈스-먼로(1951): $F$를 직접 계산할 수 없고 평균 0의 잡음이 낀 관측만 있을 때, $\\sum\\alpha_k=\\infty,\\ \\sum\\alpha_k^2 \\lt \\infty$이면 근으로 수렴한다(적절한 안정성 조건 아래).' },
@@ -112,6 +134,7 @@ $$\sum_{t} \beta\log\frac{\pi^*(y_t|s_t)}{\pi_{\text{ref}}(y_t|s_t)} = \sum_t \b
       'sa-demo': mountSA,
       'fx-soft': (el) => ui.formula(el, {
         title: 'Soft 벨만 방정식',
+        say: '{Q|이 행동의 부드러운 가치}는 {r|바로 받는 점수}에, 다음 칸의 {V|"최댓값을 부드럽게 만든" 가치}를 할인해 더한 것이다. 얼마나 부드럽게 할지는 {b|온도}가 정하고, 실제 행동은 {pi|점수가 높을수록 지수적으로 더 자주} 고른다.',
         tex: String.raw`\tm{Q}{Q_{\text{soft}}(s,a)} = \tm{r}{r(s,a)} + \gamma\,\mathbb{E}_{s'}\Big[\, \tm{V}{\tm{b}{\beta}\log\sum_{a'}\exp\!\big(Q_{\text{soft}}(s',a')/\beta\big)} \,\Big],\qquad \tm{pi}{\pi(a|s) = \frac{e^{Q_{\text{soft}}(s,a)/\beta}}{\sum_{a'}e^{Q_{\text{soft}}(s,a')/\beta}}}`,
         terms: [
           { id: 'Q', sym: 'Q_{\\text{soft}}', label: 'soft 행동 가치', desc: '보상 + 미래 엔트로피 보너스까지 포함한 가치.' },
@@ -123,6 +146,7 @@ $$\sum_{t} \beta\log\frac{\pi^*(y_t|s_t)}{\pi_{\text{ref}}(y_t|s_t)} = \sum_t \b
       }),
       'dv-soft': (el) => ui.derivation(el, {
         title: '엔트로피 정규화 최대화 → softmax와 log-sum-exp',
+        easy: '"점수 평균 + 온도 × 다양성"을 가장 크게 만드는 선택 확률을 구하면, 점수에 지수를 씌운 비율(softmax)이 나온다. 그때 얻는 최고값이 log-sum-exp이고, 온도를 0으로 줄이면 그냥 1등만 고르는 max로 돌아간다.',
         steps: [
           { tex: String.raw`\max_{\pi\in\Delta}\ \sum_a \pi(a)\,Q(a) + \beta\,\mathcal{H}(\pi),\qquad \mathcal{H}(\pi) = -\sum_a\pi(a)\log\pi(a)`, why: '한 상태에서 행동 분포 $\\pi$를 고른다. 기대 가치를 높이되 엔트로피(무작위성)에 보너스 $\\beta$를 준다.' },
           { tex: String.raw`\mathcal{L} = \sum_a \pi(a)Q(a) - \beta\sum_a\pi(a)\log\pi(a) + \hl{\lambda\Big(1 - \sum_a\pi(a)\Big)}`, why: '확률의 합이 1이라는 제약을 라그랑주 승수로 붙인다. ($\\pi\\ge0$은 해가 자동으로 만족한다.)' },
@@ -133,9 +157,21 @@ $$\sum_{t} \beta\log\frac{\pi^*(y_t|s_t)}{\pi_{\text{ref}}(y_t|s_t)} = \sum_t \b
         ],
       }),
       'soft-temp': mountSoftTemp,
+      'try-restaurant': mountRestaurant,
+      'step-soft': (el) => walk(el, {
+        title: 'softmax와 부드러운 최댓값을 손으로',
+        caption: '질문에 숫자를 넣고 "확인"을 누르라. 계산기를 써도 된다. 점수 2, 1, 0과 온도 $\\beta = 1$로 계산한다.',
+        steps: [
+          { say: '식당 세 곳의 점수가 2, 1, 0이고 온도는 1이다. 먼저 점수마다 e를 거듭제곱한다: e² ≈ 7.39, e¹ ≈ 2.72, e⁰ = 1. 세 값의 합은?', ask: { answer: 11.11, tol: 0.03 }, calc: String.raw`e^{2} + e^{1} + e^{0} \approx 7.39 + 2.72 + 1 = 11.11` },
+          { say: '1등 식당(점수 2)에 갈 확률은 7.39를 합으로 나눈 값이다. 얼마인가? (0.66이나 66%처럼 적는다)', ask: { answer: 0.665, tol: 0.01 }, calc: String.raw`\pi(1\text{등}) = \frac{7.39}{11.11} \approx 0.665,\quad \pi(2\text{등}) \approx 0.245,\quad \pi(3\text{등}) \approx 0.090` },
+          { say: '"부드러운 최댓값"은 온도 × log(합)이다. log 11.11은 얼마인가?', ask: { answer: 2.41, tol: 0.02 }, calc: String.raw`\beta\log\big(e^{2}+e^{1}+e^{0}\big) = \log 11.11 \approx 2.41` },
+          { say: '그냥 최댓값은 2인데 부드러운 최댓값은 2.41로 조금 크다. 늘어난 0.41은 "다른 식당도 갈 수 있다"는 여지에 주는 보너스(온도 × 다양성)다. 온도를 0으로 줄이면 보너스가 사라져 정확히 2가 되고, 보너스는 온도 × log 3(지금은 약 1.10)을 넘지 않는다.', calc: String.raw`\max = 2 \;\le\; 2.41 \;\le\; 2 + \beta\log 3 \approx 3.10` },
+        ],
+      }),
       dist: mountDist,
       'dv-lp': (el) => ui.derivation(el, {
         title: 'MDP의 선형계획과 그 쌍대',
+        easy: '"벨만 부등식을 만족하는 가장 작은 가치표가 정답"이라는 사실을 선형계획으로 쓴다. 그 짝(쌍대) 문제의 변수는 "각 상황에서 각 행동을 얼마나 자주 하게 되는가"이고, 그래서 정책 찾기는 방문 빈도 고르기로 바뀐다.',
         steps: [
           { tex: String.raw`\min_{V}\ \sum_s \rho_0(s)\,V(s)\quad\text{s.t.}\quad V(s) \ge R(s,a) + \gamma\sum_{s'}P(s'|s,a)V(s')\quad\forall(s,a)`, why: '주 문제(primal). $\\mathcal{T}^*$는 단조 연산자이므로 $V\\ge\\mathcal{T}^*V$이면 $V\\ge V^*$다. 그런 $V$ 중 가장 작은 것이 $V^*$.' },
           { tex: String.raw`\mathcal{L}(V, d) = \sum_s\rho_0(s)V(s) + \sum_{s,a}\hl{d(s,a)}\Big[R(s,a) + \gamma\sum_{s'}P(s'|s,a)V(s') - V(s)\Big],\quad d\ge0`, why: '각 부등식 제약 $(s,a)$에 승수 $d(s,a)\\ge0$를 붙인다.' },
@@ -146,6 +182,7 @@ $$\sum_{t} \beta\log\frac{\pi^*(y_t|s_t)}{\pi_{\text{ref}}(y_t|s_t)} = \sum_t \b
       }),
       'fx-sf': (el) => ui.formula(el, {
         title: '후계자 특징 분해',
+        say: '{Q|이 행동의 가치}는 {psi|앞으로 각 특징을 얼마나 자주 만날지}에 {w|각 특징이 얼마나 좋은지}를 곱해 더한 것이다. {phi|특징}은 상황을 묘사하는 체크리스트이고, {r|점수는 특징마다 정해진 값을 더한 것}이라고 가정한다.',
         tex: String.raw`\tm{Q}{Q^\pi(s,a)} = \tm{psi}{\psi^\pi(s,a)}^{\!\top}\,\tm{w}{w},\qquad \psi^\pi(s,a) = \mathbb{E}_\pi\Big[\sum_{t\ge0}\gamma^t\,\tm{phi}{\phi(s_t,a_t)}\;\Big|\;s_0=s,a_0=a\Big],\qquad \tm{r}{r(s,a) = \phi(s,a)^\top w}`,
         terms: [
           { id: 'Q', sym: 'Q^\\pi', label: '행동 가치', desc: '두 요인의 내적으로 분해된다.' },
@@ -158,6 +195,7 @@ $$\sum_{t} \beta\log\frac{\pi^*(y_t|s_t)}{\pi_{\text{ref}}(y_t|s_t)} = \sum_t \b
       sr: mountSR,
       'fx-llmq': (el) => ui.formula(el, {
         title: '토큰 단위 로그 비율 = soft advantage',
+        say: '{lr|학습된 모델이 원래 모델보다 이 단어를 얼마나 더 좋아하는지}에 {b|KL 계수}를 곱하면, {Q|이 단어를 쓴 뒤의 가치}에서 {V|지금 문맥의 평균 가치}를 뺀 값, 즉 "이 단어가 평균보다 얼마나 나은지"가 된다.',
         tex: String.raw`\tm{b}{\beta}\,\tm{lr}{\log\frac{\pi^*(y_t\mid s_t)}{\pi_{\text{ref}}(y_t\mid s_t)}} \;=\; \tm{Q}{Q^*(s_t, y_t)} - \tm{V}{V^*(s_t)}`,
         terms: [
           { id: 'b', sym: '\\beta', label: 'KL 계수', desc: '보상과 기준 모델 이탈 사이의 교환 비율.' },
@@ -193,9 +231,71 @@ $$\sum_{t} \beta\log\frac{\pi^*(y_t|s_t)}{\pi_{\text{ref}}(y_t|s_t)} = \sum_t \b
     ],
   });
 
+  /* ---------- 공용: 좁은 화면에서 단계 카드가 넘치지 않게 감싼 walkthrough ---------- */
+  function walk(el, o) {
+    ui.walkthrough(el, o);
+    el.querySelectorAll('.wk-step').forEach((li) => { li.style.minWidth = '0'; });
+  }
+
+  /* ---------- 렌즈 3 체험: 온도 다이얼로 저녁 식당 고르기 ---------- */
+  function mountRestaurant(el) {
+    const p = ui.panel(el, { kind: 'TRY', title: '온도 다이얼: 오늘 저녁 어디 갈까', caption: '온도 다이얼을 돌려 보고 파란 막대가 어떻게 바뀌는지 보라. 식당 다섯 곳의 평점은 4.6, 4.5, 4.1, 3.8, 3.2다. 그다음 "한 달 동안 고르기"를 눌러 30번의 저녁이 실제로 어디로 갔는지 확인하라. 회색 막대(max)는 온도와 상관없이 항상 1등만 간다.' });
+    const shops = [['국밥', 4.6], ['파스타', 4.5], ['김밥', 4.1], ['초밥', 3.8], ['분식', 3.2]];
+    const scores = shops.map((x) => x[1]);
+    const ctr = ui.row(p.body);
+    const tS = ui.slider(ctr, { label: '온도 (고집 ↔ 다양함)', min: -2, max: 0.3, step: 0.01, value: -0.7, format: (u) => Math.pow(10, u).toFixed(2), onInput: () => { month = null; draw(); } });
+    const btns = ui.row(p.body, 'btns');
+    ui.button(btns, '한 달 동안 고르기 (30번)', () => { simulate(); draw(); }, { primary: true });
+    const st = ui.stats(p.body, [
+      { key: 'top', label: '국밥집에 갈 확률', tone: 'signal' },
+      { key: 'eff', label: '사실상 돌아가며 가는 식당 수' },
+      { key: 'avg', label: '기대 평점' },
+      { key: 'month', label: '이번 달 실제 결과', tone: 'accent' },
+    ]);
+    const chartEl = document.createElement('div');
+    const say = document.createElement('div');
+    say.className = 'fx-detail';
+    p.body.append(chartEl, say);
+    const chart = plot.bars(chartEl, { categories: shops.map((x) => x[0] + ' ' + x[1]), series: [], height: 220, y: { min: 0, max: 1, label: '고를 확률' }, labels: false });
+    const r = sim.rng(30);
+    let month = null;
+    function simulate() {
+      const pi = sim.softmax(scores, Math.pow(10, tS.get()));
+      month = new Array(shops.length).fill(0);
+      for (let d = 0; d < 30; d++) month[r.choice(pi)]++;
+    }
+    function draw() {
+      const b = Math.pow(10, tS.get());
+      const pi = sim.softmax(scores, b);
+      const series = [
+        { name: 'max (항상 1등)', color: 'faint', values: scores.map((_, i) => (i === 0 ? 1 : 0)), opacity: 0.45 },
+        { name: 'softmax (온도 ' + b.toFixed(2) + ')', color: 'c1', values: pi },
+      ];
+      if (month) series.push({ name: '이번 달 실제 비율 (30번)', color: 'c2', values: month.map((x) => x / 30) });
+      chart.update({ series });
+      const H = sim.entropy(pi);
+      const avg = sim.sum(pi.map((x, i) => x * scores[i]));
+      st.set('top', Math.round(pi[0] * 100) + '%');
+      st.set('eff', Math.exp(H).toFixed(1) + '곳');
+      st.set('avg', avg.toFixed(2));
+      if (month) {
+        const visited = month.filter((x) => x > 0).length;
+        const mavg = sim.sum(month.map((x, i) => x * scores[i])) / 30;
+        st.set('month', visited + '곳 방문, 평균 평점 ' + mavg.toFixed(2));
+      } else st.set('month', '버튼으로 확인');
+      let msg;
+      if (b < 0.05) msg = '온도가 아주 낮다. 0.1점 차이도 결정적이라 거의 매일 국밥집에 간다. 이것이 max(탐욕적 선택)와 같다. 파스타집이 사실은 더 맛있어도 알아낼 기회가 없다.';
+      else if (b < 0.4) msg = '온도가 중간이다. 1등과 2등은 비슷하게 자주 가고, 평점이 많이 낮은 곳은 드물게 간다. 기대 평점은 조금 손해 보지만 여러 곳을 경험한다.';
+      else msg = '온도가 높다. 평점 차이가 거의 무시되어 다섯 곳을 고르게 돌아간다. 다양성은 크지만 기대 평점이 눈에 띄게 낮아진다.';
+      say.innerHTML = msg + ' 온도는 "평점 1점 차이를 얼마나 크게 볼 것인가"의 단위다. 이 다이얼이 렌즈 3 수식의 $\\beta$다.';
+      RL.renderMath(say);
+    }
+    draw();
+  }
+
   /* ---------- 렌즈 1: 확률적 근사 실험 ---------- */
   function mountSA(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: '가치 반복 vs 동기식 Q-learning: 스텝 크기 스케줄', caption: '4×3 격자, 미끄러짐 0.2, 이동 비용 −0.04. 반복 $k$마다 모든 $(s,a)$에서 다음 상태를 한 번씩 샘플한다. 곡선은 시드 6개의 평균 $\\log_{10}\\|Q_k - Q^*\\|_\\infty$.' });
+    const p = ui.panel(el, { kind: 'SIM', title: '가치 반복 vs 동기식 Q-learning: 스텝 크기 스케줄', caption: '할인율 슬라이더를 0.98까지 올려 보고, 파란 선(정확한 계산)과 나머지 세 선(샘플로 하는 Q-learning)이 얼마나 벌어지는지, 세 선 중 어느 것이 가장 낮게 내려가는지 보라. 4×3 격자, 미끄러짐 0.2, 이동 비용 −0.04. 반복 $k$마다 모든 $(s,a)$에서 다음 상태를 한 번씩 샘플한다. 곡선은 시드 6개의 평균 $\\log_{10}\\|Q_k - Q^*\\|_\\infty$.' });
     const ctr = ui.row(p.body);
     let timer = 0;
     const later = () => { clearTimeout(timer); timer = setTimeout(run, 120); };
@@ -272,7 +372,7 @@ $$\sum_{t} \beta\log\frac{\pi^*(y_t|s_t)}{\pi_{\text{ref}}(y_t|s_t)} = \sum_t \b
 
   /* ---------- 렌즈 3: 온도 계산기 ---------- */
   function mountSoftTemp(el) {
-    const p = ui.panel(el, { kind: 'CALC', title: '온도 $\\beta$에 따른 max · log-sum-exp · 정책 평균', caption: '네 행동의 Q 값과 온도를 바꿔 보라. 막대는 볼츠만 정책 $\\pi=\\mathrm{softmax}(Q/\\beta)$, 곡선 그래프는 $\\beta$를 0.01에서 약 3까지 훑었을 때의 집계값이다.' });
+    const p = ui.panel(el, { kind: 'CALC', title: '온도 $\\beta$에 따른 max · log-sum-exp · 정책 평균', caption: '온도 슬라이더를 왼쪽 끝으로 밀면 막대가 1등 하나로 몰리고, 오른쪽으로 밀면 고르게 퍼지는 것을 보라. 네 행동의 Q 값도 바꿀 수 있다. 막대는 볼츠만 정책 $\\pi=\\mathrm{softmax}(Q/\\beta)$, 곡선 그래프는 $\\beta$를 0.01에서 약 3까지 훑었을 때의 집계값이다.' });
     const qc = ui.row(p.body);
     const init = [1.0, 0.8, 0.2, -0.5];
     const qs = init.map((v, i) => ui.slider(qc, { label: '$Q(a_' + (i + 1) + ')$', min: -2, max: 2, step: 0.05, value: v, format: ui.fmt.f(2), onInput: draw }));
@@ -323,7 +423,7 @@ $$\sum_{t} \beta\log\frac{\pi^*(y_t|s_t)}{\pi_{\text{ref}}(y_t|s_t)} = \sum_t \b
 
   /* ---------- 렌즈 4: 리턴 분포 ---------- */
   function mountDist(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: '같은 Q, 다른 분포: 범주형 분포 벨만 백업 vs 몬테카를로', caption: '같은 행동을 $T$ 스텝 반복하는 사슬. 세 행동의 한 스텝 기대 보상은 모두 1이다. 파란 막대는 C51식 투영 $\\Phi$를 매 백업마다 적용한 분포형 동적계획의 결과, 주황 막대는 실제로 샘플한 리턴의 히스토그램(같은 원자 격자에 투영)이다.' });
+    const p = ui.panel(el, { kind: 'SIM', title: '같은 Q, 다른 분포: 범주형 분포 벨만 백업 vs 몬테카를로', caption: '행동을 "안정", "모험", "복권"으로 바꿔 가며, 평균(첫 칸)은 그대로인데 막대 모양과 CVaR(운이 나쁜 10%의 평균)가 어떻게 달라지는지 보라. 같은 행동을 $T$ 스텝 반복하는 사슬이다. 세 행동의 한 스텝 기대 보상은 모두 1이다. 파란 막대는 C51식 투영 $\\Phi$를 매 백업마다 적용한 분포형 동적계획의 결과, 주황 막대는 실제로 샘플한 리턴의 히스토그램(같은 원자 격자에 투영)이다.' });
     const ctr = ui.row(p.body);
     const acts = {
       safe: { label: '안정: 항상 +1', out: [[1, 1]] },
@@ -407,7 +507,7 @@ $$\sum_{t} \beta\log\frac{\pi^*(y_t|s_t)}{\pi_{\text{ref}}(y_t|s_t)} = \sum_t \b
 
   /* ---------- 렌즈 6: 후계자 표현 ---------- */
   function mountSR(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: '후계자 표현: 보상을 바꿔도 $M^\\pi$는 그대로', caption: '6×6 방, 경계와 벽에서는 제자리. <strong>왼쪽</strong> 칸을 클릭하면 보상이 0 → +1 → −1 → 0으로 바뀌고, <strong>가운데</strong> 가치 지도 $V = M^\\pi r$이 즉시 갱신된다. 가운데 지도의 칸을 클릭하면 그 상태에서의 SR 행 $M^\\pi(s,\\cdot)$가 오른쪽에 표시된다.' });
+    const p = ui.panel(el, { kind: 'SIM', title: '후계자 표현: 보상을 바꿔도 $M^\\pi$는 그대로', caption: '왼쪽 지도의 칸을 눌러 보상을 바꾸고, 가운데 가치 지도가 곧바로 바뀌는 것을 보라. 6×6 방이고, 경계와 벽에 부딪히면 제자리다. <strong>왼쪽</strong> 칸을 클릭하면 보상이 0 → +1 → −1 → 0으로 바뀌고, <strong>가운데</strong> 가치 지도 $V = M^\\pi r$이 즉시 갱신된다. 가운데 지도의 칸을 클릭하면 그 상태에서의 SR 행 $M^\\pi(s,\\cdot)$가 오른쪽에 표시된다.' });
     const ctr = ui.row(p.body);
     const gS = ui.slider(ctr, { label: '할인율 $\\gamma$', min: 0.5, max: 0.97, step: 0.01, value: 0.9, format: ui.fmt.f(2), onInput: () => { recompute(); draw('M 재계산 (γ 변경)'); } });
     let polKey = 'uniform';

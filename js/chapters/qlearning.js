@@ -10,6 +10,17 @@
     level: '기초 · 핵심',
     prereq: ['td'],
     theses: ['T1', 'T2', 'T8'],
+    easy: {
+      hook: '칸마다 "이 방향으로 가면 앞으로 몇 점쯤"을 메모해 두고, 한 걸음 해 볼 때마다 그 메모를 조금씩 고쳐 쓴다. 이것이 Q-learning이다.',
+      intro: '<p>미로 속 로봇에게 지도가 없다고 하자. 로봇이 가진 것은 칸마다 "위·오른쪽·아래·왼쪽으로 가면 앞으로 몇 점쯤 받을까"를 적은 <strong>메모장(Q 표)</strong> 하나뿐이고, 처음에는 전부 0이다.</p><p>한 걸음 움직여 점수를 받으면, 방금 쓴 칸의 숫자를 <strong>"받은 점수 + 도착한 칸의 가장 좋은 숫자"</strong> 쪽으로 조금 옮긴다. 이것을 많이 반복하면 메모장이 정답에 가까워지고, 칸마다 가장 큰 숫자를 따라가면 길이 된다.</p>',
+      analogy: '운전이 서툰 사람이 낭떠러지 옆 지름길을 평가한다고 하자. SARSA는 "내 실력이면 가끔 핸들을 잘못 꺾으니 이 길은 위험하다"고 적고, Q-learning은 "완벽하게 운전한다면 이 길이 가장 빠르다"고 적는다. 둘 다 맞는 말이다. 차이는 다음 칸의 가치를 <strong>내가 실제로 할 행동</strong>으로 계산하느냐, <strong>가장 좋은 행동</strong>으로 계산하느냐 하나뿐이다.',
+      path: ['복도에서 로봇을 직접 움직이며 Q 표가 채워지는 것을 본다', '업데이트 한 줄을 작은 숫자로 손으로 계산한다', '절벽 옆에서 SARSA와 Q-learning이 서로 다른 길을 고르는 이유를 본다', '잡음 섞인 숫자 중 최댓값만 믿으면 왜 속는지 확인한다'],
+      recap: [
+        'Q 표는 "이 칸에서 이 행동을 하면 앞으로 몇 점"을 적은 메모장이고, 한 걸음 해 볼 때마다 받은 점수와 다음 칸의 숫자를 보고 조금씩 고쳐 쓴다.',
+        'SARSA는 다음에 실제로 할 행동으로, Q-learning은 가장 좋은 행동을 가정하고 고쳐 쓴다. 그래서 SARSA는 실수를 감안한 조심스러운 길을, Q-learning은 이상적인 길을 배운다.',
+        '잡음 섞인 여러 숫자 중 가장 큰 것만 믿으면 실제보다 좋게 착각한다. 메모장을 두 벌 두고 고르는 쪽과 평가하는 쪽을 나누면 이 착각이 줄어든다.',
+      ],
+    },
     goals: [
       'SARSA와 Q-learning을 각각 벨만 기대 방정식과 벨만 최적 방정식의 샘플 버전으로 유도할 수 있다.',
       'on-policy와 off-policy의 차이를 절벽 걷기(cliff walking) 실험의 결과로 설명할 수 있다.',
@@ -17,8 +28,11 @@
     ],
     html: String.raw`
 <p>TD(0)는 정책을 고정하고 $V^\pi$를 추정했다(<a href="#td">06장</a>). 그런데 $V$만으로는 행동을 고를 수 없다. 탐욕 정책 $\arg\max_a [R(s,a) + \gamma\sum_{s'}P(s'|s,a)V(s')]$를 계산하려면 모델 $P$가 필요하기 때문이다. 모델 없이 <strong>제어(control)</strong>를 하려면 행동 가치 $Q(s,a)$를 직접 배워야 한다. 이 장의 두 알고리즘은 모두 "Q의 벨만 방정식 + 샘플 하나 + 이동 평균"으로 만들어진다.</p>
+<p>이름을 붙이기 전에 먼저 해 보자. 아래 복도에서 로봇을 직접 움직이면 Q 표가 어떻게 채워지는지 볼 수 있다.</p>
+<div data-w="try-qtable"></div>
 
 <h2>벨만 방정식에서 업데이트 규칙으로</h2>
+<div data-w="step-q"></div>
 <div data-w="dv-q"></div>
 <div data-w="fx-q"></div>
 <p>세 알고리즘의 차이는 <strong>타깃에서 다음 상태 $s'$의 가치를 어떻게 읽느냐</strong> 하나뿐이다.</p>
@@ -45,6 +59,7 @@
 
 <h2>절벽 걷기: on-policy는 안전한 길을, off-policy는 최적의 길을 배운다</h2>
 <p>Sutton & Barto의 예제 6.6이다. 아래 줄의 시작(S)에서 목표(+0)까지 가는데, 사이의 칸은 절벽이다. 매 스텝 −1, 절벽에 떨어지면 −100을 받고 시작으로 돌아간다. 두 에이전트 모두 $\epsilon$-greedy로 행동한다.</p>
+<div data-w="try-cliff"></div>
 <div data-w="cliff"></div>
 <ul>
 <li><strong>Q-learning</strong>은 타깃에 $\max$를 쓰므로 "탐험하지 않는다면"의 가치, 즉 절벽 바로 옆 최단 경로의 가치를 배운다. 그런데 실제로는 $\epsilon$ 확률로 무작위 행동을 하므로 그 길에서 가끔 떨어진다. 그래서 <em>학습 중 실제로 받는 보상</em>은 더 낮다.</li>
@@ -82,10 +97,11 @@ $$Q_1(s,a) \leftarrow Q_1(s,a) + \alpha\Big[r + \gamma\, Q_2\big(s', \hl{\arg\ma
     mount: {
       'dv-q': (el) => ui.derivation(el, {
         title: '벨만 방정식 → SARSA · Q-learning',
+        easy: '"이 행동의 가치 = 받은 점수 + 할인된 다음 칸의 가치"라는 벨만 규칙에서 출발한다. 평균을 직접 낼 수 없으니 실제로 한 번 해 본 결과를 목표로 삼고, 기존 값을 그쪽으로 조금 옮긴다. 다음 칸의 가치를 "다음에 실제로 할 행동"으로 읽으면 SARSA, "가장 좋은 행동"으로 읽으면 Q-learning이다.',
         steps: [
           { tex: String.raw`Q^\pi(s,a) = \mathbb{E}\big[\, r + \gamma\, Q^\pi(s', a') \;\big|\; s, a \,\big],\quad s'\sim P(\cdot|s,a),\ a'\sim\pi(\cdot|s')`, why: 'Q의 벨만 기대 방정식(02장). 우변은 기댓값이지만 모델 $P$를 모르므로 계산할 수 없다.' },
           { tex: String.raw`y = \hl{r + \gamma\, Q(s', a')} \quad\text{(한 번 실제로 일어난 } (s,a,r,s',a')\text{)}`, why: '실제로 한 번 행동해서 얻은 샘플로 우변을 대신한다. $Q$가 정확하다면 $y$는 우변의 불편 추정량이다.' },
-          { tex: String.raw`Q(s,a) \leftarrow Q(s,a) + \alpha\,\big(y - Q(s,a)\big) = (1-\alpha)\,Q(s,a) + \alpha\, y`, why: '샘플 하나를 그대로 믿지 않고 이동 평균을 낸다. $\\alpha_k = 1/k$면 정확히 표본 평균, 상수 $\\alpha$면 최근 샘플에 가중치 $(1-\\alpha)^j$로 감소하는 지수 이동 평균.' },
+          { tex: String.raw`Q(s,a) \leftarrow Q(s,a) + \alpha\,\big(y - Q(s,a)\big) = (1-\alpha)\,Q(s,a) + \alpha\, y`, why: '샘플 하나를 그대로 믿지 않고 이동 평균을 낸다. $\\alpha_k = 1/k$면 정확히 표본 평균, 상수 $\\alpha$면 최근 샘플에 가중치 $(1-\\alpha)^j$로 감소하는 지수 이동 평균.', easy: '$\\alpha = 0.5$로 옮긴다는 것은 "기존 값과 새 목표값의 딱 가운데"로 고친다는 뜻이다. 기존 값 2, 목표값 6이면 새 값은 4.' },
           { tex: String.raw`\boxed{\text{SARSA: } Q(s,a) \leftarrow Q(s,a) + \alpha\big[r + \gamma\, Q(s',\hl{a'}) - Q(s,a)\big]}`, why: '$a\'$은 다음 스텝에 실제로 실행할 행동이다. 그래서 현재 행동 정책의 가치를 배운다(on-policy).' },
           { tex: String.raw`Q^*(s,a) = \mathbb{E}\big[\, r + \gamma \hl{\max_{a'}} Q^*(s', a') \;\big|\; s, a \,\big]`, why: '최적 방정식에서 출발하면 다음 행동의 기댓값 자리에 $\\max$가 온다. 이 식에는 정책이 등장하지 않는다.' },
           { tex: String.raw`\boxed{\text{Q-learning: } Q(s,a) \leftarrow Q(s,a) + \alpha\big[r + \gamma\, \hl{\max_{a'}} Q(s',a') - Q(s,a)\big]}`, why: '샘플 $(s,a,r,s\')$만 있으면 되고, 그 샘플을 누가 어떻게 모았는지는 상관없다. 첫 행동 $a$는 조건이므로 중요도 가중치도 필요 없다(off-policy).' },
@@ -94,14 +110,35 @@ $$Q_1(s,a) \leftarrow Q_1(s,a) + \alpha\Big[r + \gamma\, Q_2\big(s', \hl{\arg\ma
       }),
       'fx-q': (el) => ui.formula(el, {
         title: 'Q-learning 업데이트 해부',
+        say: '{old|이 칸에서 이 행동의 기존 점수}를 {tgt|새 목표값} 쪽으로 {a|조금(α만큼)} 옮긴다. 새 목표값은 {r|방금 받은 점수}에 {max|도착한 칸에서 가장 좋은 행동의 점수}를 {g|할인율}만큼 깎아 더한 것이다.',
         tex: String.raw`\tm{old}{Q(s,a)} \leftarrow Q(s,a) + \tm{a}{\alpha}\,\Big[\,\tm{tgt}{\tm{r}{r} + \tm{g}{\gamma}\,\tm{max}{\max_{a'} Q(s',a')}} - Q(s,a)\,\Big]`,
         terms: [
           { id: 'old', sym: 'Q(s,a)', label: '현재 추정', desc: '표의 한 칸. 방문한 (s,a)만 바뀐다.', long: '표 형식에서는 업데이트가 정확히 한 칸만 바꾼다. 함수근사(09장)에서는 한 번의 업데이트가 비슷한 상태들의 값까지 함께 바꾸고, 그것이 일반화이자 불안정성의 원천이다.' },
-          { id: 'a', sym: '\\alpha', label: '스텝 크기', desc: '새 샘플을 얼마나 믿을지. 기억 길이 ≈ 1/α.', long: '상수 $\\alpha$는 정확한 수렴을 포기하는 대신 비정상(nonstationary) 상황을 추적한다. 수렴 이론은 $\\sum\\alpha=\\infty, \\sum\\alpha^2 \\lt \\infty$를 요구하지만 실전에서는 거의 항상 상수를 쓴다.' },
+          { id: 'a', sym: '\\alpha', label: '스텝 크기', easy: '0.5면 기존 값과 목표값의 가운데로, 1이면 목표값으로 바로 바꾼다.', desc: '새 샘플을 얼마나 믿을지. 기억 길이 ≈ 1/α.', long: '상수 $\\alpha$는 정확한 수렴을 포기하는 대신 비정상(nonstationary) 상황을 추적한다. 수렴 이론은 $\\sum\\alpha=\\infty, \\sum\\alpha^2 \\lt \\infty$를 요구하지만 실전에서는 거의 항상 상수를 쓴다.' },
           { id: 'tgt', sym: 'y', label: 'TD 타깃', desc: '한 스텝 실제 보상 + 다음 상태의 추정 가치.', long: '타깃 안에 자기 자신(Q)이 들어 있다(부트스트랩). 그래서 Q가 바뀌면 타깃도 바뀐다. DQN의 타깃 네트워크는 이 움직이는 과녁을 잠시 고정한다.' },
           { id: 'r', sym: 'r', label: '실제 보상', desc: '환경에서 관측된 유일한 "진짜" 정보.' },
           { id: 'g', sym: '\\gamma', label: '할인율', desc: '부트스트랩 항의 가중치 = 오차 전파 계수.' },
-          { id: 'max', sym: "\\max_{a'}Q(s',a')", label: '탐욕적 평가', desc: '다음 상태에서 최선의 행동을 가정. off-policy의 원천이자 과대추정의 원천.', long: '데이터를 모은 정책이 실제로 무엇을 했는지와 무관하게 "최선이었다면"을 쓴다. 추정치에 잡음이 있으면 최댓값이 위로 편향된다(아래 Double Q 실험).' },
+          { id: 'max', sym: "\\max_{a'}Q(s',a')", label: '탐욕적 평가', easy: '도착한 칸의 네 숫자 중 가장 큰 것. 다음에 실제로 무엇을 할지는 보지 않는다.', desc: '다음 상태에서 최선의 행동을 가정. off-policy의 원천이자 과대추정의 원천.', long: '데이터를 모은 정책이 실제로 무엇을 했는지와 무관하게 "최선이었다면"을 쓴다. 추정치에 잡음이 있으면 최댓값이 위로 편향된다(아래 Double Q 실험).' },
+        ],
+      }),
+      'try-qtable': mountQTable,
+      'step-q': (el) => walk(el, {
+        title: 'Q-learning 업데이트 한 번을 손으로',
+        caption: '각 단계의 질문에 숫자를 넣고 "확인"을 누르라. 모르면 "바로 보기"를 눌러도 된다. $\\alpha = 0.5$, $\\gamma = 0.9$로 계산한다.',
+        steps: [
+          { say: '로봇이 칸 A에서 오른쪽으로 가서 1점을 받고 칸 B에 도착했다. 메모장에 적힌 Q(A, 오른쪽)은 지금 2다. 칸 B의 네 숫자는 위 6, 오른쪽 4, 아래 0, 왼쪽 1이다.', calc: String.raw`\begin{aligned} Q(A,\rightarrow) &= 2 \\ Q(B,\cdot) &= (\uparrow 6,\ \rightarrow 4,\ \downarrow 0,\ \leftarrow 1) \end{aligned}` },
+          { say: 'Q-learning은 B에서 가장 좋은 숫자를 쓴다. B의 네 숫자 중 최댓값은?', ask: { answer: 6 }, calc: String.raw`\max_{a'} Q(B,a') = 6` },
+          { say: '새 목표값 = 받은 점수 + 0.9 × (B의 최댓값). 계산하면?', ask: { answer: 6.4, tol: 0.01 }, calc: String.raw`y = 1 + 0.9 \times 6 = 6.4` },
+          { say: '목표값과 기존 값의 차이(TD 오차)는?', ask: { answer: 4.4, tol: 0.01 }, calc: String.raw`\delta = 6.4 - 2 = 4.4` },
+          { say: '차이의 $\\alpha = 0.5$배만큼만 옮긴다. 새 Q(A, 오른쪽)은?', ask: { answer: 4.2, tol: 0.01 }, calc: String.raw`Q(A,\rightarrow) \leftarrow 2 + 0.5 \times 4.4 = 4.2` },
+          { say: '같은 경험을 SARSA가 받았다면? SARSA는 B에서 <strong>다음에 실제로 고른 행동</strong>의 숫자를 쓴다. 탐험 때문에 아래(0)를 골랐다면 목표값은 1 + 0.9 × 0 = 1이고, 새 값은 오히려 2에서 1.5로 내려간다. 같은 한 걸음에서 두 방법이 반대 방향으로 고친 것이다.', calc: String.raw`\begin{aligned} \text{SARSA: } y &= 1 + 0.9\times 0 = 1 \\ Q(A,\rightarrow) &\leftarrow 2 + 0.5\times(1 - 2) = 1.5 \end{aligned}` },
+        ],
+      }),
+      'try-cliff': (el) => ui.predict(el, {
+        title: '실험 전에 예측하기',
+        caption: '답을 고른 뒤 바로 아래 시뮬레이터의 "학습 실행"으로 확인하라.',
+        items: [
+          { q: '절벽 바로 옆 지름길은 13걸음이고, 한두 줄 위로 돌아가는 길은 몇 걸음 더 길다. 로봇이 매 걸음 10% 확률로 엉뚱한 방향으로 움직인다면, <strong>학습하는 동안</strong> 평균 점수가 더 높은 쪽은?', choices: ['지름길을 배우는 Q-learning', '돌아가는 길을 배우는 SARSA'], correct: 1, hint: '지름길에서 무작위로 아래를 누르면 바로 −100이다.', explain: '지름길은 걸음 수가 적지만 매 걸음 절벽으로 떨어질 위험이 있다. 그래서 학습 중 평균 점수는 SARSA가 더 높다. 반대로 무작위 움직임을 끄고 평가하면 Q-learning이 배운 지름길이 더 좋은 길이다.' },
         ],
       }),
       cliff: mountCliff,
@@ -132,6 +169,12 @@ $$Q_1(s,a) \leftarrow Q_1(s,a) + \alpha\Big[r + \gamma\, Q_2\big(s', \hl{\arg\ma
     ],
   });
 
+  /* ---------- 공용: 좁은 화면에서 단계 카드가 넘치지 않게 감싼 walkthrough ---------- */
+  function walk(el, o) {
+    ui.walkthrough(el, o);
+    el.querySelectorAll('.wk-step').forEach((li) => { li.style.minWidth = '0'; });
+  }
+
   /* ---------- 공용: ε-greedy (무작위 동점 처리) ---------- */
   function egreedy(q, eps, r) {
     if (r() < eps) return Math.floor(r() * q.length);
@@ -151,9 +194,80 @@ $$Q_1(s,a) \leftarrow Q_1(s,a) + \alpha\Big[r + \gamma\, Q_2\big(s', \hl{\arg\ma
     return path;
   }
 
+  /* ---------- 손으로 채우는 Q 표: 복도 5칸 ---------- */
+  function mountQTable(el) {
+    const p = ui.panel(el, { kind: 'TRY', title: '내가 로봇: 복도에서 Q 표 채우기', caption: '"← 왼쪽" 또는 "→ 오른쪽"을 눌러 로봇을 한 칸씩 움직여 보라. 움직일 때마다 방금 쓴 칸의 숫자가 아래 계산식대로 고쳐진다. 오른쪽 끝(+10)에 서너 번 도착하면 숫자가 왼쪽 칸으로 번져 나온다.' });
+    const A = 0.5, G = 0.9, N = 5, START = 2, EPS = 0.3;
+    const r = sim.rng(11);
+    let Q, s, ep, steps, last, lines;
+    const strip = document.createElement('div');
+    strip.style.cssText = 'display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px';
+    const btns = ui.row(p.body, 'btns');
+    ui.button(btns, '← 왼쪽', () => { move(0); draw(); }, { primary: true });
+    ui.button(btns, '→ 오른쪽', () => { move(1); draw(); }, { primary: true });
+    ui.button(btns, '로봇에게 맡기기 (1판, 30%는 무작위)', () => { const e = ep; let k = 0; while (ep === e && k < 60) { move(egreedy(Q[s], EPS, r)); k++; } draw(); });
+    ui.button(btns, '표 지우기', () => { reset(); draw(); });
+    p.body.insertBefore(strip, btns);
+    const st = ui.stats(p.body, [{ key: 'ep', label: '끝낸 판' }, { key: 'st', label: '이번 판 걸음' }, { key: 'pos', label: '로봇 위치', tone: 'signal' }]);
+    const calc = document.createElement('div');
+    calc.className = 'fx-detail';
+    const tbl = document.createElement('div');
+    tbl.className = 'table-wrap';
+    const log = document.createElement('div');
+    log.className = 'log';
+    p.body.append(calc, tbl, log);
+    const f2 = (v) => (Math.abs(v) < 0.005 ? '0' : v.toFixed(2));
+    function reset() { Q = sim.range(N).map(() => [0, 0]); s = START; ep = 0; steps = 0; last = null; lines = []; }
+    function move(a) {
+      const s2 = s + (a ? 1 : -1);
+      const rew = s2 === N - 1 ? 10 : s2 === 0 ? -5 : 0;
+      const done = s2 === 0 || s2 === N - 1;
+      const best = done ? 0 : Math.max(Q[s2][0], Q[s2][1]);
+      const y = rew + G * best;
+      const old = Q[s][a];
+      Q[s][a] = old + A * (y - old);
+      const arrow = a ? '\\rightarrow' : '\\leftarrow';
+      const bestTex = done ? '0\\ (\\text{끝 칸})' : '\\max(' + f2(Q[s2][0]) + ',\\ ' + f2(Q[s2][1]) + ')';
+      last = { s, a, tex: 'Q(' + s + ',' + arrow + ') \\leftarrow ' + f2(old) + ' + 0.5\\times\\big(\\underbrace{' + rew + ' + 0.9\\times ' + bestTex + '}_{\\text{목표 } ' + f2(y) + '} - ' + f2(old) + '\\big) = ' + f2(Q[s][a]) };
+      lines.unshift('칸 ' + s + ' ' + (a ? '→' : '←') + ' 칸 ' + s2 + ' (점수 ' + rew + '):  Q(' + s + ',' + (a ? '→' : '←') + ')  ' + f2(old) + ' → ' + f2(Q[s][a]));
+      lines = lines.slice(0, 8);
+      steps++;
+      if (done) { ep++; steps = 0; s = START; lines.unshift('— ' + (rew > 0 ? '+10 도착' : '−5에 떨어짐') + '. 칸 ' + START + '에서 다시 시작 —'); }
+      else s = s2;
+    }
+    function draw() {
+      strip.innerHTML = '';
+      const vmax = 10;
+      for (let i = 0; i < N; i++) {
+        const term = i === 0 || i === N - 1;
+        const v = term ? (i === 0 ? -5 : 10) : Math.max(Q[i][0], Q[i][1]);
+        const pct = Math.round((Math.min(Math.abs(v), vmax) / vmax) * 60);
+        const col = v >= 0 ? 'var(--pos)' : 'var(--neg)';
+        const best = !term && Q[i][0] !== Q[i][1] ? (Q[i][1] > Q[i][0] ? '→' : '←') : '';
+        const cell = document.createElement('div');
+        cell.style.cssText = 'border:1px solid var(--line);border-radius:6px;padding:8px 2px;text-align:center;font-family:var(--font-mono);font-size:var(--fs-sm);background:color-mix(in srgb, ' + col + ' ' + pct + '%, var(--surface))' + (i === s ? ';box-shadow:inset 0 0 0 2px var(--signal)' : '');
+        cell.innerHTML = '<div style="font-size:var(--fs-xs);color:var(--muted)">' + (term ? (i === 0 ? '끝 −5' : '끝 +10') : '칸 ' + i) + '</div>' + (term ? '&nbsp;' : (i === s ? '로봇 ' : '') + best);
+        strip.appendChild(cell);
+      }
+      let t = '<table class="t"><thead><tr><th>칸</th><th class="num">Q(칸, ←)</th><th class="num">Q(칸, →)</th><th>더 좋은 쪽</th></tr></thead><tbody>';
+      for (let i = 1; i < N - 1; i++) {
+        const hl = (a) => (last && last.s === i && last.a === a ? ' style="background:color-mix(in srgb, var(--signal) 18%, var(--surface));font-weight:600"' : '');
+        t += '<tr><td>칸 ' + i + '</td><td class="num"' + hl(0) + '>' + f2(Q[i][0]) + '</td><td class="num"' + hl(1) + '>' + f2(Q[i][1]) + '</td><td>' + (Q[i][0] === Q[i][1] ? '아직 모름' : Q[i][1] > Q[i][0] ? '→ 오른쪽' : '← 왼쪽') + '</td></tr>';
+      }
+      tbl.innerHTML = t + '</tbody></table>';
+      calc.innerHTML = last ? '<span class="label">방금 한 계산</span><span class="col-muted">스텝 크기 α = 0.5, 할인율 γ = 0.9</span>' + RL.tex(last.tex, true) : '아직 움직이지 않았다. 로봇은 칸 ' + START + '에 있고 Q 표는 모두 0이다. "→ 오른쪽"을 두 번 눌러 보자.';
+      log.textContent = lines.length ? lines.join('\n') : '움직인 기록이 여기에 쌓인다.';
+      st.set('ep', ep);
+      st.set('st', steps);
+      st.set('pos', '칸 ' + s);
+    }
+    reset();
+    draw();
+  }
+
   /* ---------- 절벽 걷기 ---------- */
   function mountCliff(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: '절벽 걷기: SARSA vs Q-learning', caption: '여러 번의 독립 실행을 평균한 에피소드당 보상(이동 평균 10)과, 마지막 실행에서 배운 탐욕 경로. 매 실행은 실제로 두 알고리즘을 처음부터 학습시킨다.' });
+    const p = ui.panel(el, { kind: 'SIM', title: '절벽 걷기: SARSA vs Q-learning', caption: '"학습 실행"을 누르고, 파란 선(SARSA)이 주황 선(Q-learning)보다 높은지와 아래 두 격자의 경로가 어떻게 다른지 보라. 그래프는 여러 번의 독립 실행을 평균한 에피소드당 보상(이동 평균 10)이고, 격자는 마지막 실행에서 배운 탐욕 경로다. 매 실행은 실제로 두 알고리즘을 처음부터 학습시킨다.' });
     const ctr = ui.row(p.body);
     const eS = ui.slider(ctr, { label: '탐험률 $\\epsilon$', min: 0, max: 0.3, step: 0.01, value: 0.1, format: ui.fmt.f(2) });
     const aS = ui.slider(ctr, { label: '스텝 크기 $\\alpha$', min: 0.05, max: 1, step: 0.05, value: 0.5, format: ui.fmt.f(2) });
@@ -251,7 +365,7 @@ $$Q_1(s,a) \leftarrow Q_1(s,a) + \alpha\Big[r + \gamma\, Q_2\big(s', \hl{\arg\ma
 
   /* ---------- 미로 Q-learning 애니메이션 ---------- */
   function mountGridQ(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: '미로에서의 Q-learning (Q 삼각형 표시)' });
+    const p = ui.panel(el, { kind: 'SIM', title: '미로에서의 Q-learning (Q 삼각형 표시)', caption: '"자동 재생"을 누르고, 파란 삼각형이 목표(+1) 칸에서 출발점 쪽으로 번져 나오는 모습을 보라. 한 칸의 삼각형 네 개는 그 칸에서 네 방향 행동의 Q 값이다.' });
     const ctr = ui.row(p.body);
     const aS = ui.slider(ctr, { label: '스텝 크기 $\\alpha$', min: 0.05, max: 1, step: 0.05, value: 0.5, format: ui.fmt.f(2) });
     const gS = ui.slider(ctr, { label: '할인율 $\\gamma$', min: 0.5, max: 0.99, step: 0.01, value: 0.95, format: ui.fmt.f(2) });
@@ -325,7 +439,7 @@ $$Q_1(s,a) \leftarrow Q_1(s,a) + \alpha\Big[r + \gamma\, Q_2\big(s', \hl{\arg\ma
 
   /* ---------- 최댓값 편향 ---------- */
   function mountMaxBias(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: '최댓값 편향: 상태 A에서 왼쪽을 고르는 비율', caption: '$\\epsilon=0.1$, $\\alpha=0.1$, $\\gamma=1$. 최적 행동은 오른쪽이므로 $\\epsilon$-greedy의 최소 왼쪽 비율은 $\\epsilon/2 = 5\\%$이다. 모든 곡선은 실행할 때마다 실제로 학습해서 얻는다.' });
+    const p = ui.panel(el, { kind: 'SIM', title: '최댓값 편향: 상태 A에서 왼쪽을 고르는 비율', caption: '"실험 실행"을 누르고 주황 선(Q-learning)이 처음에 얼마나 높이 솟았다가 내려오는지 보라. B의 행동 개수를 늘리면 더 높이 솟는다. $\\epsilon=0.1$, $\\alpha=0.1$, $\\gamma=1$. 최적 행동은 오른쪽이므로 $\\epsilon$-greedy의 최소 왼쪽 비율은 $\\epsilon/2 = 5\\%$이다. 모든 곡선은 실행할 때마다 실제로 학습해서 얻는다.' });
     const ctr = ui.row(p.body);
     const nS = ui.slider(ctr, { label: 'B의 행동 개수', min: 1, max: 30, step: 1, value: 10, format: ui.fmt.int });
     const muS = ui.slider(ctr, { label: 'B 보상 평균 $\\mu$', min: -0.5, max: 0.2, step: 0.05, value: -0.1, format: ui.fmt.f(2) });

@@ -11,6 +11,17 @@
     level: '심화 · LLM',
     prereq: ['reasoning', 'modelbased'],
     theses: ['T9', 'T2', 'T5'],
+    easy: {
+      hook: '오래 고민해서 찾은 좋은 답을 적어 두거나 외워 두면, 다음에는 고민 없이 바로 꺼내 쓸 수 있다.',
+      intro: '<p>문제집을 풀 때를 떠올려 보자. 처음엔 한 문제를 여러 번 시도해야 겨우 맞힌다. 맞힌 풀이를 정리해 두면 비슷한 문제는 다음에 한 번에 푼다.</p><p>AI도 같은 일을 두 가지 방식으로 한다. 여러 번 시도해서 <strong>맞은 답만 모아 다시 공부</strong>하면(가중치에 기억), 다음엔 처음부터 잘 맞힌다. 공부 대신 <strong>메모를 옆에 두고 참고</strong>할 수도 있다(바깥에 기억).</p>',
+      analogy: '자기 답안 중 맞은 것만 골라 복습하는 학생을 생각해 보자. 가끔이라도 맞히던 유형은 금세 늘지만, 한 번도 맞혀 본 적 없는 유형은 복습할 거리가 없어 그대로다. 선생님이 정답을 보여 주는 힌트가 있어야 그 유형도 공부를 시작할 수 있다. 자기학습의 강점과 한계가 이 그림에 다 있다.',
+      path: ['맞은 답만 골라 공부하는 과정을 숫자 세 개로 직접 계산한다', '반복할수록 정답률은 오르지만 한 번도 못 푼 유형은 그대로인 이유를 시뮬레이터로 본다', '오답 노트가 있을 때와 없을 때 자물쇠 여는 횟수를 게임으로 비교한다', '메모(바깥 기억)와 공부(가중치 기억)의 차이를 정리한다'],
+      recap: [
+        '여러 번 시도해 맞은 답만 모아 다시 공부하면, 다음엔 처음부터 맞힐 확률이 올라간다.',
+        '이 방법은 가끔이라도 맞히던 문제만 늘린다. 한 번도 못 푼 문제는 힌트나 더 강한 선생님이 있어야 풀린다.',
+        '공부하지 않고 메모만 옆에 두어도 반복되는 실수는 크게 준다. 단, 무엇이 맞고 틀렸는지 알려 주는 채점이 있어야 메모가 쓸모 있다.',
+      ],
+    },
     goals: [
       '개선 연산자 $\\mathcal{I}$와 투영(증류)으로 AlphaZero, Expert Iteration, STaR, ReST-EM을 같은 식으로 쓸 수 있다.',
       '"샘플 → 정답만 남김 → SFT"가 EM 알고리즘이며 기대 보상을 단조 증가시킨다는 것을 유도할 수 있다.',
@@ -43,6 +54,7 @@
 
 <h2>"뽑고, 거르고, 학습한다"는 EM이다</h2>
 <p>이진 보상 $R(x,y)\in\{0,1\}$(정답 여부)이 있는 문제에서 자기학습의 가장 단순한 형태는 "정책에서 샘플 → 맞은 것만 남김 → 그것으로 SFT"다. Singh et al.(2023, ReST$^{EM}$)은 이것이 기대 보상의 로그에 대한 EM 알고리즘임을 지적했다.</p>
+<div data-w="step-filter"></div>
 <div data-w="dv-em"></div>
 <div data-w="fx-em"></div>
 <p>E-단계의 목표 $q^*\propto\pi_{\theta_k}R$은 T5의 KL-정규화 해 $\pi_{\theta_k}e^{R/\beta}/Z$에서 $\beta\to0$으로 보낸 극한이다. 즉 자기학습은 "현재 정책을 기준점으로 한 가장 공격적인 KL-정규화 개선 + 순방향 KL 투영"이다. 같은 틀에서 연속 보상을 쓰면 $q^*\propto\pi e^{r/\beta}$가 되어 보상 가중 회귀(RWR, AWR)가 된다(<a href="#offline">15장</a>).</p>
@@ -78,6 +90,7 @@
 </tbody></table></div>
 <p>Reflexion(Shinn et al. 2023)은 행위자, 평가자, 자기 반성 모델로 구성된다. 평가 신호(테스트 통과 여부, 환경 보상)를 받아 실패를 언어로 요약하고 기억에 넣어, 같은 과제의 다음 시도에서 참고한다. 가중치 갱신이 없는 "언어적 강화"다. Voyager(Wang et al. 2023)는 Minecraft에서 자동 커리큘럼, 스킬 라이브러리, 환경 피드백과 자기 검증을 쓰는 반복 프롬프팅으로 평생 학습을 구현했다. ExpeL(Zhao et al. 2023)은 여러 과제의 경험에서 통찰을 추출하고 성공 궤적을 검색해 쓴다.</p>
 <p>아래는 과제 가족(task family)에서 두 종류의 기억이 시도 횟수를 어떻게 줄이는지 보여 주는 시뮬레이션이다. 각 과제는 스킬 몇 개의 조합이고, 모든 스킬이 성공해야 과제가 성공한다. <em>반성</em>은 같은 과제 안에서 실패한 스킬을 고치고(과제 간 전이 없음), <em>스킬 라이브러리</em>는 성공한 과제의 스킬을 저장해 이후 과제에 재사용한다(과제 간 전이).</p>
+<div data-w="try-notebook"></div>
 <div data-w="mem-sim"></div>
 
 <h2>기억으로서의 컨텍스트, 그리고 에이전트 RL</h2>
@@ -99,22 +112,24 @@
     mount: {
       'fx-amort': (el) => ui.formula(el, {
         title: '개선 후 투영: T9의 일반형',
+        say: '{new|다음 정책}은, {I|비싼 방법(탐색, 채점 후 골라내기)으로 찾은 더 좋은 답들의 분포}를 {pi|학습할 신경망 정책}이 {kl|정답 삼아 따라 하도록 공부시켜}, 그렇게 만들 수 있는 정책 중 {proj|가장 가까운 것을 고른} 결과다.',
         tex: R`\tm{new}{\pi_{\theta_{k+1}}} = \tm{proj}{\arg\min_{\theta}}\; \mathbb{E}_{x}\Big[\tm{kl}{\mathrm{KL}}\big(\,\tm{I}{\mathcal{I}[\pi_{\theta_k}](\cdot\mid x)}\;\big\|\;\tm{pi}{\pi_\theta(\cdot\mid x)}\,\big)\Big]`,
         terms: [
           { id: 'new', sym: R`\pi_{\theta_{k+1}}`, label: '새 정책', desc: '개선 결과를 흉내 내도록 학습된 정책.' },
           { id: 'proj', sym: R`\arg\min_\theta`, label: '투영 (증류)', desc: '표현 가능한 정책 중 가장 가까운 것.', long: R`표현력이 부족하거나 학습이 불완전하면 $\mathcal{I}[\pi_k]$와 학습된 정책 사이에 간격이 남는다. 변분 추론의 "상각 간격(amortization gap)"과 같은 개념이다. 이 간격이 개선 폭보다 크면 반복이 개선을 보장하지 않는다.` },
-          { id: 'kl', sym: R`\mathrm{KL}(\mathcal{I}\|\pi)`, label: '순방향 KL', desc: '= 개선된 분포의 샘플에 대한 교차 엔트로피(SFT).', long: R`순방향 KL은 <strong>모드 커버링</strong>이다. 목표 분포에 질량이 있는 곳마다 정책도 질량을 두게 한다. 그래서 탐색이 찾은 여러 좋은 해를 함께 보존한다. RL 목표가 쓰는 역방향 KL $\mathrm{KL}(\pi\|\cdot)$은 모드 탐색적이라 한 해로 쏠리기 쉽다.` },
+          { id: 'kl', sym: R`\mathrm{KL}(\mathcal{I}\|\pi)`, label: '순방향 KL', desc: '= 개선된 분포의 샘플에 대한 교차 엔트로피(SFT).', easy: '좋은 답들을 예제로 놓고 "이 답을 써라"라고 공부시키는 것. 좋은 답이 여러 개면 여러 개를 다 따라 하려 한다.', long: R`순방향 KL은 <strong>모드 커버링</strong>이다. 목표 분포에 질량이 있는 곳마다 정책도 질량을 두게 한다. 그래서 탐색이 찾은 여러 좋은 해를 함께 보존한다. RL 목표가 쓰는 역방향 KL $\mathrm{KL}(\pi\|\cdot)$은 모드 탐색적이라 한 해로 쏠리기 쉽다.` },
           { id: 'I', sym: R`\mathcal{I}[\pi_{\theta_k}]`, label: '개선 연산자', desc: 'MCTS, Best-of-N, 정답 필터, 반성 등 비싼 절차가 만든 더 나은 분포.', long: R`조건: (1) $\pi_k$보다 기대 보상이 높을 것, (2) 샘플을 뽑을 수 있을 것. 예: MCTS 방문 분포, $\pi_k(y)R(y)/J$ (정답 필터), $\pi_k e^{r/\beta}/Z$ (보상 가중), 교사 모델의 출력.` },
           { id: 'pi', sym: R`\pi_\theta`, label: '학습되는 정책', desc: '신경망. 다음 반복에서 탐색의 사전분포가 된다.' },
         ],
       }),
       'dv-em': (el) => ui.derivation(el, {
         title: '필터링 SFT = 기대 보상의 EM',
+        easy: '"뽑고, 맞은 것만 남기고, 그걸로 공부한다"는 정답률을 한 번에 조금씩 확실히 올리는 고전적인 방법(EM)과 같다. 맞은 것만 남기는 단계는 "맞았다는 조건 아래 지금 모델이 낼 답"을 정확히 모으는 일이고, 공부 단계는 그 답을 따라 하는 일이다.',
         caption: R`보상 $R(x,y)\in\{0,1\}$, 성공 확률 $J_\theta(x)=\sum_y\pi_\theta(y|x)R(x,y)$. 한 프롬프트 $x$에 대해 쓴다.`,
         steps: [
           { tex: R`\log J_\theta = \log\sum_y \pi_\theta(y)\,R(y)`, why: R`성공 확률의 로그를 최대화한다. 직접 미분하면 REINFORCE가 되지만, 여기서는 하한을 만든다.` },
           { tex: R`\log\sum_y q(y)\frac{\pi_\theta(y)R(y)}{q(y)} \;\ge\; \hl{\sum_y q(y)\log\frac{\pi_\theta(y)R(y)}{q(y)}} =: \mathcal{L}(q,\theta)`, why: R`임의의 분포 $q$에 대해 젠슨 부등식(log는 오목). 변분 하한(ELBO)과 같은 구조다.` },
-          { tex: R`\text{E-step: }\; q^*(y) = \frac{\pi_{\theta_k}(y)R(y)}{J_{\theta_k}} = \hl{\pi_{\theta_k}(y\mid R=1)}`, why: R`$\mathcal{L}$을 $q$에 대해 최대화하면 하한이 $\theta_k$에서 등호가 된다. $q^*$는 "성공했다는 조건 아래의 현재 정책", 즉 사후분포다.` },
+          { tex: R`\text{E-step: }\; q^*(y) = \frac{\pi_{\theta_k}(y)R(y)}{J_{\theta_k}} = \hl{\pi_{\theta_k}(y\mid R=1)}`, why: R`$\mathcal{L}$을 $q$에 대해 최대화하면 하한이 $\theta_k$에서 등호가 된다. $q^*$는 "성공했다는 조건 아래의 현재 정책", 즉 사후분포다.`, easy: '목표로 삼을 분포는 "지금 모델이 낸 답 중 맞은 것들을, 원래 나오던 비율 그대로" 모은 것이다.' },
           { tex: R`y\sim\pi_{\theta_k},\ R(y)=1 \text{인 것만 남김} \;\Longrightarrow\; y\sim q^*`, why: R`거절 샘플링이 $q^*$의 정확한 표본을 준다. 검증기가 있으면 E-step은 "뽑고 거르기"로 끝난다. 수용률은 $J_{\theta_k}$라서 어려운 문제일수록 비싸다.` },
           { tex: R`\text{M-step: }\; \theta_{k+1} = \arg\max_\theta \mathbb{E}_{y\sim q^*}\big[\log\pi_\theta(y)\big] = \arg\min_\theta \hl{\mathrm{KL}(q^*\,\|\,\pi_\theta)}`, why: R`$\mathcal{L}(q^*,\theta)$에서 $\theta$와 무관한 항을 빼면 걸러진 샘플에 대한 로그우도, 즉 <strong>SFT</strong>다.` },
           { tex: R`\log J_{\theta_{k+1}} \ge \mathcal{L}(q^*,\theta_{k+1}) \ge \mathcal{L}(q^*,\theta_k) = \log J_{\theta_k}`, why: R`EM의 단조성. M-step이 정확하면 성공 확률은 줄지 않는다. 실제로는 유한 표본과 유한 학습 때문에 근사이고, 그래서 과적합 방지(매 반복 기본 모델에서 재학습)가 중요하다.` },
@@ -123,6 +138,7 @@
       }),
       'fx-em': (el) => ui.formula(el, {
         title: 'ReST-EM / STaR의 M-step 목표',
+        say: '{th|다음 모델}은, {samp|지금 모델이 직접 풀어 본 답들} 중 {R|맞은 것만 남겨서} 그 답이 나올 {lp|확률을 높이도록 공부한} 결과다. 그 공부는 {init|매번 원래 기본 모델에서 다시 시작한다}.',
         tex: R`\tm{th}{\theta_{k+1}} = \arg\max_{\theta}\; \sum_{x\in\mathcal{D}} \;\mathbb{E}_{\tm{samp}{y\sim\pi_{\theta_k}(\cdot|x)}}\Big[\, \tm{R}{\mathbb{1}[R(x,y)=1]}\;\tm{lp}{\log \pi_\theta(y\mid x)}\,\Big],\qquad \tm{init}{\theta \leftarrow \theta_{\text{base}}}`,
         terms: [
           { id: 'th', sym: R`\theta_{k+1}`, label: '다음 정책', desc: '걸러진 데이터로 학습한 결과.' },
@@ -132,6 +148,18 @@
           { id: 'init', sym: R`\theta\leftarrow\theta_{\text{base}}`, label: '기본 모델에서 재시작', desc: 'STaR, ReST-EM은 매 반복 원 모델에서 다시 미세조정한다.', long: R`직전 모델을 계속 미세조정하면 자기 출력에 반복 과적합해 다양성이 줄고 표류한다. 원 모델에서 다시 시작하면 반복 사이에 전달되는 것은 <em>데이터</em>뿐이라, EM의 "정확한 M-step"에 더 가깝다.` },
         ],
       }),
+      'step-filter': (el) => ui.walkthrough(el, {
+        title: '손으로 한 번: 맞은 답만 골라 공부하기',
+        caption: '"다음 단계"를 눌러 따라간다. 한 문제에 대해 모델이 답 A, B, C를 낼 확률이 각각 0.5, 0.3, 0.2이고, 정답은 B와 C 두 가지다(풀이 방법이 둘이다).',
+        steps: [
+          { say: 'A는 틀린 답이다. 지금 모델이 맞힐 확률은?', ask: { answer: 0.5, tol: 0.001 }, calc: R`P(\text{정답}) = 0.3 + 0.2 = 0.5` },
+          { say: '여러 번 풀게 하고 맞은 답(B, C)만 남긴다. 남은 답 가운데 B의 비율은?', ask: { answer: 0.6, tol: 0.001 }, calc: R`q(B) = \frac{0.3}{0.5} = 0.6,\qquad q(C) = \frac{0.2}{0.5} = 0.4,\qquad q(A) = 0`, note: '이 "맞은 답만의 분포"가 아래 유도의 E-step이 만드는 목표다. 원래 B가 C보다 자주 나왔으니 남은 것도 B가 많다.' },
+          { say: '한 번에 다 외우지 않고, 지금 모델과 남은 답의 분포를 반반 섞는 만큼만 공부한다고 하자(단순화한 가정이다). 새 모델이 틀린 답 A를 낼 확률은?', ask: { answer: 0.25, tol: 0.001 }, calc: R`\pi_{\text{new}}(A) = \tfrac12\times0.5 + \tfrac12\times0 = 0.25` },
+          { say: '그러면 새 모델이 맞힐 확률은?', ask: { answer: 0.75, tol: 0.001 }, calc: R`1 - 0.25 = 0.75\qquad(B:\ 0.45,\quad C:\ 0.30)` },
+          { say: '한 번 더 하면 맞힐 확률은 0.875, 그다음은 0.9375다. 틀릴 확률이 매번 반으로 준다. 그런데 처음부터 확률이 0이었던 풀이는 맞은 답 목록에 한 번도 나오지 않으니 끝까지 0이다. 자기학습은 이미 가끔 내던 정답만 키운다.', calc: R`0.5 \to 0.75 \to 0.875 \to 0.9375 \to \cdots` },
+        ],
+      }),
+      'try-notebook': mountNotebook,
       'exit-sim': mountExit,
       'mem-sim': mountMem,
     },
@@ -186,7 +214,8 @@
     const P = probs.length;
     const isCorrect = (i, k) => TYPES[probs[i].t].correct.indexOf(k) >= 0;
 
-    const p = ui.panel(el, { kind: 'SIM', title: '전문가 반복(샘플 → 정답 필터 → SFT)' });
+    const p = ui.panel(el, { kind: 'SIM', title: '전문가 반복(샘플 → 정답 필터 → SFT)',
+      caption: '"1 반복"을 여러 번 눌러 왼쪽 그래프의 pass@1(파랑)이 오르는 것을 보고, 오른쪽 그래프에서 기본 모델과 현재 모델의 곡선이 큰 k에서 교차하는지 보라. 그다음 rationalization을 켜고 "초기화 후 8 반복"으로 커버리지(주황 점선)가 어떻게 달라지는지 비교하라.' });
     const ctr = ui.row(p.body);
     const nS = ui.slider(ctr, { label: R`문제당 샘플 수 $N$`, min: 1, max: 32, step: 1, value: 4, format: ui.fmt.int });
     const lS = ui.slider(ctr, { label: 'SFT 학습률', min: 0.1, max: 2, step: 0.05, value: 0.6, format: ui.fmt.f(2) });
@@ -317,10 +346,155 @@
     upd();
   }
 
+  /* ---------- TRY: 오답 노트 자물쇠 ---------- */
+  function mountNotebook(el) {
+    const OBJ = ['사과', '고래', '연필', '우산', '시계', '의자'];
+    const SYM = ['△', '○', '□', '◇'];
+    const p = ui.panel(el, { kind: 'TRY', title: '오답 노트: 같은 가족의 자물쇠를 연달아 열기',
+      caption: '다이얼마다 기호를 하나씩 골라 "열기"를 누르고, 자물쇠 하나를 여는 데 몇 번 걸리는지 보라. 다이얼에는 이름표(사과, 고래 등)가 붙어 있고, 맞는 기호는 숨겨져 있지만 가족 전체에서 같다(사과는 언제나 같은 기호). "오답 노트"를 켜면 지금까지 알게 된 사실이 옆에 정리된다. 직접 하기 번거로우면 "에이전트 셋 비교"를 눌러라.' });
+    const tg = ui.row(p.body);
+    const noteCb = ui.checkbox(tg, { label: '오답 노트 보기', value: true, onChange: render });
+    const split = div(p.body, 'w-split');
+    const left = div(split), right = div(split);
+    left.style.cssText = 'display:grid;gap:10px;align-content:start';
+    const lockEl = div(left);
+    lockEl.style.cssText = 'display:grid;gap:10px';
+    const btns = ui.row(left, 'btns');
+    const openB = ui.button(btns, '열기', tryOpen, { primary: true });
+    const nextB = ui.button(btns, '다음 자물쇠', nextLock);
+    ui.button(btns, '새 가족 (규칙 바꾸기)', newFamily);
+    const msg = div(left, 'fx-detail');
+    const note = div(right, 'aside');
+    note.style.marginTop = '0';
+    const st = ui.stats(p.body, [
+      { key: 'cur', label: '이 자물쇠에서 시도한 횟수' },
+      { key: 'on', label: '노트 보며 연 자물쇠: 평균 시도', tone: 'accent' },
+      { key: 'off', label: '노트 없이 연 자물쇠: 평균 시도', tone: 'signal' },
+    ]);
+    const abtn = ui.row(p.body, 'btns');
+    ui.button(abtn, '에이전트 셋 비교 (자물쇠 15개 × 300회)', compare);
+    const chart = plot.line(div(p.body), { height: 230, x: { label: '가족 안에서 몇 번째 자물쇠', min: 1, max: 15 }, y: { label: '연 데 걸린 시도 횟수', min: 0 }, series: [], hoverXDigits: 0, hoverDigits: 2 });
+    const r = sim.rng(2023);
+    let map, lock, sel, tries, opened, facts, lockNo, rec, mine, autoRes = null;
+    function newFamily() {
+      map = OBJ.map(() => r.int(4));
+      facts = OBJ.map(() => ({ ok: -1, no: new Set() }));
+      rec = { on: [], off: [] };
+      mine = [];
+      lockNo = 0;
+      nextLock();
+    }
+    function nextLock() {
+      const a = r.int(OBJ.length);
+      let b = r.int(OBJ.length - 1);
+      if (b >= a) b++;
+      lock = [a, b];
+      sel = [-1, -1];
+      tries = 0;
+      opened = false;
+      lockNo++;
+      render('자물쇠 ' + lockNo + '번. 두 다이얼의 기호를 고르고 "열기"를 누르자.');
+    }
+    function tryOpen() {
+      if (opened) return;
+      if (sel[0] < 0 || sel[1] < 0) { render('두 다이얼 모두 기호를 골라야 한다.'); return; }
+      tries++;
+      const res = lock.map((t, i) => sel[i] === map[t]);
+      lock.forEach((t, i) => { if (res[i]) facts[t].ok = sel[i]; else facts[t].no.add(sel[i]); });
+      if (res[0] && res[1]) {
+        opened = true;
+        const mode = noteCb.get() ? 'on' : 'off';
+        rec[mode].push(tries);
+        mine.push([lockNo, tries, mode]);
+        render('<strong>열렸다.</strong> ' + tries + '번 만에 열었다(' + (mode === 'on' ? '노트를 보며' : '노트 없이') + '). "다음 자물쇠"로 계속하자.');
+      } else {
+        render(lock.map((t, i) => OBJ[t] + ' ' + SYM[sel[i]] + (res[i] ? ' 맞음' : ' 틀림')).join(' · ') + '. 다시 골라 보자.');
+      }
+    }
+    function compare() {
+      const L = 15, RUNS = 300, CAP = 20;
+      const out = [0, 1, 2].map(() => new Array(L).fill(0));
+      for (let run = 0; run < RUNS; run++) {
+        const rr = sim.rng(run * 17 + 3);
+        const mp = OBJ.map(() => rr.int(4));
+        const locks = sim.range(L).map(() => { const a = rr.int(6); let b = rr.int(5); if (b >= a) b++; return [a, b]; });
+        [0, 1, 2].forEach((ag) => {
+          const known = OBJ.map(() => ({ ok: -1, no: new Set() }));
+          locks.forEach((lk, li) => {
+            const loc = lk.map(() => ({ ok: -1, no: new Set() }));
+            let n = 0, ok = false;
+            while (!ok && n < CAP) {
+              n++;
+              const pick = lk.map((t, i) => {
+                const k = ag === 2 ? known[t] : loc[i];
+                if (ag > 0 && k.ok >= 0) return k.ok;
+                const cand = sim.range(4).filter((s2) => ag === 0 || !k.no.has(s2));
+                return cand[rr.int(cand.length)];
+              });
+              const res = lk.map((t, i) => pick[i] === mp[t]);
+              lk.forEach((t, i) => { const k = ag === 2 ? known[t] : loc[i]; if (res[i]) k.ok = pick[i]; else k.no.add(pick[i]); });
+              ok = res[0] && res[1];
+            }
+            out[ag][li] += n;
+          });
+        });
+      }
+      autoRes = out.map((a) => a.map((v) => v / RUNS));
+      render('에이전트 셋을 자물쇠 15개짜리 가족에서 300번씩 돌렸다. 기억이 없으면 자물쇠마다 평균 ' + sim.mean(autoRes[0]).toFixed(1) + '번(20번에서 끊음), 같은 자물쇠 안에서만 기억하면 평균 ' + sim.mean(autoRes[1]).toFixed(1) + '번, 오답 노트로 자물쇠 사이에 기억을 옮기면 15번째 자물쇠에서 ' + autoRes[2][14].toFixed(2) + '번까지 떨어진다.');
+    }
+    function render(text) {
+      if (text != null) msg.innerHTML = text;
+      lockEl.innerHTML = '';
+      lock.forEach((t, i) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;align-items:center';
+        row.innerHTML = '<span class="chip" style="border-color:var(--c' + (t + 1) + ');color:var(--c' + (t + 1) + ');min-width:4.5em;justify-content:center">' + OBJ[t] + '</span>';
+        SYM.forEach((sy, k) => {
+          const b = ui.button(row, sy, () => { if (opened) return; sel[i] = k; render(); });
+          b.setAttribute('aria-pressed', String(sel[i] === k));
+          b.setAttribute('aria-label', OBJ[t] + ' 다이얼에 ' + sy);
+          b.style.minWidth = '2.6em';
+          b.style.fontSize = 'var(--fs-md)';
+        });
+        lockEl.appendChild(row);
+      });
+      openB.disabled = opened;
+      nextB.disabled = !opened;
+      if (noteCb.get()) {
+        const lines = OBJ.map((o, t) => {
+          const f = facts[t];
+          if (f.ok >= 0) return '<li><strong>' + o + '</strong>: ' + SYM[f.ok] + ' (확인됨)</li>';
+          if (f.no.size) return '<li><strong>' + o + '</strong>: ' + [...f.no].map((k) => SYM[k]).join(' ') + ' 아님</li>';
+          return '';
+        }).filter(Boolean);
+        note.innerHTML = '<span class="label">오답 노트</span>' + (lines.length ? '<ul style="margin:0;padding-left:1.2em">' + lines.join('') + '</ul>' : '아직 기록이 없다. 한 번 시도하면 맞은 것과 틀린 것이 여기에 적힌다.');
+      } else {
+        note.innerHTML = '<span class="label">오답 노트</span>노트가 꺼져 있다. 지금까지 알아낸 것을 기억만으로 떠올려 보자.';
+      }
+      st.set('cur', tries);
+      st.set('on', rec.on.length ? sim.mean(rec.on).toFixed(2) + ' (' + rec.on.length + '개)' : '–');
+      st.set('off', rec.off.length ? sim.mean(rec.off).toFixed(2) + ' (' + rec.off.length + '개)' : '–');
+      const xs = sim.range(15).map((i) => i + 1);
+      const series = [];
+      if (autoRes) {
+        series.push({ name: '에이전트: 기억 없음', color: 'c4', data: xs.map((x, i) => [x, autoRes[0][i]]) });
+        series.push({ name: '에이전트: 같은 자물쇠 안에서만 기억 (Reflexion식)', color: 'c2', data: xs.map((x, i) => [x, autoRes[1][i]]) });
+        series.push({ name: '에이전트: 오답 노트 (자물쇠 사이 기억)', color: 'c1', data: xs.map((x, i) => [x, autoRes[2][i]]) });
+      }
+      const on = mine.filter((m) => m[2] === 'on' && m[0] <= 15), off = mine.filter((m) => m[2] === 'off' && m[0] <= 15);
+      series.push({ name: '나: 노트 보며', color: 'c3', type: 'scatter', r: 5, data: on.length ? on.map((m) => [m[0], m[1]]) : [[NaN, NaN]] });
+      series.push({ name: '나: 노트 없이', color: 'c5', type: 'scatter', r: 5, data: off.length ? off.map((m) => [m[0], m[1]]) : [[NaN, NaN]] });
+      chart.update({ series });
+    }
+    newFamily();
+    compare();
+    render('자물쇠 1번. 두 다이얼의 기호를 고르고 "열기"를 누르자. 아래 그래프는 에이전트 셋을 미리 돌려 본 결과다.');
+  }
+
   /* ---------- 반성 기억 vs 스킬 라이브러리 ---------- */
   function mountMem(el) {
     const p = ui.panel(el, { kind: 'SIM', title: '과제 가족에서의 기억: 반성(과제 내) vs 스킬 라이브러리(과제 간)',
-      caption: R`과제 80개를 차례로 푼다. 각 과제는 서로 다른 스킬 $m$개의 조합이고, 한 시도는 모든 스킬이 성공해야 성공한다(스킬 성공 확률 $p$). 과제당 최대 10회 시도. 반성: 실패 후 정확도 $a$로 실패한 스킬을 짚어 그 과제 안에서 고친다(성공률 0.95), 틀리게 짚으면 효과 없음. 스킬 라이브러리: 성공한 과제의 스킬을 검증된 코드로 저장해 이후 모든 과제에서 성공률 0.98로 재사용. 과제 순서 40개를 평균한다.` });
+      caption: R`스킬 종류 수와 반성 정확도 슬라이더를 움직이며, 네 선이 얼마나 빨리 "1회 시도"로 내려오는지 보라. 과제 80개를 차례로 푼다. 각 과제는 서로 다른 스킬 $m$개의 조합이고, 한 시도는 모든 스킬이 성공해야 성공한다(스킬 성공 확률 $p$). 과제당 최대 10회 시도. 반성: 실패 후 정확도 $a$로 실패한 스킬을 짚어 그 과제 안에서 고친다(성공률 0.95), 틀리게 짚으면 효과 없음. 스킬 라이브러리: 성공한 과제의 스킬을 검증된 코드로 저장해 이후 모든 과제에서 성공률 0.98로 재사용. 과제 순서 40개를 평균한다.` });
     const ctr = ui.row(p.body);
     const pS = ui.slider(ctr, { label: R`스킬 기본 성공률 $p$`, min: 0.3, max: 0.9, step: 0.05, value: 0.6, format: ui.fmt.f(2), onInput: run });
     const aS = ui.slider(ctr, { label: R`반성의 원인 지목 정확도 $a$`, min: 0, max: 1, step: 0.05, value: 0.7, format: ui.fmt.f(2), onInput: run });

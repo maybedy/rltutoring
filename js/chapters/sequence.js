@@ -10,6 +10,17 @@
     level: '중급',
     prereq: ['offline'],
     theses: ['T9', 'T6'],
+    easy: {
+      hook: '"이번 판은 10점을 받고 싶어"라고 주문하면, 과거에 그 점수를 받았던 판들이 하던 행동을 따라 하는 방식이다.',
+      intro: '<p>게임 플레이 기록이 잔뜩 있고, 판마다 최종 점수가 적혀 있다고 하자. "남은 시간 동안 10점을 더 따려면 지금 뭘 해야 하지?"를 기록에서 찾는다. 비슷한 순간에 실제로 10점을 더 딴 판들이 그때 무엇을 했는지 보고 따라 하면 된다.</p><p>이 방식은 아주 단순하고 안정적이다. 대신 함정이 두 개 있다. 기록에 없는 점수를 주문하면 따라 할 판이 없다. 그리고 운이 좋아서 높은 점수를 받은 판을 따라 하면, 행동은 따라 할 수 있어도 운은 따라 할 수 없다.</p>',
+      analogy: '복권 1등 당첨자들의 공통점은 "복권을 샀다"이다. 당첨자를 따라 하면 복권을 사게 되지만, 그렇다고 당첨되지는 않는다. 결과를 조건으로 걸고 따라 하는 방법은 이렇게 결과와 원인을 혼동할 수 있다. 운이 없는 세상(같은 행동이면 항상 같은 결과)에서는 이 문제가 사라진다.',
+      path: ['"앞으로 받을 점수"(리턴-투-고)를 작은 점수표로 직접 계산한다', '원하는 점수를 직접 주문해 보고, 기록보다 높은 점수를 주문하면 어떻게 되는지 본다', '운이 섞인 세상에서 왜 오히려 손해를 보는지 시뮬레이터로 확인한다', '학습 과정 자체를 따라 하는 Algorithm Distillation과 LLM의 연결을 본다'],
+      recap: [
+        '플레이 기록을 문장처럼 보고, "앞으로 받을 점수"를 앞에 적어 둔 뒤 그 점수를 냈던 행동을 따라 한다.',
+        '기록에 있던 점수까지는 원하는 대로 받지만, 기록보다 높은 점수는 만들어 내지 못한다.',
+        '운이 결과를 좌우하는 곳에서는 운 좋았던 행동을 따라 하게 되어 손해를 본다. 이때는 평균을 따지는 가치 기반 방법이 맞다.',
+      ],
+    },
     goals: [
       'Decision Transformer의 입력(리턴-투-고, 상태, 행동)과 학습·추론 절차를 설명할 수 있다.',
       '리턴 조건부 정책이 베이즈 규칙으로 행동 정책을 재가중한 것임을 유도하고, 확률적 환경에서 실패하는 이유를 설명할 수 있다.',
@@ -39,6 +50,7 @@
 </svg></div></div>
 <div data-w="fx-dt"></div>
 <p>학습은 순수한 지도학습이다. 데이터 궤적마다 리턴-투-고(RTG)를 계산해 끼워 넣고 행동의 음의 로그우도(연속 행동이면 MSE)를 최소화한다. 추론할 때는 첫 RTG에 <strong>원하는 목표 리턴</strong>을 넣고, 보상을 받을 때마다 $\hat R_{t+1} = \hat R_t - r_t$로 깎아 나간다. "앞으로 이만큼 더 받고 싶다"는 명령을 매 스텝 갱신하는 셈이다.</p>
+<div data-w="step-rtg"></div>
 <div class="key"><span class="label">무엇이 사라졌나</span>벨만 백업, 부트스트랩, $\max$ 연산, 타깃 네트워크가 모두 없다. 그래서 Deadly Triad(T8)와 외삽 착취(15장)가 원천적으로 없다. 대신 보상 정보는 <strong>조건 토큰</strong>으로만 들어간다. 이 선택의 대가가 아래에서 드러난다.</div>
 
 <h2>리턴 조건화는 베이즈 재가중이다</h2>
@@ -47,6 +59,8 @@
 
 <h2>시뮬레이터: 목표 리턴과 실제 리턴</h2>
 <p>5 스텝짜리 단순 과제다. 매 스텝 세 행동 중 하나를 고른다. <strong>안전</strong>은 항상 +1, <strong>대기</strong>는 0, <strong>도박</strong>은 확률 $q$로 +3, 아니면 −2이다. 행동 정책(무작위)으로 모은 오프라인 데이터로 <em>비모수적 Decision Transformer</em>를 만든다. 시점 $t$에서 RTG가 현재 $\hat R_t$에 가장 가까운 데이터 스텝들의 행동 분포를 그대로 정책으로 쓴다. 이것은 무한한 용량의 DT가 수렴할 정책 $p_{\mathcal D}(a\mid t, \hat R)$을 표로 구현한 것이다. 목표 리턴을 바꿔 가며 실제로 롤아웃해 평균 달성 리턴을 잰다.</p>
+<p>먼저 직접 점수를 주문해 보자. 아래 판의 규칙은 바로 위 문단과 같다.</p>
+<div data-w="try-order"></div>
 <div data-w="rcbc-sim"></div>
 <ul>
   <li><strong>결정적 환경 ($q = 1$):</strong> 달성 리턴이 대각선 $y = x$를 따라간다. 데이터에 있는 리턴 범위 안에서는 "원하는 만큼" 받는다. 데이터 최댓값을 넘는 목표는 그 최댓값에서 포화한다. 데이터 밖의 결과를 만들어 내지는 못한다.</li>
@@ -110,6 +124,7 @@
     mount: {
       'fx-dt': (el) => ui.formula(el, {
         title: 'Decision Transformer의 학습 목표',
+        say: '{E|기록에 있는 판들에서}, {ctx|"앞으로 받을 점수"와 지금까지의 상황·행동을 보고} {a|그때 실제로 한 행동}을 {pi|모델}이 맞히도록 학습한다. {R|앞으로 받을 점수}는 지금부터 끝까지 받은 점수를 모두 더한 값이다.',
         tex: String.raw`\min_\theta\; \tm{E}{\mathbb{E}_{\tau\sim\mathcal{D}}}\Big[\sum_{t}\, -\log \tm{pi}{\pi_\theta}\big(\tm{a}{a_t} \,\big|\, \tm{ctx}{\hat R_{\le t},\ s_{\le t},\ a_{<t}}\big)\Big],\qquad \tm{R}{\hat R_t = \textstyle\sum_{t'=t}^{T} r_{t'}}`,
         terms: [
           { id: 'E', sym: '\\mathbb{E}_{\\tau\\sim\\mathcal{D}}', label: '오프라인 데이터', desc: '고정된 궤적 데이터셋에서 뽑는다.', long: '환경과의 상호작용이 없다. 데이터에 나쁜 궤적과 좋은 궤적이 섞여 있어야 RTG 조건이 의미를 가진다. 전부 전문가 데이터라면 DT는 사실상 BC다.' },
@@ -121,6 +136,7 @@
       }),
       'dv-bayes': (el) => ui.derivation(el, {
         title: '리턴 조건부 정책 = 행동 정책의 베이즈 재가중',
+        easy: '"R점을 받고 싶다"를 조건으로 걸면, 원래 하던 행동 중 "그 뒤에 R점이 나왔던 비율"이 높은 행동이 더 자주 뽑힌다. 그런데 그 비율이 높다고 그 행동이 R점을 만들어 주는 것은 아니다. 운이 섞이면 둘이 달라진다.',
         steps: [
           { tex: String.raw`(s, a, G) \sim \mathcal{D}:\quad s \sim d^{\pi_\beta},\ \ a \sim \pi_\beta(\cdot|s),\ \ G \sim p(G \mid s, a)`, why: '데이터는 행동 정책 $\\pi_\\beta$가 만들었다. $G$는 그 시점 이후 실제로 받은 리턴(RTG)이며, 이후의 $\\pi_\\beta$ 행동과 환경의 무작위성 모두에 의존한다.' },
           { tex: String.raw`\pi_{\text{RC}}(a \mid s, R) := p_{\mathcal{D}}(a \mid s, G = R)`, why: '무한 용량, 무한 데이터의 리턴 조건부 BC가 수렴하는 정책.' },
@@ -131,6 +147,18 @@
         ],
       }),
       'rcbc-sim': mountRCBC,
+      'try-order': mountOrder,
+      'step-rtg': (el) => ui.walkthrough(el, {
+        title: '"앞으로 받을 점수"를 손으로 계산하기',
+        caption: '다섯 걸음 동안 받은 점수가 차례로 1, 0, 3, −1, 2라고 하자. 각 시점에서 "그때부터 끝까지 받을 점수의 합"(리턴-투-고)을 구해 보자. 칸에 답을 적고 "확인"을 누르면 계산식이 열린다.',
+        steps: [
+          { say: '맨 처음 시점에서는 앞으로 받을 점수를 전부 더하면 된다. 얼마일까?', ask: { answer: 5 }, calc: String.raw`\hat R_1 = 1 + 0 + 3 + (-1) + 2 = 5` },
+          { say: '두 번째 시점에서는 이미 받은 첫 점수 1을 빼면 된다. 얼마일까?', ask: { answer: 4 }, calc: String.raw`\hat R_2 = 5 - 1 = 4` },
+          { say: '같은 규칙으로 세 번째와 네 번째 시점도 구한다.', calc: String.raw`\hat R_3 = 4 - 0 = 4,\qquad \hat R_4 = 4 - 3 = 1` },
+          { say: '마지막 시점의 남은 점수는?', ask: { answer: 2 }, calc: String.raw`\hat R_5 = 1 - (-1) = 2`, note: '마지막 점수 2와 같다. 끝에서부터 거꾸로 더해도 같은 값이 나온다.' },
+          { say: '이제 실제로 쓸 때다. 목표 6점을 주문하고 시작했는데 첫 걸음에서 1점을 받았다. 모델에게 넘길 다음 목표는?', ask: { answer: 5 }, calc: String.raw`\hat R_{\text{다음}} = 6 - 1 = 5`, note: '학습 때 기록의 남은 점수가 이 규칙을 정확히 따르므로, 쓸 때도 받은 점수만큼 목표를 깎아 나간다.' },
+        ],
+      }),
     },
     tacit: [
       { tag: 'math', t: '"필터링 BC"는 하나의 가족이다',
@@ -195,8 +223,97 @@
     return c.map((x) => x / z);
   }
 
+  /* ---------- TRY: 점수를 주문해 보기 ---------- */
+  function mountOrder(el) {
+    const p = ui.panel(el, { kind: 'TRY', title: '점수를 주문해 보기', caption: '받고 싶은 총점을 칸에 적고 "주문하고 한 판"을 누르자. 아래 기록에 각 걸음에서 무엇을 따라 했는지가 나온다. 기록 최고 점수보다 높게도 주문해 보고, 세상을 "운이 큰 세상"으로 바꿔서도 해 보라.' });
+    const worlds = {
+      '1': { label: '운이 없는 세상 (도박이 항상 +3)', q: 1 },
+      '0.3': { label: '운이 큰 세상 (도박은 30%로 +3, 아니면 −2)', q: 0.3 },
+    };
+    let wk = '1';
+    const data = {};
+    Object.keys(worlds).forEach((k) => {
+      const d = makeDataset(1, 1000, [1 / 3, 1 / 3, 1 / 3], worlds[k].q);
+      data[k] = { ix: buildIndex(d), max: Math.max(...d.map((x) => x.G)), mean: sim.mean(d.map((x) => x.G)) };
+    });
+    const ctr = ui.row(p.body);
+    ui.select(ctr, { label: '세상', value: wk, options: Object.keys(worlds).map((k) => ({ value: k, label: worlds[k].label })), onChange: (v) => { wk = v; avg = null; last = null; upd(); } });
+    const id = ui.nextId('order');
+    const inp = ui.h('input', { id, class: 'inp', type: 'text', inputmode: 'decimal', autocomplete: 'off', value: '8', style: 'width:6em' });
+    const inWrap = ui.h('div', { class: 'ctl' }, ui.h('label', { for: id }, ui.h('span', { text: '주문할 총점' })), inp);
+    ctr.appendChild(inWrap);
+    const btns = ui.row(p.body, 'btns');
+    ui.button(btns, '주문하고 한 판', () => play(1), { primary: true });
+    ui.button(btns, '같은 주문으로 50판 평균', () => play(50));
+    [3, 8, 15, 20].forEach((v) => ui.button(btns, v + '점 주문', () => { inp.value = String(v); play(1); }));
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') play(1); });
+    const st = ui.stats(p.body, [
+      { key: 'max', label: '기록 속 최고 점수' },
+      { key: 'ord', label: '주문한 점수', tone: 'accent' },
+      { key: 'got', label: '이번 판에 받은 점수', tone: 'signal' },
+      { key: 'avg', label: '50판 평균' },
+      { key: 'safe', label: '참고: 매번 "안전"만 고르면' },
+    ]);
+    const fb = document.createElement('div');
+    fb.className = 'fx-detail';
+    const log = document.createElement('div');
+    log.className = 'log';
+    p.body.append(fb, log);
+    const r = sim.rng(9);
+    let last = null, avg = null;
+    const pct = (x) => Math.round(x * 100) + '%';
+    function episode(T, verbose) {
+      const { ix } = data[wk];
+      const q = worlds[wk].q;
+      let Rh = T, G = 0;
+      const lines = [];
+      for (let t = 0; t < H; t++) {
+        const pol = rcPolicy(ix, t, Rh);
+        const a = r.choice(pol);
+        const rw = envStep(r, a, q);
+        if (verbose) lines.push((t + 1) + '걸음: 남은 목표 ' + Rh + ' → 기록 속 비슷한 순간의 행동: 안전 ' + pct(pol[0]) + ' · 도박 ' + pct(pol[1]) + ' · 대기 ' + pct(pol[2]) + ' → "' + ACT[a].split(' ')[0] + '" → ' + (rw >= 0 ? '+' : '') + rw + '점 → 남은 목표 ' + (Rh - rw));
+        Rh -= rw; G += rw;
+      }
+      return { G, lines };
+    }
+    function play(n) {
+      const T = Number(String(inp.value).replace(/[^0-9.\-]/g, ''));
+      if (!Number.isFinite(T)) { fb.textContent = '숫자로 적어 주세요. 예: 8'; return; }
+      const e = episode(T, true);
+      last = { T, G: e.G, lines: e.lines };
+      if (n > 1) {
+        let tot = e.G;
+        for (let i = 1; i < n; i++) tot += episode(T, false).G;
+        avg = { T, v: tot / n };
+      } else if (!avg || avg.T !== T) avg = null;
+      upd();
+    }
+    function upd() {
+      const D = data[wk];
+      st.set('max', D.max);
+      st.set('safe', H + '점 (항상 +1 × ' + H + '걸음)');
+      if (!last) {
+        st.set('ord', '–'); st.set('got', '–'); st.set('avg', '–');
+        fb.textContent = '칸에 원하는 총점을 적거나 아래 버튼(3점, 8점, 15점, 20점)을 눌러 주문해 보자.';
+        log.textContent = '';
+        return;
+      }
+      st.set('ord', last.T);
+      st.set('got', last.G);
+      st.set('avg', avg ? avg.v.toFixed(2) + ' (주문 ' + avg.T + ')' : '버튼으로 확인');
+      log.textContent = last.lines.join('\n');
+      let msg;
+      if (last.T > D.max) msg = '기록 속 최고 점수(' + D.max + ')보다 높게 주문했다. 따라 할 판이 없으니 가장 가까운 기록을 따라 하고, 그 이상은 받지 못한다.';
+      else if (worlds[wk].q === 1) msg = '운이 없는 세상에서는 기록 속에 그 점수를 받은 판이 있으면 그 행동을 그대로 따라 해 주문한 점수를 거의 정확히 받는다.';
+      else msg = '운이 큰 세상이다. 높은 점수를 주문하면 "도박에서 이긴 판"을 따라 해 도박을 고르게 되는데, 도박은 평균적으로 손해(+3 × 0.3 − 2 × 0.7 = −0.5)다. 50판 평균을 눌러 "매번 안전"(5점)과 비교해 보자.';
+      if (avg && worlds[wk].q !== 1 && avg.v < H) msg += ' 지금 주문의 50판 평균 ' + avg.v.toFixed(2) + '점은 매번 안전만 골랐을 때의 5점보다 낮다.';
+      fb.textContent = msg;
+    }
+    upd();
+  }
+
   function mountRCBC(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: '비모수적 Decision Transformer: 목표 리턴 대비 달성 리턴', caption: '목표 리턴마다 300회 롤아웃한 평균 달성 리턴(파랑). 점선 대각선은 "목표대로 달성", 주황선은 진짜 최적 기대 리턴, 초록선은 같은 데이터로 행동별 평균 보상을 추정해 탐욕 선택한 가치 기반 정책, 보라선은 상위 10% 필터링 BC다.' });
+    const p = ui.panel(el, { kind: 'SIM', title: '비모수적 Decision Transformer: 목표 리턴 대비 달성 리턴', caption: 'q 슬라이더를 1(운이 없는 세상)과 0.3(운이 큰 세상) 사이에서 움직이며, 파란 선이 점선 대각선을 따라가는지 아니면 아래로 꺾이는지 보라. 파란 선은 목표 리턴마다 300회 롤아웃한 평균 달성 리턴이다. 점선 대각선은 "목표대로 달성", 주황선은 진짜 최적 기대 리턴, 초록선은 같은 데이터로 행동별 평균 보상을 추정해 탐욕 선택한 가치 기반 정책, 보라선은 상위 10% 필터링 BC다.' });
     const ctr = ui.row(p.body);
     const qS = ui.slider(ctr, { label: '도박 성공 확률 q', min: 0.1, max: 1, step: 0.05, value: 0.3, format: ui.fmt.f(2), onInput: rebuild });
     const nS = ui.slider(ctr, { label: '데이터 궤적 수', min: 100, max: 3000, step: 100, value: 1000, format: ui.fmt.int, onInput: rebuild });
