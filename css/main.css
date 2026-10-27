@@ -358,7 +358,7 @@ a.chip:hover { border-color: var(--accent); color: var(--accent); }
 .thesis-box .label { color: var(--accent); }
 
 /* tables */
-.table-wrap { overflow-x: auto; margin: 1.2em 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.table-wrap { position: relative; overflow-x: auto; margin: 1.2em 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
 table.t { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); line-height: 1.55; }
 table.t th, table.t td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
 table.t th { font-weight: 600; color: var(--muted); font-size: var(--fs-xs); letter-spacing: 0.04em; text-transform: uppercase; background: var(--surface-2); white-space: nowrap; }
@@ -417,7 +417,7 @@ table.t td.num { font-variant-numeric: tabular-nums; text-align: right; }
 .ctl label, .ctl .ctl-l { font-size: var(--fs-xs); color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
 .ctl output, .ctl .v { font-family: var(--font-mono); color: var(--ink); font-variant-numeric: tabular-nums; }
 .ctl input[type="range"] { width: 100%; accent-color: var(--accent); margin: 4px 0 0; }
-.ctl select { font: inherit; font-size: var(--fs-sm); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.ctl select { width: 100%; min-width: 0; font: inherit; font-size: var(--fs-sm); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
 .btns { display: flex; flex-wrap: wrap; gap: 8px; }
 .btn {
   appearance: none;
@@ -546,7 +546,7 @@ table.t td.num { font-variant-numeric: tabular-nums; text-align: right; }
 
 /* plots */
 .plot { width: 100%; position: relative; }
-.plot svg { display: block; width: 100%; height: auto; overflow: visible; }
+.plot > svg { display: block; width: 100%; height: auto; overflow: visible; }
 .plot .axis line, .plot .axis path { stroke: var(--line); }
 .plot .tick text, .plot .ax-label { fill: var(--muted); font-size: 11px; font-family: var(--font-mono); }
 .plot .ax-label { font-family: var(--font-body); font-size: 12px; }
@@ -581,7 +581,7 @@ table.t td.num { font-variant-numeric: tabular-nums; text-align: right; }
 
 /* grid world */
 .gw { width: 100%; }
-.gw svg { display: block; width: 100%; height: auto; }
+.gw > svg { display: block; width: 100%; height: auto; }
 .gw .cell { stroke: var(--line); stroke-width: 1; }
 .gw .wall { fill: var(--wall); }
 .gw .val { font-family: var(--font-mono); font-size: 11px; fill: var(--ink); text-anchor: middle; dominant-baseline: central; }
@@ -714,3 +714,9 @@ table.t td.num { font-variant-numeric: tabular-nums; text-align: right; }
 .tacit-group h3 .no { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--accent); }
 .filter-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 1em 0; }
 .w-body .filter-row { margin: 0; }
+
+/* shared helpers suggested during chapter writing */
+.diagram { overflow-x: auto; position: relative; }
+.diagram > svg { display: block; min-width: 560px; width: 100%; height: auto; }
+.inp { font: inherit; font-size: var(--fs-sm); padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); min-width: 0; }
+.inp:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }

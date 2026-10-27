@@ -261,9 +261,9 @@ $$r_t = -\beta\log\frac{\pi_\theta(y_t|x,y_{\lt t})}{\pi_{\text{ref}}(y_t|x,y_{\
     ui.button(btns, '다른 배치 20개', () => { seed += 20; run(); }, { primary: true });
     const st = ui.stats(p.body, [
       { key: 'j0', label: '시작 $J(\\pi_{\\text{old}})$' },
-      { key: 'is', label: '비율만: 최종 J / KL', tone: 'accent' },
-      { key: 'clip', label: 'clip: 최종 J / KL', tone: 'signal' },
-      { key: 'kl', label: 'KL 페널티: 최종 J / KL' },
+      { key: 'is', label: '<span class="col-c4">●</span> 비율만: 최종 J / KL' },
+      { key: 'clip', label: '<span class="col-c1">●</span> clip: 최종 J / KL' },
+      { key: 'kl', label: '<span class="col-c3">●</span> KL 페널티: 최종 J / KL' },
       { key: 'sd', label: '최종 σ (비율 / clip / KL)' },
     ]);
     const c1 = document.createElement('div');
