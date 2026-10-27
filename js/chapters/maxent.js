@@ -428,7 +428,7 @@ $$J(\alpha) = \mathbb{E}_{a\sim\pi}\big[-\alpha\,(\log\pi(a|s) + \bar{\mathcal{H
     const names = ['한식당', '국숫집', '샐러드바', '패스트푸드'];
     const listed = [4.5, 4.3, 3.8, 2.0];
     const ctr = ui.row(p.body);
-    const aS = ui.slider(ctr, { label: '온도 $\\alpha$ (모험심)', min: 0.02, max: 3, step: 0.01, value: 0.3, format: ui.fmt.f(2), onInput: () => { drawProbs(); curve.update({ vlines: [{ x: aS.get(), label: '지금 온도' }] }); } });
+    const aS = ui.slider(ctr, { label: '온도 $\\alpha$ (모험심)', min: 0.02, max: 3, step: 0.01, value: 0.3, format: ui.fmt.f(2), onInput: () => { drawProbs(); curve.update({ vlines: [{ x: aS.get(), label: '지금' }] }); } });
     const gem = ui.checkbox(ctr, { label: '사실 국숫집이 숨은 맛집(실제 4.8점)이라면', value: false, onChange: () => { drawCurve(); month(); } });
     const btns = ui.row(p.body, 'btns');
     let seed = 1;
@@ -447,7 +447,7 @@ $$J(\alpha) = \mathbb{E}_{a\sim\pi}\big[-\alpha\,(\log\pi(a|s) + \bar{\mathcal{H
     msg.className = 'fx-detail';
     p.body.append(split, msg);
     const bars = plot.bars(left, { categories: names, series: [], height: 220, y: { min: 0, max: 1, label: '고를 확률' }, labels: true, labelFmt: (v) => Math.round(v * 100) + '%' });
-    const curve = plot.line(right, { height: 220, x: { label: '온도 α', min: 0, max: 3 }, y: { label: '한 달 평균 만족도 (300달 평균)' }, series: [] });
+    const curve = plot.line(right, { height: 220, x: { label: '온도 α', min: 0, max: 3 }, y: { label: '평균 만족도' }, series: [] });
     const probs = (bel, a) => sim.softmax(bel.map((x) => x / a));
     function simMonth(alpha, hidden, r) {
       const bel = listed.slice();
@@ -480,7 +480,7 @@ $$J(\alpha) = \mathbb{E}_{a\sim\pi}\big[-\alpha\,(\log\pi(a|s) + \bar{\mathcal{H
       const best = data.reduce((b, x) => (x[1] > b[1] ? x : b), data[0]);
       curve.update({
         series: [{ name: hidden ? '숨은 맛집이 있을 때' : '평점이 정확할 때', color: hidden ? 'c3' : 'c2', data, markers: true }],
-        vlines: [{ x: aS.get(), label: '지금 온도' }],
+        vlines: [{ x: aS.get(), label: '지금' }],
         hlines: [{ y: best[1], label: '최고 ' + best[1].toFixed(2) + ' (α ≈ ' + best[0] + ')' }],
       });
     }

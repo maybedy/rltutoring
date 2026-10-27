@@ -514,8 +514,11 @@ $$v_s = V(s_s) + \sum_{t\ge s}\gamma^{t-s}\Big(\prod_{i=s}^{t-1}c_i\Big)\rho_t\,
     ]);
     const log = document.createElement('div');
     log.className = 'log';
-    right.appendChild(log);
-    const bars = plot.bars(left, { categories: ACT.map((a) => a.name), series: [], height: 200, y: { min: 0, max: 1, label: '확률' }, labels: true, labelFmt: (v) => Math.round(v * 100) + '%', legend: false });
+    const tip = document.createElement('p');
+    tip.className = 'w-caption';
+    tip.innerHTML = '해 볼 것: 예상을 3으로 올려 놓고 몇 번 뛰어 보라. 무엇을 하든 실망(음수 놀람)만 나와서, 선수가 방금 한 행동을 계속 줄이며 오락가락한다. 예상을 1 근처로 두면 놀람의 부호가 행동의 좋고 나쁨을 가려 준다. "코치도 배운다"를 켜면 예상이 평균 점수 쪽으로 스스로 움직인다.';
+    right.append(log, tip);
+    const bars = plot.bars(left, { categories: ACT.map((a) => a.name), series: [], height: 200, y: { min: 0, max: 1 }, labels: true, labelFmt: (v) => Math.round(v * 100) + '%', legend: false });
     function play() {
       const ps = sim.sigmoid(th);
       const a = r() < ps ? 1 : 0;
@@ -542,7 +545,7 @@ $$v_s = V(s_s) + \sum_{t\ge s}\gamma^{t-s}\Big(\prod_{i=s}^{t-1}c_i\Big)\rho_t\,
       st.set('v', vS.get().toFixed(2));
       const recent = hist.slice(-20);
       st.set('avg', recent.length ? sim.mean(recent).toFixed(2) : '–');
-      log.textContent = lines.length ? lines.join('\n') : '아직 뛰지 않았다. 예상을 3으로 올려 놓고 몇 번 뛰어 보라. 무엇을 하든 실망(음수 놀람)만 나와서 선수가 방금 한 행동을 계속 줄인다. 예상을 1 근처로 두면 놀람의 부호가 행동의 좋고 나쁨을 가려 준다.';
+      log.textContent = lines.length ? lines.join('\n') : '아직 뛰지 않았다. 뛸 때마다 기록이 여기에 쌓인다.';
       if (!plays) msg.innerHTML = '선수는 패스와 슛을 반반 확률로 한다. 슛은 성공률이 낮지만 평균 점수가 조금 더 높다.';
     }
     draw();

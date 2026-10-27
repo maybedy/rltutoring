@@ -10,6 +10,17 @@
     level: '중급 · 핵심',
     prereq: ['td'],
     theses: ['T8', 'T1', 'T6'],
+    easy: {
+      hook: '칸이 너무 많으면 칸마다 숫자를 따로 적을 수 없어서, 비슷한 칸끼리 숫자를 나눠 쓴다. 이 나눠 쓰기가 빠른 학습의 비결이자 폭주의 원인이다.',
+      intro: '<p>바둑판 배치는 우주의 원자 수보다 많아서 칸마다 숫자를 적을 수 없다. 그래서 상황을 몇 가지 특징(예: "목표까지 거리", "벽 근처인가")으로 묘사하고, <strong>특징마다 가중치 하나</strong>를 둔다. 상황의 가치는 "특징 × 가중치"를 더한 값이다.</p><p>이렇게 하면 한 상황을 배울 때 비슷한 상황도 같이 좋아진다(일반화). 그런데 어떤 상황은 계속 올리기만 하고 아무도 교정하지 않으면, 나눠 쓰는 가중치를 타고 숫자가 끝없이 커질 수 있다.</p>',
+      analogy: '두 사람이 숫자 하나를 같이 쓰는 메모를 생각하자. A의 점수는 "B 점수의 0.9배쯤"이라고 고치는데, B의 점수는 그 숫자의 두 배로 정해져 있고 아무도 B를 직접 확인하지 않는다. A를 올리면 B도 올라가고, B가 올라가니 A의 목표가 또 올라간다. 남이 모은 경험으로 배우고(off-policy), 어림짐작으로 어림짐작을 고치고(부트스트랩), 숫자를 나눠 쓰는(함수근사) 세 가지가 모이면 이렇게 폭주한다.',
+      path: ['한 칸을 올렸을 때 특징을 나눠 쓰는 이웃 칸이 같이 움직이는 것을 직접 본다', 'TD를 함수에 쓰면 무엇이 "반쪽 경사"가 되는지 본다', '두 칸짜리 예제에서 숫자가 폭주하는 과정을 손으로 계산한다', 'Baird의 반례와 처방들을 본다'],
+      recap: [
+        '상황이 많으면 비슷한 상황끼리 숫자를 나눠 쓰고, 그 덕분에 한 번 배운 것이 이웃에게도 퍼진다.',
+        '그런데 어림짐작으로 어림짐작을 고치면서 남이 모은 데이터로 배우면, 아무도 교정하지 않는 칸이 나눠 쓰는 숫자를 타고 계속 커질 수 있다.',
+        '세 가지 중 하나를 빼거나(실제 결과 쓰기, 내 경험으로 배우기, 나눠 쓰지 않기), 목표를 잠시 고정하고 숫자의 크기를 묶어 두는 처방으로 다스린다.',
+      ],
+    },
     goals: [
       '선형 가치 근사에서 semi-gradient TD를 유도하고, 그것이 어떤 목적함수의 경사도 아닌 이유를 설명할 수 있다.',
       'TD 고정점이 투영된 벨만 방정식 $\\hat v = \\Pi\\mathcal{T}^\\pi\\hat v$의 해라는 것과 on-policy에서만 수렴이 보장되는 이유를 말할 수 있다.',
@@ -17,6 +28,8 @@
     ],
     html: String.raw`
 <p>상태가 바둑판 배치나 이미지처럼 많아지면 표를 쓸 수 없다. 가치 함수를 파라미터 $w\in\mathbb{R}^d$를 가진 함수 $\hat v(s,w)$로 근사해야 한다. 이때 두 가지가 동시에 생긴다. 한 상태의 업데이트가 비슷한 상태들까지 바꾸는 <strong>일반화</strong>, 그리고 그 일반화가 부트스트랩과 엉키면서 생기는 <strong>불안정성</strong>이다. 이 장은 가장 단순한 선형 근사 $\hat v(s,w) = w^\top x(s)$로 둘 다를 정확히 본다.</p>
+<p>먼저 손으로 느껴 보자. 아래에서 칸 하나를 눌러 값을 올리면, 특징을 나눠 쓰는 이웃 칸이 함께 움직인다.</p>
+<div data-w="try-share"></div>
 
 <h2>목표: 가치 오차와 경사 몬테카를로</h2>
 <p>상태 분포 $\mu$로 가중한 평균 제곱 가치 오차를 줄이고 싶다.</p>
@@ -55,6 +68,7 @@ $$y^\top D(I-\gamma P^\pi)y \;\ge\; \|y\|_D^2 - \gamma\|y\|_D\|P^\pi y\|_D \;\ge
 <p>이 성립해 $A$가 양의 정부호가 된다. off-policy에서는 $D$가 행동 정책의 분포이고 $P^\pi$는 목표 정책의 전이이므로 이 보조정리가 깨진다. 업데이트되는 상태의 분포와 부트스트랩으로 참조되는 상태의 분포가 어긋나면, "참조만 되고 교정은 안 되는" 상태의 값이 일반화를 타고 계속 끌어올려진다.</p>
 
 <h3>가장 작은 발산 예: $w \to 2w$</h3>
+<div data-w="step-w2w"></div>
 <p>Sutton & Barto 11.1의 예다. 두 상태의 특징이 $x(s_1) = 1$, $x(s_2) = 2$라서 $\hat v(s_1) = w$, $\hat v(s_2) = 2w$다. 보상 0으로 $s_1 \to s_2$ 전이가 일어난다. 이 전이 하나만 업데이트하면</p>
 $$w \leftarrow w + \alpha\big(0 + \gamma\cdot 2w - w\big)\cdot 1 = \big(1 + \alpha(2\gamma - 1)\big)\,w$$
 <p>이므로 $\gamma > 0.5$이면 매번 1보다 큰 배율로 곱해져 발산한다. $s_2$의 값을 교정하는 업데이트가 없기 때문이다. on-policy라면 $s_2$를 방문했을 때 그 다음 전이(여기서는 종료, 보상 0)로도 업데이트가 일어나 $w \leftarrow (1-4\alpha)w$가 곱해진다.</p>
@@ -92,6 +106,7 @@ $$w \leftarrow w + \alpha\big(0 + \gamma\cdot 2w - w\big)\cdot 1 = \big(1 + \alp
     mount: {
       'dv-semi': (el) => ui.derivation(el, {
         title: '경사 MC → semi-gradient TD → 기대 업데이트',
+        easy: '실제 총점 대신 "받은 점수 + 다음 상황의 예측"을 정답으로 쓰는데, 그 정답도 같은 가중치로 계산된다. TD는 정답 쪽도 가중치에 따라 변한다는 사실을 무시하고 예측 쪽만 고친다. 그래서 어떤 오차를 줄이는 진짜 경사 하강이 아니고, 조건이 나쁘면 맴돌거나 커질 수 있다.',
         steps: [
           { tex: String.raw`w \leftarrow w + \alpha\,\big[\,\hl{U_t} - \hat v(s_t,w)\,\big]\,\nabla_w\hat v(s_t,w)`, why: '타깃 $U_t$를 향한 SGD의 일반형. $U_t = G_t$(불편)이면 $\\overline{\\mathrm{VE}}$에 대한 진짜 확률적 경사다.' },
           { tex: String.raw`U_t = r_{t+1} + \gamma\,\hat v(s_{t+1}, \hl{w})`, why: 'TD는 타깃에 자기 추정을 쓴다. 이제 타깃이 $w$에 의존한다.' },
@@ -103,13 +118,26 @@ $$w \leftarrow w + \alpha\big(0 + \gamma\cdot 2w - w\big)\cdot 1 = \big(1 + \alp
       }),
       'fx-semi': (el) => ui.formula(el, {
         title: '선형 semi-gradient TD(0) 해부',
+        say: '{w|모든 상황이 나눠 쓰는 가중치}를, {tgt|"받은 점수 + 다음 상황의 예측(이번엔 고정된 숫자로 취급)"}과 {pred|지금 상황의 예측}의 차이만큼, {x|이 상황의 특징 방향}으로 {a|조금} 옮긴다.',
         tex: String.raw`\tm{w}{w} \leftarrow w + \tm{a}{\alpha}\,\Big[\,\tm{tgt}{r + \gamma\, \sg\!\big(w^\top x(s')\big)} - \tm{pred}{w^\top x(s)}\,\Big]\;\tm{x}{x(s)}`,
         terms: [
           { id: 'w', sym: 'w', label: '가중치', desc: '모든 상태가 공유하는 파라미터. 한 번의 업데이트가 모든 상태의 값을 바꾼다.' },
           { id: 'a', sym: '\\alpha', label: '스텝 크기', desc: '선형이면 $\\alpha\\|x\\|^2 \\lt 2$ 정도여야 한 샘플에서도 튀지 않는다.', long: '같은 특징이 반복해서 업데이트되면 LMS처럼 $\\alpha\\|x\\|^2$이 2를 넘을 때 진동 발산한다. 이것은 Deadly Triad와 별개의 스텝 크기 불안정성이다.' },
           { id: 'tgt', sym: "r + \\gamma\\,\\mathrm{sg}(\\hat v(s'))", label: '부트스트랩 타깃 (경사 차단)', desc: '자기 추정을 상수처럼 취급. sg = stop-gradient.', long: 'DQN 코드에서 타깃 계산에 <code>no_grad</code>/<code>detach</code>를 쓰는 바로 그 부분. 타깃 네트워크는 이 상수를 아예 오래된 파라미터로 계산한다.' },
           { id: 'pred', sym: '\\hat v(s)', label: '현재 예측', desc: '업데이트되는 쪽.' },
-          { id: 'x', sym: 'x(s)', label: '특징 벡터 = 경사', desc: '선형이면 $\\nabla_w\\hat v = x(s)$. 이 방향으로 모든 비슷한 상태가 함께 움직인다.' },
+          { id: 'x', sym: 'x(s)', label: '특징 벡터 = 경사', easy: '이 상황이 어떤 특징을 얼마나 가졌는지. 같은 특징을 가진 다른 상황도 함께 움직인다.', desc: '선형이면 $\\nabla_w\\hat v = x(s)$. 이 방향으로 모든 비슷한 상태가 함께 움직인다.' },
+        ],
+      }),
+      'try-share': mountShare,
+      'step-w2w': (el) => walk(el, {
+        title: '$w \\to 2w$를 숫자로 따라가기',
+        caption: '질문에 숫자를 넣고 "확인"을 누르라. 가중치 $w = 10$, 할인율 $\\gamma = 0.9$, 스텝 크기 $\\alpha = 0.1$에서 시작한다.',
+        steps: [
+          { say: '칸 A의 특징은 1, 칸 B의 특징은 2라서 A의 예측은 $w$, B의 예측은 $2w$다. 지금 $w = 10$이면 B의 예측은?', ask: { answer: 20 }, calc: String.raw`\hat v(A) = 1\times 10 = 10,\qquad \hat v(B) = 2\times 10 = 20` },
+          { say: 'A에서 B로 점수 0을 받고 넘어갔다. TD 목표값 = 0 + 0.9 × (B의 예측)은?', ask: { answer: 18, tol: 0.01 }, calc: String.raw`y = 0 + 0.9 \times 20 = 18` },
+          { say: 'TD 오차 = 목표값 − A의 예측은?', ask: { answer: 8, tol: 0.01 }, calc: String.raw`\delta = 18 - 10 = 8` },
+          { say: '$w$를 0.1 × 오차 × (A의 특징 1)만큼 옮긴다. 새 $w$는?', ask: { answer: 10.8, tol: 0.01 }, calc: String.raw`w \leftarrow 10 + 0.1 \times 8 \times 1 = 10.8` },
+          { say: 'A를 고쳤더니 $w$가 10에서 10.8로 커졌고, 그 바람에 B의 예측도 20에서 21.6으로 올랐다. 다음에 A를 고칠 때 목표값은 더 커진다. 이렇게 매번 1.08배씩 커지므로 끝이 없다. B를 실제 경험으로 교정해 주는 업데이트(on-policy)가 끼어들면 이 고리가 끊긴다.', calc: String.raw`w \leftarrow \big(1 + \alpha(2\gamma - 1)\big)\,w = 1.08\,w` },
         ],
       }),
       w2w: mountW2W,
@@ -139,9 +167,80 @@ $$w \leftarrow w + \alpha\big(0 + \gamma\cdot 2w - w\big)\cdot 1 = \big(1 + \alp
     ],
   });
 
+  /* ---------- 공용: 좁은 화면에서 단계 카드가 넘치지 않게 감싼 walkthrough ---------- */
+  function walk(el, o) {
+    ui.walkthrough(el, o);
+    el.querySelectorAll('.wk-step').forEach((li) => { li.style.minWidth = '0'; });
+  }
+
+  /* ---------- 체험: 일반화는 양날의 칼 ---------- */
+  function mountShare(el) {
+    const p = ui.panel(el, { kind: 'TRY', title: '한 칸을 가르치면 이웃도 배운다', caption: '아래 "칸" 버튼 하나를 눌러 그 칸의 값을 목표 쪽으로 반만큼 옮겨 보라. 그다음 "나눠 쓰는 정도"를 바꿔 같은 칸을 다시 눌러 보고, 이웃 칸이 얼마나 따라 움직이는지 비교하라.' });
+    const N = 8;
+    let mode = 'narrow', target = 1;
+    const ctr = ui.row(p.body);
+    ui.select(ctr, { label: '나눠 쓰는 정도', value: mode, options: [{ value: 'none', label: '나눠 쓰지 않음 (표)' }, { value: 'narrow', label: '바로 옆 칸과 조금' }, { value: 'wide', label: '여러 칸과 많이' }], onChange: (v) => { mode = v; reset(); draw('나눠 쓰는 정도를 바꿨다. 값이 모두 0으로 돌아갔다. 칸 하나를 눌러 보자.'); } });
+    ui.select(ctr, { label: '누른 칸을 어느 쪽으로', value: 1, options: [{ value: 1, label: '+1 쪽으로 올리기' }, { value: -1, label: '−1 쪽으로 내리기' }], onChange: (v) => { target = +v; } });
+    const cellRow = ui.row(p.body, 'btns');
+    for (let i = 0; i < N; i++) ui.button(cellRow, '칸 ' + i, () => teach(i, target, true), { primary: i === 3 });
+    const btns = ui.row(p.body, 'btns');
+    ui.button(btns, '실험: 칸 3은 +1, 칸 4는 −1로 번갈아 10번', fight);
+    ui.button(btns, '모두 0으로', () => { reset(); draw('모든 가중치를 0으로 되돌렸다.'); });
+    const chartEl = document.createElement('div');
+    const say = document.createElement('div');
+    say.className = 'fx-detail';
+    p.body.append(chartEl, say);
+    const chart = plot.bars(chartEl, { categories: sim.range(N).map((i) => String(i)), xLabel: '칸', series: [], height: 220, y: { min: -1.6, max: 1.6, label: '예측 가치' }, labels: el.clientWidth > 560, labelFmt: (v) => v.toFixed(2) });
+    let w, prev, lastCell = null;
+    const sig = () => (mode === 'none' ? 0 : mode === 'narrow' ? 0.8 : 1.6);
+    const feat = (s) => sim.range(N).map((j) => { const sg = sig(); return sg === 0 ? (j === s ? 1 : 0) : Math.exp(-((s - j) * (s - j)) / (2 * sg * sg)); });
+    const value = (s) => { const x = feat(s); let v = 0; for (let j = 0; j < N; j++) v += w[j] * x[j]; return v; };
+    const values = () => sim.range(N).map(value);
+    function reset() { w = new Array(N).fill(0); prev = values(); lastCell = null; }
+    function update(s, tgt) {
+      const x = feat(s);
+      const nn = sim.sum(x.map((v) => v * v));
+      const d = tgt - value(s);
+      for (let j = 0; j < N; j++) w[j] += (0.5 / nn) * d * x[j];
+    }
+    function teach(s, tgt, explain) {
+      prev = values();
+      update(s, tgt);
+      lastCell = s;
+      if (!explain) return;
+      const now = values();
+      const moved = sim.range(N).filter((i) => i !== s && Math.abs(now[i] - prev[i]) >= 0.01).map((i) => '칸 ' + i + ' ' + (now[i] - prev[i] >= 0 ? '+' : '') + (now[i] - prev[i]).toFixed(2));
+      let msg = '칸 ' + s + '를 ' + prev[s].toFixed(2) + ' → ' + now[s].toFixed(2) + '로 옮겼다. ';
+      msg += moved.length ? '같이 움직인 칸: <strong>' + moved.join(', ') + '</strong>. 칸 ' + s + '만 가르쳤는데 이웃도 배웠다. 이웃이 정말 비슷한 칸이라면 공짜로 배운 셈이고, 사실은 다른 칸이었다면 잘못 배운 것이다.' : '다른 칸은 하나도 움직이지 않았다. 표처럼 칸마다 숫자를 따로 쓰면 일반화가 없다. 대신 모든 칸을 하나하나 가르쳐야 한다.';
+      draw(msg);
+    }
+    function fight() {
+      reset();
+      for (let k = 0; k < 10; k++) { update(3, 1); update(4, -1); }
+      prev = new Array(N).fill(0);
+      lastCell = null;
+      const v = values();
+      const ok = Math.abs(v[3] - 1) < 0.1 && Math.abs(v[4] + 1) < 0.1;
+      let far = -1;
+      sim.range(N).forEach((i) => { if (i !== 3 && i !== 4 && (far < 0 || Math.abs(v[i]) > Math.abs(v[far]))) far = i; });
+      const sideNote = Math.abs(v[far]) >= 0.05 ? ' 한 번도 가르치지 않은 칸 ' + far + '의 값은 ' + v[far].toFixed(2) + '가 됐다.' : '';
+      draw('바로 옆의 두 칸에 반대 목표를 번갈아 10번씩 가르쳤다. 칸 3 = ' + v[3].toFixed(2) + ', 칸 4 = ' + v[4].toFixed(2) + '. ' + (ok ? '숫자를 나눠 쓰지 않으니 두 칸이 서로 방해하지 않고 둘 다 목표(±1)에 도착했다.' : '숫자를 나눠 쓰는 만큼 한쪽을 고칠 때마다 다른 쪽이 되돌아가서, 같은 10번으로는 목표(±1)에 못 미친다. 일반화가 서로 방해(간섭)가 된 것이다.' + (mode === 'narrow' ? ' "여러 칸과 많이"로 바꿔 다시 해 보면 더 심해진다.' : '')) + sideNote);
+    }
+    function draw(msg) {
+      const v = values();
+      chart.update({ series: [
+        { name: '누르기 전', color: 'faint', values: prev, opacity: 0.5 },
+        { name: '지금', color: 'c1', values: v, colors: v.map((_, i) => (i === lastCell ? 'signal' : 'c1')) },
+      ] });
+      say.innerHTML = msg;
+    }
+    reset();
+    draw('칸 버튼을 눌러 보자. 처음에는 "바로 옆 칸과 조금" 나눠 쓰는 설정이다. 가운데 칸 3을 누르면 칸 2와 칸 4가 어떻게 되는지 보라.');
+  }
+
   /* ---------- w → 2w ---------- */
   function mountW2W(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: '$w \\to 2w$: 업데이트 분포가 발산을 결정한다', caption: '세 가지 업데이트 방식을 같은 초기값 $w_0=1$에서 실제로 반복한다. 세로축은 $\\log_{10}|w|$. 위로 올라가는 직선이 발산, 내려가는 직선이 수렴이다.' });
+    const p = ui.panel(el, { kind: 'SIM', title: '$w \\to 2w$: 업데이트 분포가 발산을 결정한다', caption: '할인율 슬라이더를 0.5 아래로 내렸다가 다시 올려 보며, 주황 선이 위로 꺾여 올라가기 시작하는 지점을 찾아라. 세 가지 업데이트 방식을 같은 초기값 $w_0=1$에서 실제로 반복한다. 세로축은 $\\log_{10}|w|$. 위로 올라가는 직선이 발산, 내려가는 직선이 수렴이다.' });
     const ctr = ui.row(p.body);
     const gS = ui.slider(ctr, { label: '할인율 $\\gamma$', min: 0, max: 1, step: 0.01, value: 0.9, format: ui.fmt.f(2), onInput: draw });
     const aS = ui.slider(ctr, { label: '스텝 크기 $\\alpha$', min: 0.01, max: 0.3, step: 0.01, value: 0.1, format: ui.fmt.f(2), onInput: draw });
@@ -198,7 +297,7 @@ $$w \leftarrow w + \alpha\big(0 + \gamma\cdot 2w - w\big)\cdot 1 = \big(1 + \alp
 
   /* ---------- Baird ---------- */
   function mountBaird(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: 'Baird의 반례: semi-gradient TD vs TDC (기대 업데이트)', caption: '초기값 $w = (1,1,1,1,1,1,10,1)$. 왼쪽은 선택한 방법의 가중치 궤적($w_1$~$w_6$은 대칭이라 항상 같다), 오른쪽은 두 방법의 $\\sqrt{\\overline{\\mathrm{VE}}}$와 $\\sqrt{\\overline{\\mathrm{PBE}}}$($\\log_{10}$).' });
+    const p = ui.panel(el, { kind: 'SIM', title: 'Baird의 반례: semi-gradient TD vs TDC (기대 업데이트)', caption: '"가중치를 볼 방법"을 바꿔 가며, TD에서는 선이 위로 치솟고 TDC에서는 평평해지는 것을 보라. 초기값 $w = (1,1,1,1,1,1,10,1)$. 왼쪽은 선택한 방법의 가중치 궤적($w_1$~$w_6$은 대칭이라 항상 같다), 오른쪽은 두 방법의 $\\sqrt{\\overline{\\mathrm{VE}}}$와 $\\sqrt{\\overline{\\mathrm{PBE}}}$($\\log_{10}$).' });
     const ctr = ui.row(p.body);
     const gS = ui.slider(ctr, { label: '할인율 $\\gamma$', min: 0.8, max: 0.99, step: 0.01, value: 0.99, format: ui.fmt.f(2), onInput: draw });
     const aS = ui.slider(ctr, { label: 'TD 스텝 크기 $\\alpha$', min: 0.002, max: 0.03, step: 0.001, value: 0.01, format: ui.fmt.f(3), onInput: draw });

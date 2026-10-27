@@ -10,6 +10,17 @@
     level: '기초',
     prereq: ['mdp'],
     theses: ['T7', 'T3', 'T6'],
+    easy: {
+      hook: '처음 가 본 동네에서 맛집을 찾을 때, 아는 집에 또 갈지 새 집에 가 볼지가 이 장의 전부다.',
+      intro: '<p>슬롯머신 네 대가 있다. 어느 기계가 잘 터지는지는 모른다. 레버를 30번 당길 수 있다. 좋아 보이는 기계만 계속 당기면 더 좋은 기계를 못 찾을 수 있고, 이것저것 다 당겨 보면 좋은 기계에서 벌 수 있던 점수를 놓친다.</p><p>"처음부터 가장 좋은 기계를 알았다면 벌었을 점수"와 내가 번 점수의 차이를 <strong>후회(regret)</strong>라고 부른다. 좋은 방법이란 후회가 천천히 늘어나는 방법이다.</p>',
+      analogy: '식당의 별점과 리뷰 수를 함께 보는 것과 같다. 리뷰가 3개뿐인 별 4.5짜리 집은 실제로는 별 3일 수도 5일 수도 있다. UCB는 "잘 모르는 집은 좋은 쪽으로 쳐준다". 가 보고 별로면 다음부터 안 가면 되기 때문이다. 리뷰가 쌓일수록 이 덤은 줄어든다.',
+      path: ['슬롯머신을 직접 30번 당기고, 내 후회를 컴퓨터 방법들과 비교한다', '"덤"이 붙은 점수를 손으로 계산해 다음에 당길 기계를 정해 본다', '여러 방법의 후회 곡선을 크게 돌려 비교한다', '챗봇 학습(RLHF)이 왜 같은 문제인지 본다'],
+      recap: [
+        '모르는 것을 시도하는 비용(탐험)과 아는 것을 쓰는 이득(활용) 사이의 균형이 이 문제의 핵심이다.',
+        '덜 시도해 본 선택에 덤을 얹어 주는 방법(UCB)이나, 믿는 만큼 확률적으로 시도하는 방법(Thompson)이 후회를 천천히 늘린다.',
+        '좋았던 선택의 확률을 평균보다 나았던 만큼 올리는 방법(gradient)은 나중에 배울 정책 경사의 가장 작은 버전이다.',
+      ],
+    },
     goals: [
       'regret을 정의하고 $R_T = \\sum_a \\Delta_a\\,\\mathbb{E}[N_a(T)]$로 분해할 수 있다.',
       'Hoeffding 부등식에서 UCB1의 보너스 항 $\\sqrt{2\\ln t / N_a}$를 유도할 수 있다.',
@@ -22,6 +33,8 @@
 
 <h2>Regret: 탐험의 비용을 재는 단위</h2>
 <p>최적 팔의 평균을 $\mu^* = \max_a \mu_a$, 팔 $a$의 간격을 $\Delta_a = \mu^* - \mu_a$라 하자. 처음부터 최적 팔을 알았다면 얻었을 보상과의 차이가 <strong>regret</strong>이다.</p>
+<p>정의를 따지기 전에 직접 해 보자. 아래 기계 네 대를 30번 당긴 뒤, 같은 기계에서 컴퓨터 방법들이 평균적으로 얼마나 후회했는지와 비교한다.</p>
+<div data-w="try-slots"></div>
 <div data-w="dv-regret"></div>
 <p>regret 분해식이 말하는 것은 단순하다. <strong>나쁜 팔을 몇 번 당기느냐가 전부</strong>다. 좋은 알고리즘은 나쁜 팔을 "충분히 확인할 만큼만" 당긴다. 그 "충분히"의 하한이 있다.</p>
 <div class="key"><span class="label">Lai–Robbins 하한 (1985)</span>모든 "합리적인"(어떤 문제에서도 regret이 $o(T^p)$인) 알고리즘은 최적이 아닌 팔에 대해 $\displaystyle\liminf_{T\to\infty}\frac{\mathbb{E}[N_a(T)]}{\ln T} \ge \frac{1}{\mathrm{KL}(\mu_a\,\|\,\mu^*)}$를 만족한다. 즉 regret은 최소 $\Omega(\ln T)$로 자란다. 두 팔의 분포가 비슷할수록(KL이 작을수록) 구분에 더 많은 시도가 필요하다.</div>
@@ -35,6 +48,7 @@
 </div>
 
 <h3>UCB1 유도</h3>
+<div data-w="step-ucb"></div>
 <div data-w="dv-ucb"></div>
 <div data-w="fx-ucb"></div>
 
@@ -83,6 +97,7 @@
     mount: {
       'dv-regret': (el) => ui.derivation(el, {
         title: 'regret 분해',
+        easy: '후회는 결국 "나쁜 기계를 몇 번 당겼나 × 그 기계가 최고 기계보다 얼마나 나쁜가"를 기계마다 더한 것이다. 좋은 방법은 나쁜 기계를 확인할 만큼만 당긴다.',
         steps: [
           { tex: String.raw`R_T = T\mu^* - \mathbb{E}\Big[\sum_{t=1}^{T} r_t\Big]`, why: '정의: 최적 팔만 당겼을 때의 기대 보상과 실제 기대 보상의 차이.' },
           { tex: String.raw`= \sum_{t=1}^{T}\mathbb{E}\big[\mu^* - \mu_{a_t}\big] = \mathbb{E}\Big[\sum_{t=1}^{T} \hl{\Delta_{a_t}}\Big]`, why: '$a_t$가 주어지면 $\\mathbb{E}[r_t|a_t]=\\mu_{a_t}$ (반복 기댓값의 법칙).' },
@@ -91,7 +106,8 @@
       }),
       'dv-ucb': (el) => ui.derivation(el, {
         title: 'Hoeffding에서 UCB1 보너스로',
-        caption: '보상이 $[0,1]$에 있고 팔 $a$를 $n$번 당겨 표본평균 $\\hat\\mu_a$를 얻었다고 하자.',
+        easy: '평균을 n번 재면 오차는 대략 $1/\\sqrt{n}$ 크기로 줄어든다. 그래서 "평균 + 오차 크기만큼의 덤"을 쓰면, 덜 당겨 본 기계일수록 덤이 커서 한 번은 확인하게 되고, 확인이 쌓이면 덤이 줄어 나쁜 기계는 자연스럽게 밀려난다.',
+        caption: '"다음 단계"를 눌러 한 줄씩 펼쳐 보라. 보상이 $[0,1]$에 있고 팔 $a$를 $n$번 당겨 표본평균 $\\hat\\mu_a$를 얻었다고 하자.',
         steps: [
           { tex: String.raw`\Pr\big(\mu_a \ge \hat\mu_a + u\big) \le e^{-2nu^2}`, why: 'Hoeffding 부등식(한쪽). 참 평균이 표본평균보다 $u$ 이상 클 확률은 지수적으로 작다.' },
           { tex: String.raw`e^{-2nu^2} = \hl{t^{-4}} \;\Rightarrow\; u = \sqrt{\frac{2\ln t}{n}}`, why: '실패 확률을 시간에 따라 줄인다($t^{-4}$은 Auer et al.의 선택). 시간이 갈수록 더 확실한 상한을 요구한다.' },
@@ -101,18 +117,20 @@
       }),
       'fx-ucb': (el) => ui.formula(el, {
         title: 'UCB 행동 선택',
+        say: '{a|이번에 당길 기계}는 각 기계의 {mu|지금까지 평균 점수}에 덤을 더한 값이 가장 큰 기계다. 덤은 {c|얼마나 모험할지 정하는 숫자}에 비례하고, {ln|전체 시도 횟수}가 늘면 조금씩 커지며, {N|그 기계를 당겨 본 횟수}가 늘면 줄어든다.',
         tex: String.raw`\tm{a}{a_t} = \argmax_a\Big[\ \tm{mu}{\hat\mu_a}\ +\ \tm{c}{c}\,\sqrt{\frac{\tm{ln}{\ln t}}{\tm{N}{N_a(t)}}}\ \Big]`,
         terms: [
           { id: 'a', sym: 'a_t', label: '선택한 팔', desc: '결정적으로 정해진다. 무작위성 없음.', long: 'UCB는 결정적 알고리즘이다. 같은 기록이면 같은 행동을 한다. 그래서 배치·지연 피드백 환경에서는 같은 팔을 몰아 당기는 문제가 있고, Thompson sampling이 더 강건한 경우가 많다.' },
           { id: 'mu', sym: '\\hat\\mu_a', label: '활용 항', desc: '지금까지의 표본평균.' },
           { id: 'c', sym: 'c', label: '탐험 계수', desc: '이론값 √2. 실전에서는 튜닝 대상.', long: '보상 범위가 $[0,1]$이 아니면 스케일에 맞게 키워야 한다. 너무 크면 과탐험, 너무 작으면 탐욕에 가까워진다. 아래 시뮬레이터에서 바꿔 보라.' },
           { id: 'ln', sym: '\\ln t', label: '시간 항', desc: '천천히 커져서, 오래 안 당긴 팔을 결국 다시 확인하게 한다.', long: '한 번도 확인하지 않은 팔의 보너스는 시간이 지나면 반드시 다시 커진다. 그래서 UCB는 어떤 팔도 영원히 버리지 않는다(탐욕과의 차이).' },
-          { id: 'N', sym: 'N_a(t)', label: '시도 횟수', desc: '많이 당길수록 보너스가 1/√N으로 줄어든다.', long: '$1/\\sqrt{N}$은 표본평균의 표준오차 크기다. 같은 구조가 AlphaZero의 PUCT($c\\,P(a)\\sqrt{N}/(1+N_a)$), 카운트 기반 탐험 보너스에 반복해 나타난다.' },
+          { id: 'N', sym: 'N_a(t)', label: '시도 횟수', desc: '많이 당길수록 보너스가 1/√N으로 줄어든다.', easy: '4번 당기면 덤이 절반, 100번 당기면 10분의 1이 된다.', long: '$1/\\sqrt{N}$은 표본평균의 표준오차 크기다. 같은 구조가 AlphaZero의 PUCT($c\\,P(a)\\sqrt{N}/(1+N_a)$), 카운트 기반 탐험 보너스에 반복해 나타난다.' },
         ],
       }),
       'dv-grad': (el) => ui.derivation(el, {
         title: 'Gradient bandit = baseline 있는 확률적 경사 상승',
-        caption: '$\\pi(a) = e^{H_a}/\\sum_b e^{H_b}$, 목표 $J = \\mathbb{E}_{A\\sim\\pi}[\\mu_A] = \\sum_x \\pi(x)\\mu_x$.',
+        easy: '고른 기계의 점수가 평균보다 좋으면 그 기계의 선호를 올리고 나머지는 조금씩 내린다. 평균보다 나쁘면 반대로 한다. 이 단순한 규칙이 정확히 "기대 점수를 올리는 방향"이라는 것을 보이는 계산이다.',
+        caption: '"다음 단계"를 눌러 한 줄씩 펼쳐 보라. 설정: $\\pi(a) = e^{H_a}/\\sum_b e^{H_b}$, 목표 $J = \\mathbb{E}_{A\\sim\\pi}[\\mu_A] = \\sum_x \\pi(x)\\mu_x$.',
         steps: [
           { tex: String.raw`\frac{\partial J}{\partial H_a} = \sum_x \mu_x\,\frac{\partial \pi(x)}{\partial H_a} = \sum_x \big(\mu_x - \hl{B}\big)\,\frac{\partial \pi(x)}{\partial H_a}`, why: '$\\sum_x \\pi(x)=1$이므로 $\\sum_x \\partial\\pi(x)/\\partial H_a = 0$. 아무 상수 $B$(baseline)를 빼도 경사는 그대로다.' },
           { tex: String.raw`= \sum_x \pi(x)\big(\mu_x - B\big)\,\hl{\frac{\partial \log\pi(x)}{\partial H_a}} = \mathbb{E}_{A\sim\pi}\Big[(\mu_A - B)\,\frac{\partial\log\pi(A)}{\partial H_a}\Big]`, why: '로그-미분 트릭(T3): $\\partial\\pi = \\pi\\,\\partial\\log\\pi$. 합이 기댓값이 되어 샘플로 추정할 수 있다.' },
@@ -123,6 +141,18 @@
       }),
       'bandit-sim': mountBanditSim,
       'ts-posterior': mountPosterior,
+      'try-slots': mountSlots,
+      'step-ucb': (el) => ui.walkthrough(el, {
+        title: '덤을 붙여 다음 기계 고르기 (UCB 손계산)',
+        caption: '칸에 답을 적고 "확인"을 누르면 계산식이 열린다. 지금까지 10번 당겼다. 기계 A는 5번 당겨 평균 0.6, B는 4번 당겨 평균 0.5, C는 1번 당겨 꽝(평균 0)이다. 계산을 쉽게 하려고 탐험 계수 $c=1$, $\\ln 10 \\approx 2.3$을 쓴다.',
+        steps: [
+          { say: '평균만 보면 A가 1등, C가 꼴찌다. 이제 덤을 붙인다. A의 덤은 $\\sqrt{2.3 / 5}$이다. 얼마일까? (소수 둘째 자리)', ask: { answer: 0.68, tol: 0.011 }, calc: String.raw`\sqrt{2.3/5} = \sqrt{0.46} \approx 0.68` },
+          { say: 'A의 UCB 점수(평균 + 덤)는?', ask: { answer: 1.28, tol: 0.015 }, calc: String.raw`0.6 + 0.68 = 1.28` },
+          { say: 'B의 덤은 $\\sqrt{2.3/4} \\approx 0.76$이라 점수는 $0.5 + 0.76 = 1.26$이다. 이제 C다. 한 번밖에 안 당겼으니 덤이 크다. C의 점수 $0 + \\sqrt{2.3/1}$은?', ask: { answer: 1.52, tol: 0.015 }, calc: String.raw`0 + \sqrt{2.3} \approx 1.52` },
+          { say: '세 점수 1.28, 1.26, 1.52 중 가장 큰 C를 당긴다. 평균은 꼴찌지만 "한 번만 해 봐서 아직 모른다"는 덤 덕분에 한 번 더 확인하는 것이다.', calc: String.raw`\text{A } 1.28,\quad \text{B } 1.26,\quad \text{C } \mathbf{1.52}\ \Rightarrow\ \text{C를 당긴다}` },
+          { say: 'C를 당겼더니 또 꽝이었다. 이제 C는 2번 당겨 평균 0이고, 전체는 11번이다($\\ln 11 \\approx 2.4$). C의 새 점수 $0 + \\sqrt{2.4/2}$는?', ask: { answer: 1.1, tol: 0.015 }, calc: String.raw`\text{C: } 0 + \sqrt{2.4/2} \approx 1.10 \;<\; \text{A: } 0.6 + \sqrt{2.4/5} \approx 1.29`, note: '확인할수록 덤이 줄어 C는 A보다 낮아졌다. 다음 번엔 A를 당긴다. 나쁜 기계는 이렇게 "확인할 만큼만" 당겨지고 자연스럽게 밀려난다.' },
+        ],
+      }),
     },
     tacit: [
       { tag: 'math', t: '두 regret 체제: $\\ln T/\\Delta$와 $\\sqrt{KT}$',
@@ -147,6 +177,110 @@
         explain: '프롬프트(문맥)마다 응답 하나를 생성하고 그 응답 전체에 보상이 하나 주어진다. 토큰 단위 MDP로 보는 관점은 18장에서 다룬다.' },
     ],
   });
+
+  /* ---------- 내가 슬롯머신을 당긴다: 30번 후 컴퓨터 방법과 후회 비교 ---------- */
+  function mountSlots(el) {
+    const p = ui.panel(el, { kind: 'TRY', title: '슬롯머신 30번 당기기', caption: '기계를 눌러 레버를 당긴다. 당첨이면 1점, 꽝이면 0점이다. 각 기계의 당첨 확률은 숨겨져 있다. 30번을 다 당기면 진짜 확률이 공개되고, 같은 기계에서 컴퓨터 방법들이 평균적으로 얼마나 후회했는지 내 후회와 나란히 나온다.' });
+    const T = 30;
+    const base = [0.2, 0.35, 0.5, 0.65];
+    const names = ['A', 'B', 'C', 'D'];
+    const r = sim.rng(77);
+    let mus, pulls, wins, total, regret, regCurve, log;
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px';
+    const st = ui.stats(null, [
+      { key: 'left', label: '남은 횟수' },
+      { key: 'tot', label: '내 점수' },
+      { key: 'last', label: '방금 결과', tone: 'accent' },
+    ]);
+    const btns = ui.row(null, 'btns');
+    ui.button(btns, '새 게임 (기계 섞기)', reset);
+    const res = document.createElement('div');
+    p.body.append(grid, st.el, btns, res);
+    const machBtns = names.map((nm, k) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn';
+      b.style.cssText = 'white-space:normal;text-align:left;line-height:1.5;padding:10px 12px';
+      b.addEventListener('click', () => pull(k));
+      grid.appendChild(b);
+      return b;
+    });
+    function reset() {
+      mus = base.slice();
+      for (let i = mus.length - 1; i > 0; i--) { const j = r.int(i + 1); const t = mus[i]; mus[i] = mus[j]; mus[j] = t; }
+      pulls = [0, 0, 0, 0]; wins = [0, 0, 0, 0]; total = 0; regret = 0; regCurve = [[0, 0]]; log = null;
+      res.innerHTML = '';
+      draw();
+    }
+    function pull(k) {
+      const n = sim.sum(pulls);
+      if (n >= T) return;
+      const win = r() < mus[k] ? 1 : 0;
+      pulls[k]++; wins[k] += win; total += win;
+      regret += Math.max(...mus) - mus[k];
+      regCurve.push([n + 1, regret]);
+      log = '기계 ' + names[k] + ': ' + (win ? '당첨 +1' : '꽝');
+      draw();
+      if (n + 1 >= T) finish();
+    }
+    function draw() {
+      const n = sim.sum(pulls);
+      machBtns.forEach((b, k) => {
+        const avg = pulls[k] ? (wins[k] / pulls[k]).toFixed(2) : '–';
+        b.innerHTML = '<strong>기계 ' + names[k] + '</strong><br><span class="col-muted">' + pulls[k] + '번 당김 · ' + wins[k] + '번 당첨</span><br>평균 <span class="mono" style="background:none;padding:0">' + avg + '</span>' +
+          (n >= T ? '<br><span class="col-signal">진짜 확률 ' + mus[k].toFixed(2) + '</span>' : '');
+        b.disabled = n >= T;
+        b.style.opacity = '1';
+      });
+      st.set('left', String(T - n));
+      st.set('tot', String(total));
+      st.set('last', log || '–');
+    }
+    function finish() {
+      const best = Math.max(...mus);
+      const runs = 1000;
+      const algs = [
+        { key: 'rand', name: '무작위로 당기기', short: '무작위', color: 'muted' },
+        { key: 'eps', name: 'ε-greedy (ε=0.1)', short: 'ε-greedy', color: 'c2' },
+        { key: 'ucb', name: 'UCB1', short: 'UCB1', color: 'c1' },
+        { key: 'ts', name: 'Thompson', short: 'Thompson', color: 'c3' },
+      ];
+      const curves = [], finals = [];
+      algs.forEach((a, ai) => {
+        const acc = new Float64Array(T);
+        const rr = sim.rng(500 + ai);
+        if (a.key === 'rand') {
+          let avgGap = 0;
+          mus.forEach((m) => (avgGap += (best - m) / mus.length));
+          for (let t = 0; t < T; t++) acc[t] = avgGap * (t + 1) * runs;
+        } else {
+          const dummy = new Float64Array(T);
+          for (let i = 0; i < runs; i++) runOnce(a.key, mus, T, rr, { eps: 0.1, c: Math.SQRT2, alpha: 0.1 }, acc, dummy);
+        }
+        const c = [[0, 0]];
+        for (let t = 0; t < T; t++) c.push([t + 1, acc[t] / runs]);
+        curves.push({ name: a.name, color: a.color, data: c, endDot: false });
+        finals.push(acc[T - 1] / runs);
+      });
+      const bestK = mus.indexOf(best);
+      const order = [regret].concat(finals).map((v) => v);
+      const rank = order.filter((v) => v < regret - 1e-9).length + 1;
+      res.innerHTML = '<div class="fx-detail">끝났다. 가장 좋은 기계는 <strong>' + names[bestK] + '</strong>(당첨 확률 ' + best.toFixed(2) + ')였고, 나는 그 기계를 ' + pulls[bestK] + '번 당겼다. ' +
+        '내 후회(기대값 기준)는 <strong>' + regret.toFixed(2) + '</strong>점이다. 처음부터 ' + names[bestK] + '만 당겼다면 평균 ' + (best * T).toFixed(1) + '점을 받았을 것이고, 내가 고른 기계들의 평균 점수 합은 ' + (best * T - regret).toFixed(1) + '점이다. ' +
+        '아래 다섯 숫자 중 내 후회는 ' + rank + '번째로 작다. 30번은 짧아서 운이 크게 작용한다. "새 게임"으로 몇 번 더 해 보라.</div>';
+      const chartEl = document.createElement('div');
+      const barEl = document.createElement('div');
+      const split = document.createElement('div');
+      split.className = 'w-split';
+      split.append(chartEl, barEl);
+      res.appendChild(split);
+      plot.line(chartEl, { height: 230, x: { min: 0, max: T, label: '당긴 횟수' }, y: { min: 0, label: '누적 후회' }, series: [{ name: '나', color: 'c4', data: regCurve, width: 3, markers: true }].concat(curves), hoverDigits: 2, hoverXDigits: 0 });
+      plot.bars(barEl, { categories: ['나'].concat(algs.map((a) => a.short)), series: [{ name: '30번 뒤 후회', color: 'c1', values: [regret].concat(finals), colors: ['c4'].concat(algs.map((a) => a.color)) }], height: 230, y: { min: 0, label: '30번 뒤 후회' }, labels: true, labelFmt: (v) => v.toFixed(1), legend: false });
+      RL.renderMath(res);
+    }
+    reset();
+  }
 
   /* ---------- 공통 ---------- */
   const PRESETS = {
@@ -233,7 +367,7 @@
   }
 
   function mountBanditSim(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: 'K-armed 베르누이 밴딧: 알고리즘 비교' });
+    const p = ui.panel(el, { kind: 'SIM', title: 'K-armed 베르누이 밴딧: 알고리즘 비교', caption: '"밴딧"을 바꾸거나 체크박스로 방법을 켜고 끄며, 왼쪽 그래프에서 어느 선이 가장 낮게(후회가 적게) 머무는지 보라. 오른쪽은 최적 기계를 고른 비율이다.' });
     const state = { preset: 'close', T: 1000, runs: 100, eps: 0.1, c: Math.SQRT2, alpha: 0.1 };
     const on = {};
     ALGS.forEach((a) => (on[a.key] = a.on));
@@ -313,7 +447,7 @@
 
   /* ---------- Thompson 사후분포 ---------- */
   function mountPosterior(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: 'Thompson sampling: Beta 사후분포가 좁아지는 과정' });
+    const p = ui.panel(el, { kind: 'SIM', title: 'Thompson sampling: Beta 사후분포가 좁아지는 과정', caption: '"10 스텝"을 몇 번 눌러 보라. 많이 당긴 기계의 산은 좁고 뾰족해지고, 적게 당긴 기계의 산은 넓게 남는다. 점은 이번 스텝에 각 산에서 뽑은 값이고, 가장 오른쪽 점의 기계를 당긴다.' });
     let key = 'close';
     const ctr = ui.row(p.body);
     ui.select(ctr, { label: '밴딧', value: key, options: [{ value: 'easy', label: PRESETS.easy.label }, { value: 'close', label: PRESETS.close.label }, { value: 'rare', label: PRESETS.rare.label }], onChange: (v) => { key = v; reset(); } });

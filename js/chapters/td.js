@@ -10,6 +10,17 @@
     level: '기초 · 핵심',
     prereq: ['bellman', 'dp'],
     theses: ['T6', 'T1', 'T8'],
+    easy: {
+      hook: '결과가 나올 때까지 기다리지 않고, "한 걸음 뒤의 새 예상"으로 지금의 예상을 바로 고칠 수 있다.',
+      intro: '<p>퇴근길 도착 시간을 예상한다고 하자. 사무실을 나서며 "30분 걸리겠다"고 생각했는데, 엘리베이터에서 10분을 기다렸다. 아직 집에 안 갔지만 "오늘은 40분쯤 걸리겠다"고 바로 예상을 고친다.</p><p>집에 도착할 때까지 기다렸다가 고치는 방법이 <strong>몬테카를로(MC)</strong>, 한 걸음 뒤의 새 예상으로 바로 고치는 방법이 <strong>TD</strong>다. 두 예상의 차이(10분 늦어짐)를 <strong>TD 오차</strong>라 부르고, 이 작은 차이가 학습 신호가 된다.</p>',
+      analogy: '일기예보를 채점하는 방법과 같다. 일주일 뒤 실제 날씨를 보고 채점하면(MC) 정확하지만, 그 사이 온갖 우연이 섞여 점수가 들쭉날쭉하다. 내일 나온 새 예보와 비교해 오늘 예보를 고치면(TD) 금방 안정되지만, 내일 예보가 틀렸다면 그 틀림까지 따라간다. 며칠 뒤까지 기다렸다 채점할지 정하는 손잡이가 n과 λ다.',
+      path: ['다섯 칸의 예상을 직접 정해 보고, 한 걸음마다 생기는 빗나감(δ)을 확인한다', 'TD 업데이트 한 번과 MC 업데이트 한 번을 숫자로 손계산한다', '랜덤 워크에서 MC와 TD를 겨루게 해 누가 빨리 정답에 가까워지는지 본다', '"몇 걸음 뒤까지 기다릴지"(n, λ)를 바꿔 가며 가장 좋은 중간값을 찾는다'],
+      recap: [
+        'MC는 끝까지 기다려 실제 결과로 예상을 고치고, TD는 한 걸음 뒤의 새 예상으로 바로 고친다.',
+        '"받은 점수 + 다음 예상 − 지금 예상"인 TD 오차가 학습 신호이며, 이 오차들을 끝까지 다 더하면 MC의 오차가 된다.',
+        '오래 기다릴수록 치우침은 없지만 들쭉날쭉하고, 빨리 고칠수록 안정적이지만 예상이 틀린 만큼 치우친다. 보통 그 중간이 가장 좋다.',
+      ],
+    },
     goals: [
       'MC와 TD(0)의 업데이트를 쓰고, TD가 벨만 기대 연산자의 확률적 근사임을 설명할 수 있다.',
       'MC 오차가 TD 오차의 할인 합 $G_t - V(s_t) = \\sum_k \\gamma^k\\delta_{t+k}$임을 유도할 수 있다.',
@@ -27,11 +38,14 @@ $$V(s_t) \leftarrow V(s_t) + \alpha\big[\,G_t - V(s_t)\,\big]$$
 <h2>TD(0): 한 스텝 뒤의 추정치를 믿는다</h2>
 <p>리턴의 재귀식 $G_t = r_{t+1} + \gamma G_{t+1}$에서 $G_{t+1}$을 현재 추정치 $V(s_{t+1})$로 바꾼 것이 TD(Temporal Difference, Sutton 1988)다.</p>
 <div data-w="fx-td"></div>
+<div data-w="step-td"></div>
 <div data-w="dv-sa"></div>
 <p>TD는 벨만 기대 방정식(<a href="#bellman">02장</a>)을 샘플 하나로 푸는 셈이다. 타깃이 자기 자신의 추정치에 의존하므로(<em>부트스트래핑</em>) 추정이 틀린 동안은 <strong>편향</strong>이 있지만, 한 스텝의 무작위성만 들어가므로 <strong>분산이 작다</strong>. 또 매 스텝 바로 업데이트할 수 있고 끝나지 않는 문제에도 쓸 수 있다.</p>
 <p>표 형태(tabular) TD(0)는 각 상태가 무한히 방문되고 학습률이 Robbins–Monro 조건 $\sum_t\alpha_t = \infty,\ \sum_t\alpha_t^2 < \infty$을 만족하면 확률 1로 $V^\pi$에 수렴한다(Dayan 1992; Jaakkola, Jordan, Singh 1994). 수렴의 뼈대는 결국 $\mathcal{T}^\pi$의 축약성(T1)이다.</p>
 
 <h2>TD 오차 δ: 모든 것의 원자</h2>
+<p>먼저 δ를 직접 만들어 보자. 아래에서 다섯 칸의 예상을 내가 정하는 "평가자(critic)"가 되어, 내 예상이 어디서 빗나가는지 δ로 확인한다.</p>
+<div data-w="try-critic"></div>
 <p>$\delta_t = r_{t+1} + \gamma V(s_{t+1}) - V(s_t)$는 "한 스텝 동안 예측이 얼마나 틀렸나"이다. 이 작은 양이 이후 거의 모든 알고리즘의 재료가 된다. 첫 번째 이유는 다음 항등식이다.</p>
 <div data-w="dv-sum"></div>
 <p>즉 MC의 오차는 TD 오차들의 할인 합이다. MC와 TD는 "TD 오차를 몇 개 더할 것인가"의 양 끝이다. 이 관점에서 n-step은 $n$개를 더하고, TD(λ)와 GAE(<a href="#ac">12장</a>)는 $(\gamma\lambda)^k$로 가중해 더한다. 또 정확한 $V^\pi$에서는 $\mathbb{E}[\delta_t\mid s_t, a_t] = Q^\pi(s_t,a_t) - V^\pi(s_t) = A^\pi(s_t,a_t)$이므로, TD 오차는 <strong>advantage의 한 샘플 추정치</strong>다. actor-critic이 TD 오차로 정책을 밀어주는 이유다.</p>
@@ -91,18 +105,20 @@ $$G_t^{(n)} = r_{t+1} + \gamma r_{t+2} + \cdots + \gamma^{n-1}r_{t+n} + \gamma^n
     mount: {
       'fx-td': (el) => ui.formula(el, {
         title: 'TD(0) 업데이트',
+        say: '{V|이 칸의 예상}을, {r|방금 받은 점수}에 {Vn|다음 칸의 예상}을 {g|할인율}만큼 깎아 더한 값 쪽으로 {a|조금만(학습률만큼)} 옮긴다. 둘의 차이가 {d|TD 오차, 즉 "예상이 얼마나 빗나갔나"}다.',
         tex: String.raw`\tm{V}{V(s_t)} \leftarrow V(s_t) + \tm{a}{\alpha}\Big[\underbrace{\tm{r}{r_{t+1}} + \tm{g}{\gamma}\,\tm{Vn}{V(s_{t+1})}}_{\text{TD 타깃}} - V(s_t)\Big],\qquad \tm{d}{\delta_t} = r_{t+1} + \gamma V(s_{t+1}) - V(s_t)`,
         terms: [
           { id: 'V', sym: 'V(s_t)', label: '현재 추정치', desc: '갱신 대상인 표의 한 칸.' },
-          { id: 'a', sym: '\\alpha', label: '학습률', desc: '상수면 최근 경험을 더 믿는 지수 이동평균.', long: '$\\alpha = 1/N(s)$이면 표본평균, 상수면 지수 가중 평균이다. 상수 α는 비정상(nonstationary) 문제에 적응하지만 잡음 바닥이 남는다. 아래 실험에서 α가 클수록 빨리 떨어지고 높은 바닥에 머무는 것을 확인하라.' },
+          { id: 'a', sym: '\\alpha', label: '학습률', desc: '상수면 최근 경험을 더 믿는 지수 이동평균.', easy: '0.1이면 빗나간 만큼의 10%만 고친다.', long: '$\\alpha = 1/N(s)$이면 표본평균, 상수면 지수 가중 평균이다. 상수 α는 비정상(nonstationary) 문제에 적응하지만 잡음 바닥이 남는다. 아래 실험에서 α가 클수록 빨리 떨어지고 높은 바닥에 머무는 것을 확인하라.' },
           { id: 'r', sym: 'r_{t+1}', label: '실제 보상', desc: '타깃 중 유일한 "진짜" 정보.' },
           { id: 'g', sym: '\\gamma', label: '할인율', desc: '' },
           { id: 'Vn', sym: 'V(s_{t+1})', label: '부트스트랩 항', desc: '미래 리턴을 추정치로 대신한다. 편향의 근원.', long: '이 항 때문에 TD는 자기 추정치로 자기 추정치를 고친다. 함수근사와 off-policy가 겹치면 이 고리가 발산으로 이어질 수 있다(T8, 09장). 종료 상태면 0으로 둔다.' },
-          { id: 'd', sym: '\\delta_t', label: 'TD 오차', desc: '예측과 한 스텝 뒤 결과의 차이.', long: '도파민 뉴런의 발화가 보상 예측 오차처럼 움직인다는 관찰(Schultz, Dayan, Montague 1997)로 신경과학에서도 유명해졌다. 정확한 $V^\\pi$에서 그 조건부 기댓값은 advantage $A^\\pi(s_t,a_t)$이다.' },
+          { id: 'd', sym: '\\delta_t', label: 'TD 오차', desc: '예측과 한 스텝 뒤 결과의 차이.', easy: '양수면 "생각보다 좋았다", 음수면 "생각보다 나빴다".', long: '도파민 뉴런의 발화가 보상 예측 오차처럼 움직인다는 관찰(Schultz, Dayan, Montague 1997)로 신경과학에서도 유명해졌다. 정확한 $V^\\pi$에서 그 조건부 기댓값은 advantage $A^\\pi(s_t,a_t)$이다.' },
         ],
       }),
       'dv-sa': (el) => ui.derivation(el, {
         title: 'TD(0)는 $\\mathcal{T}^\\pi$의 확률적 근사다',
+        easy: 'TD 업데이트 한 번은 "벨만 계산 한 번" 쪽으로 조금 움직이는 것에 잡음이 섞인 것이다. 잡음은 평균이 0이라, 조금씩 여러 번 움직이면 잡음은 서로 상쇄되고 정답 쪽으로만 간다.',
         steps: [
           { tex: String.raw`(\mathcal{T}^\pi V)(s) = \mathbb{E}_\pi\big[r_{t+1} + \gamma V(s_{t+1}) \mid s_t = s\big]`, why: '벨만 기대 연산자는 "한 스텝 보상 + 다음 가치"의 기댓값이다.' },
           { tex: String.raw`\mathbb{E}\big[\delta_t \mid s_t = s\big] = (\mathcal{T}^\pi V)(s) - V(s)`, why: 'TD 오차의 조건부 기댓값은 벨만 잔차(Bellman residual)다.' },
@@ -112,7 +128,8 @@ $$G_t^{(n)} = r_{t+1} + \gamma r_{t+2} + \cdots + \gamma^{n-1}r_{t+n} + \gamma^n
       }),
       'dv-sum': (el) => ui.derivation(el, {
         title: 'MC 오차 = TD 오차의 할인 합',
-        caption: '에피소드 동안 $V$를 바꾸지 않는다고 하자.',
+        easy: '끝까지 기다린 오차(MC 오차)는 걸음마다 생긴 작은 빗나감(TD 오차)들을 할인해서 모두 더한 것과 정확히 같다. 중간의 예상값들이 더하고 빼지며 서로 지워지기 때문이다.',
+        caption: '"다음 단계"를 눌러 한 줄씩 펼쳐 보라. 에피소드 동안 $V$를 바꾸지 않는다고 하자.',
         steps: [
           { tex: String.raw`G_t - V(s_t) = r_{t+1} + \gamma G_{t+1} - V(s_t)`, why: '리턴의 재귀식.' },
           { tex: String.raw`= \underbrace{r_{t+1} + \gamma V(s_{t+1}) - V(s_t)}_{\delta_t} + \gamma\big(\hl{G_{t+1} - V(s_{t+1})}\big)`, why: '$\\gamma V(s_{t+1})$을 더하고 뺀다. 괄호 안은 다음 시점의 MC 오차다.' },
@@ -122,6 +139,7 @@ $$G_t^{(n)} = r_{t+1} + \gamma r_{t+2} + \cdots + \gamma^{n-1}r_{t+n} + \gamma^n
       }),
       'fx-lambda': (el) => ui.formula(el, {
         title: 'λ-리턴',
+        say: '{G|λ-리턴}은 1걸음, 2걸음, 3걸음… 뒤에서 끊은 {Gn|여러 길이의 리턴}을 {l|짧은 것일수록 큰 가중치}로 섞은 평균이고, {w|가중치의 합이 1이 되도록} 맞춘다. 같은 값을 {d|걸음마다의 TD 오차}에 {gl|한 걸음마다 γλ배씩 줄어드는 가중치}를 곱해 더한 것으로 볼 수도 있다.',
         tex: String.raw`\tm{G}{G_t^{\lambda}} = \tm{w}{(1-\lambda)}\sum_{n=1}^{\infty} \tm{l}{\lambda^{n-1}}\, \tm{Gn}{G_t^{(n)}} \qquad \Longleftrightarrow \qquad G_t^\lambda - V(s_t) = \sum_{k\ge0} \tm{gl}{(\gamma\lambda)^k}\,\tm{d}{\delta_{t+k}}`,
         terms: [
           { id: 'G', sym: 'G_t^\\lambda', label: 'λ-리턴', desc: '모든 n-step 리턴의 기하 가중 평균.' },
@@ -134,6 +152,7 @@ $$G_t^{(n)} = r_{t+1} + \gamma r_{t+2} + \cdots + \gamma^{n-1}r_{t+n} + \gamma^n
       }),
       'dv-trace': (el) => ui.derivation(el, {
         title: '전방 관점(λ-리턴) = 후방 관점(eligibility trace), 오프라인',
+        easy: '"여러 걸음 뒤 결과를 기다렸다가 고치기"와 "매 걸음의 빗나감을 최근에 지나온 칸들에 나눠 주기"는 결국 같은 양을 고친다. 최근에, 그리고 자주 지나간 칸일수록 더 많이 책임진다.',
         steps: [
           { tex: String.raw`\Delta V^{\text{fwd}}(s) = \alpha\sum_{t}\mathbf{1}[s_t = s]\,\big(G^\lambda_t - V(s_t)\big) = \alpha\sum_{t}\mathbf{1}[s_t = s]\sum_{k\ge t}(\gamma\lambda)^{k-t}\delta_k`, why: '에피소드 전체에 대한 전방 업데이트의 합. λ-리턴 오차를 TD 오차의 가중합으로 바꿨다.' },
           { tex: String.raw`= \alpha\sum_{k}\delta_k\ \hl{\sum_{t\le k}(\gamma\lambda)^{k-t}\,\mathbf{1}[s_t = s]}`, why: '합의 순서를 바꾼다($t \\le k$). 바깥은 시간 $k$의 TD 오차, 안쪽은 과거 방문의 감쇠 합.' },
@@ -143,6 +162,18 @@ $$G_t^{(n)} = r_{t+1} + \gamma r_{t+2} + \cdots + \gamma^{n-1}r_{t+n} + \gamma^n
       }),
       'rw-mc-td': mountRandomWalk,
       'nstep-sweep': mountSweep,
+      'try-critic': mountCritic,
+      'step-td': (el) => ui.walkthrough(el, {
+        title: 'TD 업데이트 한 번, MC 업데이트 한 번',
+        caption: '칸에 답을 적고 "확인"을 누르면 계산식이 열린다. 랜덤 워크에서 지금 칸 B의 예상은 0.5, 다음 칸 C의 예상은 0.8이다. 할인율은 1, 학습률은 0.1이다.',
+        steps: [
+          { say: 'B에서 C로 한 걸음 갔고 점수는 0이었다. TD 타깃은 "받은 점수 + 다음 칸 예상"이다.', calc: String.raw`r + \gamma V(C) = 0 + 1 \times 0.8 = 0.8` },
+          { say: 'TD 오차 δ는 "타깃 − 지금 예상"이다. 얼마일까?', ask: { answer: 0.3, tol: 0.001 }, calc: String.raw`\delta = 0.8 - 0.5 = 0.3`, note: '양수다. "B는 생각보다 좋은 칸이었다"는 뜻이다.' },
+          { say: 'B의 예상을 δ의 10%만큼만 옮긴다. 새 $V(B)$는?', ask: { answer: 0.53, tol: 0.001 }, calc: String.raw`V(B) \leftarrow 0.5 + 0.1 \times 0.3 = 0.53` },
+          { say: 'C에서 한 걸음 더 가서 오른쪽 끝(점수 1)에 닿았다. 끝 칸의 예상은 0이다. 이번 걸음의 δ는?', ask: { answer: 0.2, tol: 0.001 }, calc: String.raw`\delta = 1 + 0 - 0.8 = 0.2` },
+          { say: 'MC라면 끝날 때까지 기다렸다가 실제 리턴 1을 쓴다. MC 업데이트라면 새 $V(B)$는?', ask: { answer: 0.55, tol: 0.001 }, calc: String.raw`V(B) \leftarrow 0.5 + 0.1 \times (1 - 0.5) = 0.55`, note: 'TD는 B를 떠나자마자 0.53으로 고쳤고, MC는 에피소드가 끝난 뒤에야 0.55로 고친다. 그리고 MC 오차 $1 - 0.5 = 0.5$는 두 TD 오차의 합 $0.3 + 0.2$와 같다. 아래 "MC 오차 = TD 오차의 합" 유도가 바로 이 사실이다.' },
+        ],
+      }),
     },
     tacit: [
       { tag: 'math', t: 'δ를 원자로 보면 TD 가족 전체가 "가중치 선택 문제"가 된다',
@@ -167,6 +198,74 @@ $$G_t^{(n)} = r_{t+1} + \gamma r_{t+2} + \cdots + \gamma^{n-1}r_{t+n} + \gamma^n
         explain: '확실성 등가 추정이다. 예제 6.4에서 배치 TD는 $V(A)=0.75$, 배치 MC는 $V(A)=0$을 낸다.' },
     ],
   });
+
+  /* ---------- 내가 평가자: 예상을 정하고 δ를 본다 ---------- */
+  function mountCritic(el) {
+    const p = ui.panel(el, { kind: 'TRY', title: '내가 평가자(critic): 예상을 정하고 δ 보기', caption: '슬라이더로 다섯 칸 A–E의 예상 가치(= 오른쪽 끝에 닿을 확률)를 직접 정해 보라. 막대는 각 칸에서 한 걸음 갔을 때 δ의 평균이다. 막대가 위로 솟으면 그 칸의 예상이 너무 낮고, 아래로 처지면 너무 높다. 모든 막대를 0 근처로 만들어 보라.' });
+    const names = ['A', 'B', 'C', 'D', 'E'];
+    const V = [0.5, 0.5, 0.5, 0.5, 0.5];
+    const ctr = ui.row(p.body);
+    const sl = names.map((nm, i) => ui.slider(ctr, { label: '$V(' + nm + ')$', min: 0, max: 1, step: 0.01, value: V[i], format: ui.fmt.f(2), onInput: (v) => { V[i] = v; draw(); } }));
+    const btns = ui.row(p.body, 'btns');
+    ui.button(btns, '한 걸음 걸어 δ 하나 보기', stepOnce, { primary: true });
+    ui.button(btns, 'TD에게 100걸음 맡기기 (α=0.1)', () => autoTD(100));
+    ui.button(btns, '정답 보기', () => { setAll([1, 2, 3, 4, 5].map((k) => k / 6)); msg('정답은 1/6, 2/6, …, 5/6이다. 이때 모든 막대가 정확히 0이 된다. 그래도 걸음 하나하나의 δ는 0이 아니다. 왼쪽으로 갈지 오른쪽으로 갈지가 운이기 때문이다. 평균이 0일 뿐이다.'); });
+    ui.button(btns, '모두 0.5로', () => { setAll([0.5, 0.5, 0.5, 0.5, 0.5]); msg('모두 0.5로 되돌렸다. 양 끝 칸 A와 E의 막대부터 보라.'); });
+    const st = ui.stats(p.body, [
+      { key: 'res', label: '평균 |기대 δ| (작을수록 일관된 예상)', tone: 'accent' },
+      { key: 'err', label: '참값과의 RMS 오차' },
+      { key: 'pos', label: '걷는 사람 위치' },
+    ]);
+    const split = document.createElement('div');
+    split.className = 'w-split';
+    const a = document.createElement('div');
+    const box = document.createElement('div');
+    box.className = 'fx-detail';
+    split.append(a, box);
+    p.body.appendChild(split);
+    const chart = plot.bars(a, { categories: names, series: [], height: 210, y: { min: -0.5, max: 0.5, label: '기대 δ' }, labels: true, labelFmt: (v) => (v >= 0 ? '+' : '') + v.toFixed(2), legend: false });
+    const r = sim.rng(13);
+    let pos = 2;
+    // 칸 i에서 한 걸음의 기대 δ = ½(왼쪽 점수 + 왼쪽 예상) + ½(오른쪽 점수 + 오른쪽 예상) − V(i)
+    const sideVal = (j) => (j < 0 ? 0 : j > 4 ? 1 : V[j]);
+    const expDelta = (i) => 0.5 * sideVal(i - 1) + 0.5 * sideVal(i + 1) - V[i];
+    function setAll(arr) { arr.forEach((v, i) => { V[i] = v; sl[i].set(v, true); }); draw(); }
+    function msg(t) { box.innerHTML = t; RL.renderMath(box); }
+    function stepOnce() {
+      const from = pos;
+      const to = from + (r() < 0.5 ? -1 : 1);
+      const rew = to > 4 ? 1 : 0;
+      const nextV = to < 0 || to > 4 ? 0 : V[to];
+      const d = rew + nextV - V[from];
+      const toName = to < 0 ? '왼쪽 끝(점수 0)' : to > 4 ? '오른쪽 끝(점수 1)' : names[to];
+      msg(names[from] + ' → ' + toName + ':  δ = ' + rew + ' + ' + nextV.toFixed(2) + ' − ' + V[from].toFixed(2) + ' = <strong>' + (d >= 0 ? '+' : '') + d.toFixed(2) + '</strong>. ' +
+        (Math.abs(d) < 0.005 ? '예상이 딱 맞았다.' : d > 0 ? names[from] + '은(는) 생각보다 좋은 칸이었다(예상이 낮았다).' : names[from] + '은(는) 생각보다 나쁜 칸이었다(예상이 높았다).') +
+        (to < 0 || to > 4 ? ' 끝에 닿았으니 다시 C에서 출발한다.' : ''));
+      pos = to < 0 || to > 4 ? 2 : to;
+      draw();
+    }
+    function autoTD(n) {
+      for (let k = 0; k < n; k++) {
+        const to = pos + (r() < 0.5 ? -1 : 1);
+        const rew = to > 4 ? 1 : 0;
+        const nextV = to < 0 || to > 4 ? 0 : V[to];
+        V[pos] += 0.1 * (rew + nextV - V[pos]);
+        pos = to < 0 || to > 4 ? 2 : to;
+      }
+      V.forEach((v, i) => sl[i].set(+v.toFixed(2), true));
+      msg('TD가 100걸음 동안 매 걸음 "δ의 10%만큼" 예상을 고쳤다. 슬라이더가 저절로 움직였고 막대들이 0에 가까워졌다. 몇 번 더 누르면 참값 근처에서 조금씩 흔들린다. 학습률이 고정이라 잡음이 남기 때문이다.');
+      draw();
+    }
+    function draw() {
+      const ed = names.map((_, i) => expDelta(i));
+      chart.update({ series: [{ name: '기대 δ', color: 'c1', values: ed, colors: ed.map((v) => (v >= 0 ? 'pos' : 'neg')) }] });
+      st.set('res', (ed.reduce((x, y) => x + Math.abs(y), 0) / 5).toFixed(3));
+      st.set('err', rms(V, TRUE5).toFixed(3));
+      st.set('pos', names[pos]);
+    }
+    msg('처음엔 모두 0.5다. 오른쪽 끝(점수 1)에 붙은 E의 막대는 위로, 왼쪽 끝(점수 0)에 붙은 A의 막대는 아래로 간다. 슬라이더로 E를 올리고 A를 내려 보자.');
+    draw();
+  }
 
   /* ---------- 5-상태 랜덤 워크: MC vs TD(0) ---------- */
   const TRUE5 = [1, 2, 3, 4, 5].map((k) => k / 6);
@@ -206,7 +305,7 @@ $$G_t^{(n)} = r_{t+1} + \gamma r_{t+2} + \cdots + \gamma^{n-1}r_{t+n} + \gamma^n
   }
 
   function mountRandomWalk(el) {
-    const p = ui.panel(el, { kind: 'SIM', title: '랜덤 워크 A–E: MC vs TD(0)' });
+    const p = ui.panel(el, { kind: 'SIM', title: '랜덤 워크 A–E: MC vs TD(0)', caption: '두 학습률 슬라이더를 움직이며 왼쪽 그래프에서 파란 선(TD)과 주황 선(MC) 중 어느 쪽이 먼저 낮아지는지 보라. 오른쪽 그래프는 TD가 한 번의 실행에서 에피소드를 거듭하며 점선(참값)에 다가가는 모습이다.' });
     const st = { aTD: 0.1, aMC: 0.02, eps: 100, runs: 100 };
     const ctr = ui.row(p.body);
     ui.slider(ctr, { label: 'TD 학습률 $\\alpha_{TD}$', min: 0.01, max: 0.5, step: 0.01, value: st.aTD, format: ui.fmt.f(2), onInput: (v) => { st.aTD = v; sched(); } });
@@ -323,7 +422,7 @@ $$G_t^{(n)} = r_{t+1} + \gamma r_{t+2} + \cdots + \gamma^{n-1}r_{t+n} + \gamma^n
     p.body.appendChild(chartEl);
     const cap = document.createElement('p');
     cap.className = 'w-caption';
-    cap.innerHTML = '양 끝 보상 −1/+1, 중앙에서 출발, $V=0$으로 시작. 같은 난수 시드를 모든 α에 공유해(common random numbers) 비교한다. 오차가 1을 넘으면 1로 잘라 계산하고, 0.6 위로 나간 부분은 그래프에서 잘린다(누적 trace의 λ=1은 α가 조금만 커져도 불안정해 대부분 범위 밖이다). Sutton & Barto 7장(n-step, 그림 7.2)과 12장(TD(λ))의 19-상태 실험을 재현했다.';
+    cap.innerHTML = '"방법"을 바꿔 보고, 곡선마다 가장 낮은 점이 어느 α에 있는지 보라. 설정: 양 끝 보상 −1/+1, 중앙에서 출발, $V=0$으로 시작. 같은 난수 시드를 모든 α에 공유해(common random numbers) 비교한다. 오차가 1을 넘으면 1로 잘라 계산하고, 0.6 위로 나간 부분은 그래프에서 잘린다(누적 trace의 λ=1은 α가 조금만 커져도 불안정해 대부분 범위 밖이다). Sutton & Barto 7장(n-step, 그림 7.2)과 12장(TD(λ))의 19-상태 실험을 재현했다.';
     p.body.appendChild(cap);
     const chart = plot.line(chartEl, { height: 300, x: { min: 0, max: 1, label: '학습률 α' }, y: { min: 0.2, max: 0.6, label: '평균 RMS 오차' }, series: [], hoverDigits: 3 });
     const alphas = sim.range(20).map((i) => +(0.05 * (i + 1)).toFixed(2));

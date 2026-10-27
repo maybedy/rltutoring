@@ -373,7 +373,7 @@ $$r_t = -\beta\log\frac{\pi_\theta(y_t|x,y_{\lt t})}{\pi_{\text{ref}}(y_t|x,y_{\
     msg.className = 'fx-detail';
     const c = document.createElement('div');
     p.body.append(msg, c);
-    const chart = plot.line(c, { height: 240, x: { label: '새 확률 π_θ(a|s)', min: 0, max: 1 }, y: { label: '이 샘플의 목적함수 값' }, series: [] });
+    const chart = plot.line(c, { height: 240, x: { label: '새 확률', min: 0, max: 1 }, y: { label: '이 샘플의 목적함수 값' }, series: [] });
     function draw() {
       const po = oS.get(), pn = nS.get(), A = aS.get(), eps = eS.get();
       const L = (x) => { const r = x / po; return Math.min(r * A, sim.clamp(r, 1 - eps, 1 + eps) * A); };

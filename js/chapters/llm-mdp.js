@@ -208,6 +208,138 @@ $$k_1 = -\log\rho,\qquad k_2 = \tfrac12(\log\rho)^2,\qquad k_3 = (\rho - 1) - \l
     ],
   });
 
+  /* ---------- TRY: 토큰을 하나씩 골라 답 만들기 ---------- */
+  const END = '(끝)';
+  const TOK_TREE = {
+    '': [['5', 0.45], ['음,', 0.25], ['정답은', 0.30]],
+    '5': [['입니다.', 0.5], [END, 0.5]],
+    '5 입니다.': [[END, 1]],
+    '음,': [['6', 0.4], ['5', 0.4], ['모르겠어요.', 0.2]],
+    '음, 6': [[END, 1]], '음, 5': [[END, 1]], '음, 모르겠어요.': [[END, 1]],
+    '정답은': [['5', 0.6], ['6', 0.25], ['아마도', 0.15]],
+    '정답은 5': [[END, 1]], '정답은 6': [[END, 1]],
+    '정답은 아마도': [['5', 0.5], ['6', 0.5]],
+    '정답은 아마도 5': [[END, 1]], '정답은 아마도 6': [[END, 1]],
+  };
+  // 보상모델 점수 (예시): 정답이면 +, 오답이면 −, 얼버무리면 낮게
+  const TOK_REWARD = { '5': 1.0, '5 입니다.': 1.2, '음, 6': -1, '음, 5': 0.8, '음, 모르겠어요.': -0.5, '정답은 5': 1.1, '정답은 6': -1, '정답은 아마도 5': 0.6, '정답은 아마도 6': -1 };
+
+  function mountTokens(el) {
+    const p = ui.panel(el, { kind: 'TRY', title: '다음 단어를 하나씩 골라 답 만들기', caption: '질문은 "2+3은?"이다. 아래 단어 버튼 중 하나를 눌러 답을 한 단어씩 이어 가고, "(끝)"을 고르면 답이 완성되어 점수가 나온다. 버튼마다 원래 모델과 정렬된 모델이 그 단어를 고를 확률이 적혀 있다. β 슬라이더를 바꿔 정렬된 모델의 확률이 어떻게 움직이는지도 보라.' });
+    // 완성된 답(잎)을 모두 나열: 원래 확률 = 단어 확률의 곱
+    const leaves = [];
+    (function walk(prefix, prob) {
+      TOK_TREE[prefix].forEach(([t, pr]) => {
+        if (t === END) leaves.push({ text: prefix, ref: prob * pr, r: TOK_REWARD[prefix] });
+        else walk(prefix ? prefix + ' ' + t : t, prob * pr);
+      });
+    })('', 1);
+    const ctr = ui.row(p.body);
+    const bS = ui.slider(ctr, { label: '$\\log_{10}\\beta$', min: -1, max: 1, step: 0.05, value: 0, format: (v) => v.toFixed(2) + '  (β=' + Math.pow(10, v).toPrecision(2) + ')', onInput: () => { solve(); draw(); } });
+    const say = document.createElement('div');
+    say.className = 'fx-detail';
+    say.style.fontSize = 'var(--fs-md)';
+    p.body.appendChild(say);
+    const opts = ui.row(p.body, 'btns');
+    const ctl = ui.row(p.body, 'btns');
+    ui.button(ctl, '처음부터', () => { path = []; draw(); });
+    ui.button(ctl, '정렬된 모델이 대신 끝까지 고르기', () => { auto('pol'); });
+    ui.button(ctl, '원래 모델이 대신 끝까지 고르기', () => { auto('ref'); });
+    const st = ui.stats(p.body, [
+      { key: 'pref', label: '이 답의 확률: 원래 모델' },
+      { key: 'ppol', label: '이 답의 확률: 정렬된 모델', tone: 'accent' },
+      { key: 'lr', label: '누적 log(정렬 / 원래)', tone: 'signal' },
+      { key: 'rew', label: '보상모델 점수' },
+      { key: 'chk', label: '확인: 보상/β − log Z' },
+    ]);
+    const st2 = ui.stats(p.body, [
+      { key: 'kl', label: '전체 KL(정렬 ‖ 원래)' },
+      { key: 'er', label: '평균 점수: 원래 → 정렬' },
+    ]);
+    const log = document.createElement('div');
+    log.className = 'log';
+    p.body.appendChild(log);
+    const r = sim.rng(21);
+    let path = [], pstar = [], logZ = 0, beta = 1;
+
+    function solve() {
+      beta = Math.pow(10, bS.get());
+      const w = leaves.map((L) => L.ref * Math.exp(L.r / beta));
+      const Z = sim.sum(w);
+      logZ = Math.log(Z);
+      pstar = w.map((x) => x / Z);
+    }
+    const key = (toks) => toks.join(' ');
+    // 접두사 질량: 그 접두사로 시작하는 완성된 답들의 확률 합
+    function mass(prefixToks, which) {
+      const pre = key(prefixToks);
+      let m = 0;
+      leaves.forEach((L, i) => {
+        const ok = pre === '' || L.text === pre || L.text.startsWith(pre + ' ');
+        if (ok) m += which === 'ref' ? L.ref : pstar[i];
+      });
+      return m;
+    }
+    function condProbs(toks) {
+      const pre = key(toks);
+      const total = { ref: mass(toks, 'ref'), pol: mass(toks, 'pol') };
+      return TOK_TREE[pre].map(([t, pr]) => {
+        if (t === END) {
+          const i = leaves.findIndex((L) => L.text === pre);
+          return { t, ref: pr, pol: pstar[i] / total.pol };
+        }
+        const nt = toks.concat([t]);
+        return { t, ref: pr, pol: mass(nt, 'pol') / total.pol };
+      });
+    }
+    function finished() { return path.length && path[path.length - 1].t === END; }
+    function choose(o) { path.push(o); draw(); }
+    function auto(which) {
+      if (finished()) path = [];
+      while (!finished()) {
+        const toks = path.map((x) => x.t);
+        const cp = condProbs(toks);
+        const i = r.choice(cp.map((c) => c[which]));
+        path.push(cp[i]);
+      }
+      draw();
+    }
+    function draw() {
+      const toks = path.filter((x) => x.t !== END).map((x) => x.t);
+      say.innerHTML = '<span class="col-muted">질문: 2+3은?&nbsp;&nbsp;답:</span> <strong>' + (toks.length ? RL.escapeHtml(toks.join(' ')) : '') + '</strong>' + (finished() ? ' <span class="col-muted">(완성)</span>' : ' <span class="col-muted">▍</span>');
+      opts.innerHTML = '';
+      if (!finished()) {
+        condProbs(path.map((x) => x.t)).forEach((c) => {
+          ui.button(opts, '<strong>' + RL.escapeHtml(c.t) + '</strong>&nbsp; 원래 ' + Math.round(c.ref * 100) + '% · 정렬 ' + Math.round(c.pol * 100) + '%', () => choose(c));
+        });
+      }
+      let pr = 1, pp = 1, lr = 0;
+      const lines = path.map((x, i) => {
+        pr *= x.ref; pp *= x.pol; lr += Math.log(x.pol / x.ref);
+        return (i + 1) + '. "' + x.t + '"  원래 ' + x.ref.toFixed(3) + ' · 정렬 ' + x.pol.toFixed(3) + '  →  log(정렬/원래) = ' + Math.log(x.pol / x.ref).toFixed(3);
+      });
+      st.set('pref', path.length ? pr.toFixed(4) : '–');
+      st.set('ppol', path.length ? pp.toFixed(4) : '–');
+      st.set('lr', path.length ? lr.toFixed(3) : '–');
+      if (finished()) {
+        const L = leaves.find((x) => x.text === toks.join(' '));
+        st.set('rew', L.r.toFixed(2));
+        st.set('chk', (L.r / beta - logZ).toFixed(3));
+        lines.push('완성. 단어마다의 log 비율을 더한 값(' + lr.toFixed(3) + ')이 "보상/β − log Z"(' + (L.r / beta - logZ).toFixed(3) + ')와 같다. 정렬된 모델의 확률 비율에 보상이 그대로 들어 있다는 뜻이고, 이것이 DPO(20장)의 출발점이다.');
+      } else {
+        st.set('rew', '답이 끝나야 나온다');
+        st.set('chk', '–');
+      }
+      log.textContent = lines.length ? lines.join('\n') : '아직 고른 단어가 없다. 위 버튼으로 첫 단어를 고르자.';
+      const refR = sim.sum(leaves.map((L) => L.ref * L.r));
+      const polR = sim.sum(leaves.map((L, i) => pstar[i] * L.r));
+      st2.set('kl', sim.kl(pstar, leaves.map((L) => L.ref)).toFixed(3) + ' nats');
+      st2.set('er', refR.toFixed(2) + ' → ' + polR.toFixed(2));
+    }
+    solve();
+    draw();
+  }
+
   /* ---------- KL-보상 경계 계산기 ---------- */
   function mountFrontier(el) {
     const resp = [

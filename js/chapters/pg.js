@@ -387,7 +387,7 @@ $$\underbrace{\nabla_\theta\,\mathbb{E}_{(s,a)\sim\mathcal{D}}\big[\log\pi_\thet
       { key: 'avg', label: '지금까지 평균 점수' },
       { key: 'mult', label: '마지막에 곱한 값', tone: 'accent' },
     ]);
-    const bars = plot.bars(barsEl, { categories: acts, series: [], height: 190, y: { min: 0, max: 1, label: '확률' }, labels: true, labelFmt: (v) => Math.round(v * 100) + '%' });
+    const bars = plot.bars(barsEl, { categories: acts, series: [], height: 190, y: { min: 0, max: 1 }, labels: true, labelFmt: (v) => Math.round(v * 100) + '%' });
     const autoHead = document.createElement('p');
     autoHead.className = 'w-caption';
     autoHead.innerHTML = '<strong>자동 실험.</strong> 점수가 늘 양수인 경우(A는 2점, B는 4점, C는 3점)를 30판씩 두 방식으로 돌린다. 두 방식은 같은 난수로 행동을 뽑는다.';
