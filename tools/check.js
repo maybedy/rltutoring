@@ -11,6 +11,8 @@ const { chromium } = require('playwright');
   let failed = 0;
   for (const width of [1280, 400]) {
     const page = await browser.newPage({ viewport: { width, height: 900 } });
+    // MODE=full 이면 "전체 보기"(유도 펼침) 상태로 점검한다
+    if (process.env.MODE === 'full') await page.addInitScript(() => { try { localStorage.setItem('rlatlas.mode', JSON.stringify('full')); } catch (e) { /* noop */ } });
     const errors = [];
     page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
     page.on('console', (m) => { if (m.type() === 'error' && !/fonts\.(googleapis|gstatic)/.test(m.text()) && !/ERR_(NAME|INTERNET|PROXY|CONNECTION|TUNNEL)/.test(m.text())) errors.push('console: ' + m.text()); });
