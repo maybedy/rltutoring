@@ -61,6 +61,16 @@ $$\max_s\Big|\mathbb{E}_\pi\big[G^{(n)}_t\mid s_t=s\big]-V^\pi(s)\Big|\;\le\;\ga
     time: 40,
     level: '지도 · 수학',
     numbered: false,
+    easy: {
+      hook: '수십 개의 강화학습 알고리즘은 아홉 가지 "당연해 보이는 사실" 위에 서 있다. 이 페이지는 그 아홉 개를 일상어로 먼저 말하고, 그다음 수식으로 정확히 적는다.',
+      intro: '<p>각 대전제는 "이렇게 하면 왜 되는가"에 대한 답이다. 예를 들어 "칭찬받은 행동을 더 자주 하게 하면 실력이 는다"(T3)나 "너무 많이 바꾸면 예전 경험이 쓸모없어진다"(T4) 같은 것이다. 처음에는 아래 표의 쉬운 말만 읽고, 마음에 걸리는 것부터 수식을 펼쳐 보면 된다.</p>',
+      path: ['아홉 개를 한 문장씩 읽는다', '일상 이야기가 어느 대전제인지 맞혀 본다', '궁금한 대전제부터 수식과 유도를 펼친다'],
+      recap: [
+        '가치는 "바로 받는 점수 + 할인된 다음 가치"로 반복해서 고치면 정답에 모이고(T1), 재고 고치기를 번갈아 하면 계속 좋아진다(T2).',
+        '좋았던 행동을 더 자주 하게 하되(T3), 한 번에 너무 많이 바꾸지 않고(T4), 원래 습관에서 너무 멀어지지 않게 한다(T5).',
+        '추정은 정확함과 안정성 사이에서 고르고(T6), 모르는 곳은 상황에 따라 낙관하거나 비관하며(T7, T8), 오래 고민한 답은 외워서 다음에 쓴다(T9).',
+      ],
+    },
     theses: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9'],
     goals: [
       '각 대전제를 한 줄 수식과 한 문장 직관으로 말할 수 있다.',
@@ -71,6 +81,10 @@ $$\max_s\Big|\mathbb{E}_\pi\big[G^{(n)}_t\mid s_t=s\big]-V^\pi(s)\Big|\;\le\;\ga
       let s = String.raw`
 <p>여기서 대전제(thesis)는 "증명되었거나 널리 받아들여진 수학적 사실로서, 여러 알고리즘이 그 위에 설계된 것"을 뜻한다. 각 항목은 같은 형식을 따른다: <strong>명제</strong>, <strong>왜 참인가</strong>, <strong>변형이 생기는 방식</strong>, <strong>깨지는 조건</strong>, <strong>이 전제를 쓰는 알고리즘</strong>(계보도 데이터에서 자동으로 모음).</p>
 
+<h2>아홉 개를 한 문장씩</h2>
+<div data-w="plain-table"></div>
+<div data-w="match-game"></div>
+
 <h2>대전제들의 관계</h2>
 <p>아홉 개는 독립적이지 않다. 화살표는 "앞의 전제가 뒤의 전제를 만들거나 그 필요를 낳는다"는 뜻이다.</p>
 <div data-w="relations"></div>
@@ -79,6 +93,7 @@ $$\max_s\Big|\mathbb{E}_\pi\big[G^{(n)}_t\mid s_t=s\big]-V^\pi(s)\Big|\;\le\;\ga
       RL.theses.forEach((t) => {
         const d = DETAIL[t.id];
         s += '<h2 id="' + t.id.toLowerCase() + '">' + t.id + ' · ' + t.title + '</h2>';
+        s += '<div class="easy-analogy" style="margin:0.8em 0"><span class="label">쉬운 말</span><p style="margin:0.2em 0 0.4em;font-weight:600">' + t.easy + '</p><span class="label">비유로 보면</span><p style="margin:0.2em 0 0">' + t.analogy + '</p></div>';
         s += '<div class="thesis-box"><span class="label">명제</span>$$' + t.tex + '$$<p>' + t.gist + '</p></div>';
         if (t.id === 'T1') s += '<div data-w="t1-demo"></div>';
         if (t.id === 'T3') s += '<div data-w="t3-derive"></div><div data-w="t3-demo"></div>';
@@ -94,6 +109,21 @@ $$\max_s\Big|\mathbb{E}_\pi\big[G^{(n)}_t\mid s_t=s\big]-V^\pi(s)\Big|\;\le\;\ga
     },
     mount: Object.assign({
       relations: mountRelations,
+      'plain-table': (el) => {
+        el.className = 'table-wrap';
+        el.innerHTML = '<table class="t"><thead><tr><th>대전제</th><th>쉬운 말</th><th>비유</th></tr></thead><tbody>' +
+          RL.theses.map((t) => '<tr><td style="white-space:nowrap"><a href="#theses--' + t.id.toLowerCase() + '"><strong>' + t.id + '</strong> ' + t.short + '</a></td><td>' + t.easy + '</td><td class="col-muted">' + t.analogy + '</td></tr>').join('') + '</tbody></table>';
+      },
+      'match-game': (el) => ui.predict(el, {
+        title: '이 이야기는 어느 대전제일까',
+        caption: '일상 이야기 네 개를 읽고 가장 잘 맞는 대전제를 골라 보자. 위 표를 다시 봐도 된다.',
+        items: [
+          { q: '강아지가 앉았을 때만 간식을 주었더니 앉는 횟수가 점점 늘었다.', choices: ['T1 벨만 고정점', 'T3 점수함수 경사', 'T7 낙관과 비관'], correct: 1, hint: '"좋았던 행동의 확률을 올린다"는 규칙이다.', explain: 'T3. 결과가 좋았던 행동의 확률을 올리는 것이 정책 경사의 핵심이다. 보상을 미분할 필요가 없다는 점도 같다.' },
+          { q: '동네 지도만 가지고 옆 동네까지는 길을 잘 찾았는데, 먼 도시에서는 지도가 전혀 맞지 않았다.', choices: ['T4 성능 차이 · 신뢰영역', 'T6 편향-분산', 'T9 탐색의 상각'], correct: 0, hint: '"옛 경험으로 새 방식을 평가할 수 있는 범위"에 관한 이야기다.', explain: 'T4. 옛 정책의 경험으로 새 정책을 평가하는 근사는 정책이 조금만 바뀔 때만 맞다. 그래서 TRPO와 PPO는 한 번에 조금씩만 바꾼다.' },
+          { q: '흔들리는 저울 열 개로 같은 물건을 재고 가장 큰 숫자만 믿었더니, 실제보다 늘 무겁게 나왔다.', choices: ['T2 GPI', 'T5 KL-정규화 해', 'T8 Deadly Triad · 과대추정'], correct: 2, hint: '여러 어림값 중 최댓값만 고르면 생기는 착시다.', explain: 'T8. 잡음 있는 추정치의 최댓값은 위로 치우친다. Q-learning의 max가 이 문제를 만들고, Double Q-learning이 이를 줄인다.' },
+          { q: '바둑 기사가 대국 후 오래 수읽기해서 찾은 좋은 수를 복기로 외웠더니, 다음 대국에서는 바로 그 수가 떠올랐다.', choices: ['T9 탐색의 상각', 'T1 벨만 고정점', 'T6 편향-분산'], correct: 0, hint: '"비싸게 찾은 답을 외워 두고 다음엔 싸게 꺼내 쓰기".', explain: 'T9. AlphaZero는 MCTS로 찾은 수를 정책망에 학습시키고, STaR와 R1은 맞힌 풀이를 다시 학습한다. 탐색 결과를 직감으로 바꾸는 구조다.' },
+        ],
+      }),
       matrix: mountMatrix,
       't1-demo': mountT1,
       't3-derive': (el) => ui.derivation(el, {

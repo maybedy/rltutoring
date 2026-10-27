@@ -124,6 +124,17 @@
     subtitle: '1933년 Thompson 샘플링부터 2025년 추론 RL까지, 약 80개 알고리즘이 어느 부모에서 어떤 손잡이를 돌려 나왔는지를 한 장에 그린다.',
     time: 20,
     level: '지도',
+    easy: {
+      hook: '알고리즘에도 족보가 있다. 거의 모든 새 알고리즘은 부모 알고리즘에서 딱 한 가지를 바꿔서 태어났다.',
+      intro: '<p>예를 들어 DQN은 Q-learning의 "칸마다 적는 점수표"를 신경망으로 바꾼 것이고, GRPO는 PPO에서 "코치(critic)"를 빼고 같은 문제의 다른 답들과 비교하게 바꾼 것이다. 아래 지도에서 알고리즘 하나를 누르면 부모와 자식이 이어져 보인다.</p>',
+      analogy: '요리 레시피의 변형과 같다. 김치찌개에서 돼지고기를 참치로 바꾸면 참치김치찌개가 된다. 바꾼 재료 하나가 이름과 맛을 정한다. 알고리즘에서 그 "재료"는 여섯 종류(표현, 추정 방법, 제약, 데이터, 개선 방법, 문제 자체)뿐이다.',
+      path: ['지도에서 아는 이름 하나를 눌러 부모와 자식을 본다', '계열별 한 줄 설명으로 큰 덩어리를 익힌다', '"무엇을 바꿨나" 퀴즈로 여섯 가지 손잡이를 구분해 본다'],
+      recap: [
+        '새 알고리즘은 대부분 부모에서 한두 가지만 바꾼 것이다.',
+        '바꾸는 것은 여섯 종류다: 무엇으로 표현하나, 어떻게 어림하나, 얼마나 멀리 가도 되나, 데이터를 어디서 얻나, 어떻게 더 나은 답을 찾나, 무엇을 푸나.',
+        '고전 RL의 아이디어(가치, 정책 경사, 정규화, 탐색 후 외우기)가 그대로 LLM 학습으로 이어진다.',
+      ],
+    },
     theses: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9'],
     goals: [
       '알고리즘 사이의 파생 관계를 "무엇을 바꿨나(표현, 추정량, 정규화, 데이터, 개선 연산자, 문제 정의)"로 분류할 수 있다.',
@@ -133,6 +144,9 @@
     html: String.raw`
 <p>노드를 누르면 그 알고리즘의 요약, 부모에서 무엇이 바뀌었는지, 기대는 대전제, 해당 장 링크가 나온다. 선택한 노드의 조상과 후손 경로는 강조된다. 위쪽 칩으로 대전제별 필터를, 아래쪽 칩으로 "무엇을 바꿨나" 축별 필터를 걸 수 있다. 가로 축은 연도이며, 1985년 이전과 2012년 이후는 눈금 간격이 다르다.</p>
 <div data-w="graph"></div>
+
+<h2>계열을 한 줄로</h2>
+<div data-w="families"></div>
 
 <h2>변형은 여섯 가지 손잡이에서 나온다</h2>
 <p>계보도의 화살표를 모아 보면 새 알고리즘이 나오는 방식은 대체로 여섯 가지다. 새 논문을 읽을 때 "이 논문은 어느 손잡이를 돌렸나"를 먼저 물으면 구조가 빨리 보인다.</p>
@@ -147,6 +161,8 @@
 <tr><td><span class="col-c6">문제 재정의</span></td><td>최적화 대상 자체</td><td>MDP → POMDP, 환경 보상 → 선호 보상(RLHF), RL → 리턴 조건 지도학습(UDRL, DT)</td></tr>
 </tbody></table></div>
 
+<div data-w="knob-quiz"></div>
+
 <h2>고전에서 LLM까지 네 개의 흐름</h2>
 <div class="grid2">
   <div class="card"><h4><span class="col-c1">가치의 흐름</span> · T1, T8</h4><p>벨만(1957) → TD(1988) → Q-learning(1989) → FQI → DQN(2013) → Double/Dueling/PER/C51 → Rainbow(2017) → MuZero(2019) → From r to Q*(2024), Q* 탐색. 고정점을 샘플·신경망으로 풀면서 생기는 불안정성과의 싸움.</p></div>
@@ -159,7 +175,43 @@
 <p>계열을 골라 연표를 좁힐 수 있다. 각 행의 "핵심 변화"는 첫 번째 부모로부터의 변화다.</p>
 <div data-w="timeline"></div>
 `,
-    mount: { graph: mountGraph, timeline: mountTimeline },
+    mount: {
+      graph: mountGraph,
+      timeline: mountTimeline,
+      families: (el) => {
+        const plain = {
+          explore: '모르는 선택지를 언제 시도해 볼까. 슬롯머신 여러 대 중 좋은 것을 찾는 문제.',
+          dp: '세상의 규칙을 다 알 때, 점수를 거꾸로 계산해 최선의 계획을 세운다.',
+          value: '"이 상황(이 행동)은 몇 점짜리인가"를 배우고, 점수 높은 쪽을 고른다.',
+          pg: '"이 행동을 할 확률"을 직접 조금씩 고친다. 좋았던 행동은 더 자주.',
+          maxent: '점수와 함께 "선택지를 골고루 열어 두기"도 챙긴다. 로봇 팔처럼 연속 동작에 강하다.',
+          model: '머릿속에 세상의 모형을 두고 미리 시뮬레이션해 본다. 바둑의 수읽기.',
+          offline: '새로 시도할 수 없고 이미 모은 기록만으로 배운다. 그래서 모르는 곳을 조심한다.',
+          align: '사람이 더 좋다고 고른 답을 기준으로 LLM을 고친다.',
+          reason: '정답을 확인할 수 있는 문제(수학, 코드)로 LLM의 추론을 훈련한다.',
+          infer: '학습은 그대로 두고, 답할 때 여러 번 생각하고 고르거나 기억을 활용한다.',
+        };
+        const wrap = document.createElement('div');
+        wrap.className = 'grid2';
+        FAM.forEach((f) => {
+          const n = RL.algos.filter((a) => a.fam === f.id).length;
+          const c = document.createElement('div');
+          c.className = 'card';
+          c.innerHTML = '<h4 style="color:var(--' + f.color + ')">' + f.label + ' <span class="col-muted" style="font-weight:400;font-size:var(--fs-xs)">' + n + '개</span></h4><p>' + plain[f.id] + '</p>';
+          wrap.appendChild(c);
+        });
+        el.appendChild(wrap);
+      },
+      'knob-quiz': (el) => ui.predict(el, {
+        title: '무엇을 바꿨을까',
+        caption: '부모에서 자식으로 갈 때 바뀐 "재료"를 골라 보자.',
+        items: [
+          { q: 'Q-learning → DQN: 칸마다 적던 점수표를 신경망 하나로 바꿨다.', choices: ['표현 · 근사', '데이터 체제', '문제 재정의'], correct: 0, explain: '같은 Q-learning 규칙을 쓰되, 가치를 무엇으로 나타내는지(표 → 신경망)를 바꿨다.' },
+          { q: 'TRPO → PPO: "KL 거리 제한"을 "확률 비율 자르기"로 바꿨다.', choices: ['추정량', '정규화 · 제약', '개선 연산자 · 탐색'], correct: 1, explain: '얼마나 멀리 가도 되는지를 정하는 방식(제약)을 더 단순한 것으로 바꿨다.' },
+          { q: 'InstructGPT → Constitutional AI: 사람이 고르던 선호를 원칙에 따른 AI의 판단으로 바꿨다.', choices: ['표현 · 근사', '데이터 체제', '추정량'], correct: 1, explain: '학습 방법은 거의 같고, 선호 데이터를 누가 만드는지가 바뀌었다.' },
+        ],
+      }),
+    },
     tacit: [
       { tag: 'research', t: '논문 하나는 대개 손잡이 하나다',
         d: '<p>계보도의 거의 모든 화살표는 손잡이 한두 개만 바꾼다. 성공한 논문이 여러 개를 한꺼번에 바꾼 것처럼 보이면, 대개는 핵심 한 개와 그것을 작동시키기 위한 공학적 수정 몇 개다(예: DQN의 핵심은 replay와 target net, 나머지는 Atari 전처리). 새 논문을 읽을 때 "부모가 누구고 어느 손잡이를 돌렸나"를 한 문장으로 쓸 수 없으면 아직 이해하지 못한 것이다.</p>' },
