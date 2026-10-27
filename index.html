@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RL Atlas</title>
+<meta name="description" content="MDP에서 RLHF·추론 RL까지, 수식 유도와 시뮬레이터로 배우는 강화학습 인터랙티브 커리큘럼">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
+<link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+<header class="topbar">
+  <button type="button" class="icon-btn menu-btn" id="menu-btn" aria-label="커리큘럼 열기" aria-expanded="false" aria-controls="sidebar">목차</button>
+  <a class="brand" href="#home"><b>RL Atlas</b><span>MDP → RLHF</span></a>
+  <div class="crumb" id="crumb"></div>
+  <button type="button" class="icon-btn" id="mode-btn" aria-pressed="true">쉽게 보기</button>
+  <button type="button" class="icon-btn" id="sym-btn" aria-expanded="false" aria-controls="sym-panel" aria-label="기호 사전 열기">기호<span class="lg"> 사전</span></button>
+  <button type="button" class="icon-btn" id="theme-btn" aria-label="테마 변경">시스템</button>
+</header>
+<aside class="sym-panel" id="sym-panel" hidden aria-label="기호 사전"></aside>
+<div class="shell">
+  <nav class="sidebar" id="sidebar" aria-label="커리큘럼"><div id="toc"></div></nav>
+  <div class="scrim" id="scrim" hidden></div>
+  <main class="main" id="main"></main>
+</div>
+
+<script src="vendor/katex/katex.min.js"></script>
+<script src="vendor/katex/contrib/auto-render.min.js"></script>
+<script src="js/core.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/plot.js"></script>
+<script src="js/sim.js"></script>
+<!-- chapters -->
+<script src="js/chapters/home.js"></script>
+<script src="js/chapters/theses.js"></script>
+<script src="js/chapters/lineage.js"></script>
+<script src="js/chapters/mdp.js"></script>
+<script src="js/chapters/bellman.js"></script>
+<script src="js/chapters/dp.js"></script>
+<script src="js/chapters/pomdp.js"></script>
+<script src="js/chapters/bandit.js"></script>
+<script src="js/chapters/td.js"></script>
+<script src="js/chapters/qlearning.js"></script>
+<script src="js/chapters/qviews.js"></script>
+<script src="js/chapters/approx.js"></script>
+<script src="js/chapters/dqn.js"></script>
+<script src="js/chapters/pg.js"></script>
+<script src="js/chapters/ac.js"></script>
+<script src="js/chapters/ppo.js"></script>
+<script src="js/chapters/maxent.js"></script>
+<script src="js/chapters/offline.js"></script>
+<script src="js/chapters/modelbased.js"></script>
+<script src="js/chapters/sequence.js"></script>
+<script src="js/chapters/llm-mdp.js"></script>
+<script src="js/chapters/rlhf.js"></script>
+<script src="js/chapters/dpo.js"></script>
+<script src="js/chapters/reasoning.js"></script>
+<script src="js/chapters/test-time.js"></script>
+<script src="js/chapters/memory.js"></script>
+<script src="js/chapters/synthesis.js"></script>
+<script src="js/chapters/tacit.js"></script>
+<script src="js/chapters/glossary.js"></script>
+<script>RL.boot();</script>
+</body>
+</html>
