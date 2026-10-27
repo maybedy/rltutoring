@@ -17,6 +17,12 @@ const { chromium } = require('playwright');
     page.on('requestfailed', (r) => { if (!/fonts\.(googleapis|gstatic)/.test(r.url())) errors.push('requestfailed: ' + r.url()); });
     await page.goto(url + '#home');
     await page.waitForTimeout(300);
+    // 첫 로드 중에 난 오류(스크립트 파싱·정의 누락 등)는 장별 목록을 비우기 전에 따로 보고한다
+    if (errors.length) {
+      failed++;
+      console.log(`[${width}] page load errors:`);
+      errors.slice(0, 10).forEach((e) => console.log('   ' + e));
+    }
     const ids = only.length ? only : await page.evaluate(() => RL.order);
     for (const id of ids) {
       errors.length = 0;
