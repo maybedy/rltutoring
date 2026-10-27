@@ -837,3 +837,5 @@ table.t td.num { font-variant-numeric: tabular-nums; text-align: right; }
   .icon-btn { padding: 0 8px; }
 }
 .sym-list dt .katex { font-size: 1.2em; }
+.wk-steps > .wk-step { min-width: 0; }
+.wk-calc, .wk-say { min-width: 0; max-width: 100%; }
